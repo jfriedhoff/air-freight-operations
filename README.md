@@ -4,12 +4,12 @@ Vlucht- en vrachtbeheer voor een luchtvrachtmaatschappij. Project voor Software 
 
 ## Team
 
-Romeo Weyns & Jonas Friedhoff
-romeo-jonas
+*Romeo Weyns & Jonas Friedhoff
+*romeo-jonas
 
-Coach: Lars Willemsens
-Academiejaar: 26-27
-Klasgroep: IAI3
+*Coach: Lars Willemsens
+*Academiejaar: 26-27
+*Klasgroep: IAI3
  
 ## Documentatie
  
