@@ -1,1 +1,79 @@
+# ---------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------
 .DS_Store
+._*
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------
+# IDEs (personal settings, not shared)
+# ---------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+bin/
+
+# ---------------------------------------------------------------
+# Java / Gradle / Maven (build output, per service)
+# ---------------------------------------------------------------
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+hs_err_pid*
+replay_pid*
+
+# Spring Boot
+HELP.md
+.springBeans
+.sts4-cache/
+
+# Frontend build copied into the backend by Gradle/Vite (generated)
+**/src/main/resources/static/
+
+# ---------------------------------------------------------------
+# Node / Vite / TypeScript (frontend modules)
+# ---------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------------------------------------------------------------
+# Docker Compose volumes (local data of Postgres, RabbitMQ, Keycloak)
+# ---------------------------------------------------------------
+postgresql/
+rabbitmq/
+idp_mysql_data/
+
+# ---------------------------------------------------------------
+# Logs, temp files, secrets
+# ---------------------------------------------------------------
+logs/
+*.log
+*.tmp
+*.swp
+*~
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Claude Code: personal settings stay local
+.claude/settings.local.json
