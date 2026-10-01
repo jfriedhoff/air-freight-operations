@@ -1,1 +1,4 @@
 rootProject.name = 'air-freight-operations'
+
+include('flight-operations')
+include('flight-operations:flight-operations-service')
