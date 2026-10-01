@@ -5,3 +5,6 @@ include('flight-operations:flight-operations-service')
 
 include('load-planning')
 include('load-planning:load-planning-service')
+
+include('messaging')
+include('messaging:messaging-service')
