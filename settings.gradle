@@ -2,3 +2,6 @@ rootProject.name = 'air-freight-operations'
 
 include('flight-operations')
 include('flight-operations:flight-operations-service')
+
+include('load-planning')
+include('load-planning:load-planning-service')
