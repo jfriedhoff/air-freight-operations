@@ -2,14 +2,14 @@ rootProject.name = 'air-freight-operations'
 
 include('flight-operations')
 include('flight-operations:flight-operations-service')
+include('flight-operations:flight-operations-frontend')
 
 include('load-planning')
 include('load-planning:load-planning-service')
+include('load-planning:load-planning-frontend')
 
 include('messaging')
 include('messaging:messaging-service')
 
 include('simulator')
 include('simulator:simulator-service')
-include('flight-operations:flight-operations-frontend')
-include('load-planning:load-planning-frontend')
