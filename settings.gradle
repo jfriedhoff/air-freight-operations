@@ -8,3 +8,6 @@ include('load-planning:load-planning-service')
 
 include('messaging')
 include('messaging:messaging-service')
+
+include('simulator')
+include('simulator:simulator-service')
