@@ -11,3 +11,4 @@ include('messaging:messaging-service')
 
 include('simulator')
 include('simulator:simulator-service')
+include('flight-operations:flight-operations-frontend')
