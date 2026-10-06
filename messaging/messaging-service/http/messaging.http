@@ -1,0 +1,107 @@
+### The messaging service is driven by messages, not by REST. These requests publish straight to an
+### exchange through the RabbitMQ management API, so the service can be tried without the other services.
+### The answer says whether a queue received the message: {"routed": true}.
+
+### An SSM: HJ221 on Mondays and Wednesdays in one week -> two messaging.flight.scheduled
+
+POST http://localhost:15672/api/exchanges/%2F/network-planning.messages/publish
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "routing_key": "network-planning.ssm",
+  "properties": { "content_type": "application/json" },
+  "payload": "{\"messageId\":\"11111111-1111-4111-8111-111111111111\",\"type\":\"network-planning.ssm\",\"version\":1,\"createdAt\":\"2026-10-01T08:00:00Z\",\"periodFrom\":\"2026-10-05\",\"periodTo\":\"2026-10-11\",\"weekdays\":[\"MONDAY\",\"WEDNESDAY\"],\"departureTime\":\"06:45\",\"arrivalTime\":\"10:30\",\"flightNumber\":\"HJ221\",\"departureAirport\":\"BRU\",\"arrivalAirport\":\"ATH\",\"registration\":\"SXBAA\"}",
+  "payload_encoding": "string"
+}
+
+### The same SSM again (send the request above twice): logged as a duplicate, nothing published
+
+### A ULD message: the flight is named by the day of the month only
+
+POST http://localhost:15672/api/exchanges/%2F/cargo-booking.messages/publish
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "routing_key": "cargo-booking.uld",
+  "properties": { "content_type": "application/json" },
+  "payload": "{\"messageId\":\"22222222-2222-4222-8222-222222222222\",\"type\":\"cargo-booking.uld\",\"version\":1,\"createdAt\":\"2026-10-01T08:00:00Z\",\"flightNumber\":\"HJ221\",\"dayOfMonth\":5,\"departureAirport\":\"BRU\",\"uldCode\":\"AKE16689R7\",\"weight\":1250.5,\"weightUnit\":\"KG\",\"destination\":\"ATH\"}",
+  "payload_encoding": "string"
+}
+
+### A flight was announced -> an FLM for the partners, and the event passed on
+
+POST http://localhost:15672/api/exchanges/%2F/flight-operations.events/publish
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "routing_key": "flight-operations.flight.announced",
+  "properties": { "content_type": "application/json" },
+  "payload": "{\"messageId\":\"33333333-3333-4333-8333-333333333333\",\"type\":\"flight-operations.flight.announced\",\"version\":1,\"occurredOn\":\"2026-10-01T08:00:00Z\",\"flightId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"flightNumber\":\"HJ221\",\"scheduledDepartureDate\":\"2026-10-05\",\"departureAirport\":\"BRU\",\"arrivalAirport\":\"ATH\",\"registration\":\"SXBAA\",\"std\":\"2026-10-05T06:45:00Z\",\"sta\":\"2026-10-05T10:30:00Z\",\"etd\":\"2026-10-05T06:45:00Z\",\"eta\":\"2026-10-05T10:30:00Z\",\"flightVersion\":0}",
+  "payload_encoding": "string"
+}
+
+### The ETD changed -> the telegram MVT-ED: HJ221/05.SXBAA.BRU / ED0715
+
+POST http://localhost:15672/api/exchanges/%2F/flight-operations.events/publish
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "routing_key": "flight-operations.flight.departure-estimate-changed",
+  "properties": { "content_type": "application/json" },
+  "payload": "{\"messageId\":\"44444444-4444-4444-8444-444444444444\",\"type\":\"flight-operations.flight.departure-estimate-changed\",\"version\":1,\"occurredOn\":\"2026-10-05T05:00:00Z\",\"flightId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"flightNumber\":\"HJ221\",\"scheduledDepartureDate\":\"2026-10-05\",\"departureAirport\":\"BRU\",\"arrivalAirport\":\"ATH\",\"registration\":\"SXBAA\",\"std\":\"2026-10-05T06:45:00Z\",\"sta\":\"2026-10-05T10:30:00Z\",\"etd\":\"2026-10-05T07:15:00Z\",\"eta\":\"2026-10-05T11:00:00Z\",\"flightVersion\":1}",
+  "payload_encoding": "string"
+}
+
+### A load was finalized -> a CPM for the partners, and messaging.cpm.created
+
+POST http://localhost:15672/api/exchanges/%2F/load-planning.events/publish
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "routing_key": "load-planning.flight-cargo.load-finalized",
+  "properties": { "content_type": "application/json" },
+  "payload": "{\"messageId\":\"55555555-5555-4555-8555-555555555555\",\"type\":\"load-planning.flight-cargo.load-finalized\",\"version\":1,\"occurredOn\":\"2026-10-05T06:00:00Z\",\"flightNumber\":\"HJ221\",\"scheduledDepartureDate\":\"2026-10-05\",\"departureAirport\":\"BRU\",\"load\":[{\"uldCode\":\"AKE16689R7\",\"position\":\"CL\",\"weight\":1250.5,\"weightUnit\":\"KG\",\"destination\":\"ATH\"}]}",
+  "payload_encoding": "string"
+}
+
+### An unreadable message: stored as REJECTED with a reason and logged, not retried
+
+POST http://localhost:15672/api/exchanges/%2F/network-planning.messages/publish
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "routing_key": "network-planning.ssm",
+  "properties": { "content_type": "application/json" },
+  "payload": "this is not json",
+  "payload_encoding": "string"
+}
+
+### Look at what the partners received, without consuming it
+
+POST http://localhost:15672/api/queues/%2F/partners.all/get
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "count": 10,
+  "ackmode": "ack_requeue_true",
+  "encoding": "auto"
+}
+
+### Look at the dead letter queue (only messages whose processing kept failing end up here)
+
+POST http://localhost:15672/api/queues/%2F/messaging.dlq/get
+Authorization: Basic user password
+Content-Type: application/json
+
+{
+  "count": 10,
+  "ackmode": "ack_requeue_true",
+  "encoding": "auto"
+}
