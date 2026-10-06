@@ -2,29 +2,29 @@ package be.kdg.airfreight.messaging.domain.telegram;
 
 import java.time.Instant;
 
+import be.kdg.airfreight.messaging.domain.AircraftRegistration;
 import be.kdg.airfreight.messaging.domain.AirportCode;
-import be.kdg.airfreight.messaging.domain.DomainRuleViolationException;
 import be.kdg.airfreight.messaging.domain.MessageType;
-import be.kdg.airfreight.messaging.domain.flight.FlightEvent;
-import be.kdg.airfreight.messaging.domain.flight.FlightEventKind;
+import be.kdg.airfreight.messaging.domain.flight.FlightLanded;
 
 /** MVT-AA: the arrival was registered. Names the arrival airport. */
-public final class AaWriter extends MvtWriter {
+public final class AaWriter extends MvtWriter<FlightLanded> {
     public AaWriter() {
-        super(FlightEventKind.LANDED, MessageType.MVT_AA, "AA");
+        super(FlightLanded.class, MessageType.MVT_AA, "AA");
     }
 
     @Override
-    protected AirportCode airport(FlightEvent event) {
+    protected AircraftRegistration registration(FlightLanded event) {
+        return event.registration();
+    }
+
+    @Override
+    protected AirportCode airport(FlightLanded event) {
         return event.arrivalAirport();
     }
 
     @Override
-    protected Instant time(FlightEvent event) {
-        Instant ata = event.ata();
-        if (ata == null) {
-            throw new DomainRuleViolationException("A landed flight needs an ATA");
-        }
-        return ata;
+    protected Instant time(FlightLanded event) {
+        return event.ata();
     }
 }

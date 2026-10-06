@@ -2,24 +2,29 @@ package be.kdg.airfreight.messaging.domain.telegram;
 
 import java.time.Instant;
 
+import be.kdg.airfreight.messaging.domain.AircraftRegistration;
 import be.kdg.airfreight.messaging.domain.AirportCode;
 import be.kdg.airfreight.messaging.domain.MessageType;
-import be.kdg.airfreight.messaging.domain.flight.FlightEvent;
-import be.kdg.airfreight.messaging.domain.flight.FlightEventKind;
+import be.kdg.airfreight.messaging.domain.flight.ArrivalEstimateChanged;
 
 /** MVT-EA: the ETA changed. Names the arrival airport. */
-public final class EaWriter extends MvtWriter {
+public final class EaWriter extends MvtWriter<ArrivalEstimateChanged> {
     public EaWriter() {
-        super(FlightEventKind.ARRIVAL_ESTIMATE_CHANGED, MessageType.MVT_EA, "EA");
+        super(ArrivalEstimateChanged.class, MessageType.MVT_EA, "EA");
     }
 
     @Override
-    protected AirportCode airport(FlightEvent event) {
+    protected AircraftRegistration registration(ArrivalEstimateChanged event) {
+        return event.registration();
+    }
+
+    @Override
+    protected AirportCode airport(ArrivalEstimateChanged event) {
         return event.arrivalAirport();
     }
 
     @Override
-    protected Instant time(FlightEvent event) {
+    protected Instant time(ArrivalEstimateChanged event) {
         return event.eta();
     }
 }

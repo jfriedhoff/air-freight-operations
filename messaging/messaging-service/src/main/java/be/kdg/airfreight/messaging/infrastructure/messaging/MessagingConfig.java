@@ -46,7 +46,10 @@ class MessagingConfig {
 
         Queue schedule = inbound(SCHEDULE_QUEUE);
         Queue bookings = inbound(BOOKINGS_QUEUE);
-        Queue flights = inbound(FLIGHTS_QUEUE);
+        // The order of a flight's events matters. Single active consumer: RabbitMQ lets only one consumer
+        // read this queue at a time, also when a second instance of the service is started.
+        Queue flights = QueueBuilder.durable(FLIGHTS_QUEUE).deadLetterExchange(DEAD_LETTER_EXCHANGE)
+            .singleActiveConsumer().build();
         Queue loads = inbound(LOADS_QUEUE);
         // Nobody is connected yet: this queue only makes the partner messages visible.
         Queue partners = QueueBuilder.durable(PARTNERS_QUEUE).build();

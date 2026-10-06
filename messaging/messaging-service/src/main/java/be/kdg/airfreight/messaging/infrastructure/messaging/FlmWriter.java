@@ -6,8 +6,8 @@ import be.kdg.airfreight.messaging.domain.FlightId;
 import be.kdg.airfreight.messaging.domain.FormatVersion;
 import be.kdg.airfreight.messaging.domain.MessageId;
 import be.kdg.airfreight.messaging.domain.MessageType;
+import be.kdg.airfreight.messaging.domain.flight.FlightAnnounced;
 import be.kdg.airfreight.messaging.domain.flight.FlightEvent;
-import be.kdg.airfreight.messaging.domain.flight.FlightEventKind;
 import be.kdg.airfreight.messaging.domain.outgoingmessage.MessageWriter;
 import be.kdg.airfreight.messaging.domain.outgoingmessage.OutgoingMessage;
 import org.springframework.stereotype.Component;
@@ -26,11 +26,12 @@ class FlmWriter implements MessageWriter<FlightEvent> {
 
     @Override
     public boolean writes(FlightEvent event) {
-        return event.kind() == FlightEventKind.ANNOUNCED;
+        return event instanceof FlightAnnounced;
     }
 
     @Override
-    public OutgoingMessage write(FlightEvent event, MessageId id, Instant createdAt) {
+    public OutgoingMessage write(FlightEvent flightEvent, MessageId id, Instant createdAt) {
+        FlightAnnounced event = (FlightAnnounced) flightEvent;
         FlightId flight = event.flightId();
         String body = mapper.writeValueAsString(new FlmJson(id.id(), createdAt, FORMAT_VERSION.number(),
             flight.flightNumber().value(), flight.scheduledDepartureDate(), event.std(), event.sta(),

@@ -39,11 +39,12 @@ Content-Type: application/json
 {
   "routing_key": "flight-operations.flight.announced",
   "properties": { "content_type": "application/json" },
-  "payload": "{\"messageId\":\"33333333-3333-4333-8333-333333333333\",\"type\":\"flight-operations.flight.announced\",\"version\":1,\"occurredOn\":\"2026-10-01T08:00:00Z\",\"flightId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"flightNumber\":\"HJ221\",\"scheduledDepartureDate\":\"2026-10-05\",\"departureAirport\":\"BRU\",\"arrivalAirport\":\"ATH\",\"registration\":\"SXBAA\",\"std\":\"2026-10-05T06:45:00Z\",\"sta\":\"2026-10-05T10:30:00Z\",\"etd\":\"2026-10-05T06:45:00Z\",\"eta\":\"2026-10-05T10:30:00Z\",\"flightVersion\":0}",
+  "payload": "{\"messageId\":\"33333333-3333-4333-8333-333333333333\",\"type\":\"flight-operations.flight.announced\",\"version\":1,\"occurredOn\":\"2026-10-01T08:00:00Z\",\"flightId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"flightNumber\":\"HJ221\",\"scheduledDepartureDate\":\"2026-10-05\",\"departureAirport\":\"BRU\",\"arrivalAirport\":\"ATH\",\"registration\":\"SXBAA\",\"std\":\"2026-10-05T06:45:00Z\",\"sta\":\"2026-10-05T10:30:00Z\"}",
   "payload_encoding": "string"
 }
 
 ### The ETD changed -> the telegram MVT-ED: HJ221/05.SXBAA.BRU / ED0715
+### A flight event carries only what changed, next to the fields that say which flight it is
 
 POST http://localhost:15672/api/exchanges/%2F/flight-operations.events/publish
 Authorization: Basic user password
@@ -52,7 +53,7 @@ Content-Type: application/json
 {
   "routing_key": "flight-operations.flight.departure-estimate-changed",
   "properties": { "content_type": "application/json" },
-  "payload": "{\"messageId\":\"44444444-4444-4444-8444-444444444444\",\"type\":\"flight-operations.flight.departure-estimate-changed\",\"version\":1,\"occurredOn\":\"2026-10-05T05:00:00Z\",\"flightId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"flightNumber\":\"HJ221\",\"scheduledDepartureDate\":\"2026-10-05\",\"departureAirport\":\"BRU\",\"arrivalAirport\":\"ATH\",\"registration\":\"SXBAA\",\"std\":\"2026-10-05T06:45:00Z\",\"sta\":\"2026-10-05T10:30:00Z\",\"etd\":\"2026-10-05T07:15:00Z\",\"eta\":\"2026-10-05T11:00:00Z\",\"flightVersion\":1}",
+  "payload": "{\"messageId\":\"44444444-4444-4444-8444-444444444444\",\"type\":\"flight-operations.flight.departure-estimate-changed\",\"version\":1,\"occurredOn\":\"2026-10-05T05:00:00Z\",\"flightId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"flightNumber\":\"HJ221\",\"scheduledDepartureDate\":\"2026-10-05\",\"departureAirport\":\"BRU\",\"registration\":\"SXBAA\",\"etd\":\"2026-10-05T07:15:00Z\"}",
   "payload_encoding": "string"
 }
 

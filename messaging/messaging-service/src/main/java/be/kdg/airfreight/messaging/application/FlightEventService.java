@@ -8,7 +8,7 @@ import be.kdg.airfreight.messaging.domain.DomainRuleViolationException;
 import be.kdg.airfreight.messaging.domain.MessageId;
 import be.kdg.airfreight.messaging.domain.MessageType;
 import be.kdg.airfreight.messaging.domain.flight.FlightEvent;
-import be.kdg.airfreight.messaging.domain.flight.FlightEventKind;
+import be.kdg.airfreight.messaging.domain.flight.FlightRemoved;
 import be.kdg.airfreight.messaging.domain.outgoingmessage.MessageWriter;
 import be.kdg.airfreight.messaging.domain.outgoingmessage.OutgoingMessage;
 import be.kdg.airfreight.messaging.domain.outgoingmessage.OutgoingMessageRepository;
@@ -58,7 +58,7 @@ public class FlightEventService {
                 inbox.reject(event.id(), MessageType.FLIGHT_EVENT, body, e.getMessage(), now);
                 return;
             }
-            if (event.kind() == FlightEventKind.REMOVED) {
+            if (event instanceof FlightRemoved) {
                 outgoing.deleteByFlight(event.flightId());
                 received.deleteByFlight(event.flightId());
             }
@@ -67,7 +67,7 @@ public class FlightEventService {
             partnerMessages.forEach(outgoing::save);
             events.publishEvent(event);
             log.info("Flight event {} ({}) processed for {}: {} partner messages written", event.id().id(),
-                event.kind(), event.flightId().flightNumber().value(), partnerMessages.size());
+                event.getClass().getSimpleName(), event.flightId().flightNumber().value(), partnerMessages.size());
         });
     }
 }

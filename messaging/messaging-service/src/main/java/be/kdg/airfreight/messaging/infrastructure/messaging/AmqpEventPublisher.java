@@ -63,11 +63,14 @@ class AmqpEventPublisher {
             event.flightId().scheduledDepartureDate(), event.flightId().departureAirport().value()));
     }
 
-    /** A flight event from Flight Operations is passed on as it is, under Messaging's own type. */
+    /**
+     * A flight event from Flight Operations is passed on as it is, under Messaging's own type. One executor
+     * thread publishes them in the order they were committed, so their order survives the passing on.
+     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
     void on(FlightEvent event) {
-        String type = MessageTypes.forwardedTypeOf(event.kind());
+        String type = MessageTypes.forwardedTypeOf(event);
         UUID messageId = UUID.randomUUID();
         publish(type, messageId, FlightEventJson.from(event, messageId, type));
     }
