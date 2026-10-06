@@ -1,0 +1,83 @@
+package be.kdg.airfreight.loadplanning.application;
+
+import java.time.Instant;
+import java.util.function.UnaryOperator;
+
+import be.kdg.airfreight.loadplanning.application.command.AnnounceFlightCommand;
+import be.kdg.airfreight.loadplanning.domain.NotFoundException;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.AircraftType;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightInfo;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Keeps this context's copy of each flight up to date from the flight events. The events of a flight
+ * arrive in the order they happened, so each one is simply applied to the copy we hold.
+ */
+@Slf4j
+@Service
+@Transactional
+public class FlightInfoService {
+    private final FlightCargoRepository cargos;
+    private final AircraftType aircraftType;
+
+    public FlightInfoService(FlightCargoRepository cargos, AircraftType aircraftType) {
+        this.cargos = cargos;
+        this.aircraftType = aircraftType;
+    }
+
+    /** A new flight gets an empty cargo. One that already has a cargo keeps it. */
+    public void flightAnnounced(AnnounceFlightCommand command) {
+        FlightId flightId = command.flightId();
+        if (cargos.findByFlightId(flightId).isPresent()) {
+            log.warn("Flight {} of {} already has a cargo: not created again", flightId.flightNumber().value(),
+                flightId.scheduledDepartureDate());
+            return;
+        }
+        cargos.save(FlightCargo.create(flightId, FlightInfo.scheduled(command.arrivalAirport(), aircraftType,
+            command.std(), command.sta())));
+        log.info("Cargo created for flight {} of {}", flightId.flightNumber().value(),
+            flightId.scheduledDepartureDate());
+    }
+
+    /** A new ETD moves the end of the loading period. */
+    public void departureEstimateChanged(FlightId flightId, Instant etd) {
+        update(flightId, info -> info.withEstimatedDeparture(etd));
+    }
+
+    public void arrivalEstimateChanged(FlightId flightId, Instant eta) {
+        update(flightId, info -> info.withEstimatedArrival(eta));
+    }
+
+    /** From now on the load of this flight is fixed and nothing can be booked on it. */
+    public void flightDeparted(FlightId flightId) {
+        update(flightId, FlightInfo::asDeparted);
+    }
+
+    /** The flight is gone after its retention period: its cargo goes with it. */
+    public void flightRemoved(FlightId flightId) {
+        cargos.findByFlightId(flightId).ifPresentOrElse(
+            cargo -> {
+                cargos.delete(cargo);
+                log.info("Cargo of flight {} of {} removed", flightId.flightNumber().value(),
+                    flightId.scheduledDepartureDate());
+            },
+            () -> log.info("No cargo to remove for flight {} of {}", flightId.flightNumber().value(),
+                flightId.scheduledDepartureDate()));
+    }
+
+    private void update(FlightId flightId, UnaryOperator<FlightInfo> change) {
+        FlightCargo cargo = cargos.findByFlightId(flightId).orElseThrow(() -> notFound(flightId));
+        cargo.updateFlightInfo(change.apply(cargo.getFlightInfo()));
+        cargos.save(cargo);
+    }
+
+    static NotFoundException notFound(FlightId flightId) {
+        return new NotFoundException("No cargo for flight " + flightId.flightNumber().value() + " of "
+            + flightId.scheduledDepartureDate() + " from " + flightId.departureAirport().value());
+    }
+}
