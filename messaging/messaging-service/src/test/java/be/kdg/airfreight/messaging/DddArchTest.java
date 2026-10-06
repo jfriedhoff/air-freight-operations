@@ -25,7 +25,8 @@ class DddArchTest {
             .layer("Domain").definedBy("..messaging.domain..")
             .layer("Infrastructure").definedBy("..messaging.infrastructure..")
             .whereLayer("API").mayNotBeAccessedByAnyLayer()
-            .whereLayer("Application").mayOnlyBeAccessedByLayers("API")
+            // Message listeners and the relay scheduler are in infrastructure and call the application layer.
+            .whereLayer("Application").mayOnlyBeAccessedByLayers("API", "Infrastructure")
             .whereLayer("Infrastructure").mayNotBeAccessedByAnyLayer()
             .check(classes);
     }
