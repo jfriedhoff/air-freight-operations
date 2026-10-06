@@ -93,6 +93,28 @@ public class FlightCargo {
         return new LoadPositionCleared(id, flightId, code, position, by, now);
     }
 
+    public LoadCheckReport checkLoad(List<LoadCheck> checks, FloorPlan floorPlan) {
+        return new LoadCheckReport(checks.stream()
+            .map(check -> check.check(this, floorPlan))
+            .toList());
+    }
+
+    /** Runs the checks again: the load may have changed since the last report. */
+    public LoadFinalized finalizeLoad(LoadPlannerId by, Instant now, List<LoadCheck> checks, FloorPlan floorPlan,
+                                      LoadingPolicy policy) {
+        requireLoadCanChange(now, policy);
+        if (!checkLoad(checks, floorPlan).hardChecksPassed()) {
+            throw new DomainRuleViolationException("The load cannot be finalized: a hard load check fails");
+        }
+        finalized = true;
+        finalizedBy = Objects.requireNonNull(by, "Load planner cannot be null");
+        List<LoadedUld> load = getLoad().stream()
+            .map(uld -> new LoadedUld(uld.getCode(), Objects.requireNonNull(uld.getPosition()), uld.getWeight(),
+                uld.getDestination()))
+            .toList();
+        return new LoadFinalized(id, flightId, load, by, now);
+    }
+
     /** From STD minus the opening time (included) until the current ETD minus the closing time (not included). */
     public LoadingPeriod loadingPeriod(LoadingPolicy policy) {
         return new LoadingPeriod(
