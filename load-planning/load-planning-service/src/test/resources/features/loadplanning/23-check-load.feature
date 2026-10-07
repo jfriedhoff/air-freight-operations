@@ -1,0 +1,33 @@
+@wip
+Feature: Check the load with Check Load
+  As a load planner I want to check the load with Check Load so that I know what I still have to change
+
+  @unit @ui
+  Scenario: One report per check
+    Given HJ221 goes to ATH and it is within the loading period
+    And AKE16689R7, 1000 kg for ATH, is on CL and AKE20417HJ, 1200 kg for FRA, is on CR
+    And AKE30111HJ is booked without a load position
+    When I click Check Load
+    Then I see this report:
+      | check                | result | reason                                                         | type |
+      | Lateral balance      | failed | 1000 kg left, 1200 kg right, maximum 1100 kg on heaviest side  | hard |
+      | Offloading           | passed |                                                                | hard |
+      | Not all cargo loaded | failed | AKE30111HJ has no load position                                | soft |
+
+  @ui @integration
+  Scenario Outline: Not outside the loading period
+    Given the loading period <state>
+    Then I cannot use Check Load
+    And the API refuses a check too, with an explanation
+
+    Examples:
+      | state               |
+      | has not started yet |
+      | is over             |
+
+  @integration
+  Scenario: Check Load changes nothing
+    Given it is within the loading period
+    When I click Check Load
+    Then the load remains unchanged
+    And no message is sent
