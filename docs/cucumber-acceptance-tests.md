@@ -86,7 +86,7 @@ The same set-up in `be.kdg.airfreight.loadplanning.acceptance.unit`, with `Cargo
 | `ParameterTypes` | `{weight}`: "1000 kg", "2646 lb", "1200.2 kg". |
 | `LoadCheckSteps` | `the check has passed/failed`, shared by the load check stories (19, 20, 21). |
 | `LateralBalanceSteps` | Story 19. |
-| `OffloadingSteps` | Stories 20 and 21. A `<load>` such as "ATH on RR and UR, FRA on UL" is read by one regex step, because the rows have different shapes. |
+| `OffloadingSteps` | Stories 20 and 21. A `<load>` such as "ATH on RR and UR, FRA on UL" is read by one regex step, because the rows have different shapes. "CL and CR free" stays empty; "ATH on A1, A2 and B1" continues the destination. |
 
 The When step goes through the aggregate root (`cargo.checkLoad(...)`), as the application service
 does. The floor plan is the real `Boeing747400FFloorPlan` from `infrastructure/floorplan`: it is

@@ -22,17 +22,28 @@ public class OffloadingSteps {
         world.goesTo(airport);
     }
 
-    /** "ATH on RR and UR, FRA on UL" or "ATH without load position, FRA on RL". */
+    /**
+     * "ATH on RR and UR, FRA on UL", "ATH without load position, FRA on RL" or "ATH on A1, A2 and B1, CL and CR free".
+     * "ATH on" starts the ULDs for ATH, "A2 and B1" adds more for the same destination, and free positions stay empty.
+     */
     @Given("^([A-Z]{3} (?:on|without) .+)$")
     public void theLoadIs(String description) {
+        String destination = "";
         for (String part : description.split(", ")) {
             String[] words = part.split(" ", 3);
-            String destination = words[0];
-            if (words[1].equals("without")) {
-                world.book(world.nextCode(), ANY_WEIGHT, destination);
+            if (part.endsWith(" free")) {
                 continue;
             }
-            for (String position : words[2].split(" and ")) {
+            if (part.endsWith(" without load position")) {
+                world.book(world.nextCode(), ANY_WEIGHT, words[0]);
+                continue;
+            }
+            String positions = part;
+            if (words.length == 3 && words[1].equals("on")) {
+                destination = words[0];
+                positions = words[2];
+            }
+            for (String position : positions.split(" and ")) {
                 loadFor(destination, position);
             }
         }
