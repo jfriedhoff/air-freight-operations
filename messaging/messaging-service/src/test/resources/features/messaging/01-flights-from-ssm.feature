@@ -1,4 +1,3 @@
-@wip
 Feature: Flights are created automatically from the flight schedule (SSM)
   As a flight planner I want flights from the flight schedule (SSM) to be created automatically so that I don't have to enter the schedule by hand
 
