@@ -1,6 +1,7 @@
 package be.kdg.airfreight.loadplanning.domain.flightcargo.check;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Objects;
 
 import be.kdg.airfreight.loadplanning.domain.flightcargo.CheckSeverity;
@@ -50,7 +51,8 @@ public final class LateralBalanceCheck implements LoadCheck {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    /** Rounded to 0.1 kg for the report only; the check itself compares the exact values. */
     private static String plain(BigDecimal kilograms) {
-        return kilograms.stripTrailingZeros().toPlainString();
+        return kilograms.setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 }

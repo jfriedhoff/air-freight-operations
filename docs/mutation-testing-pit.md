@@ -93,3 +93,16 @@ It only behaves differently for two `Delay` objects with the same id, and only `
 **No coverage (29):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
 `FlightPlanner` and `RetentionPeriod`. They belong to the integration tests or to stories that
 have no tests yet (2, 38).
+
+### Load planning
+
+| Date | State | Mutants | Killed | Test strength |
+| --- | --- | --- | --- | --- |
+| 7 October 2026 | Cucumber `@unit` scenarios of story 19 | 157 | 53 (34 %) | 78 % |
+
+Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
+through but does not check: `book` and `assign` (stories 15, 18) and the validation of
+`LoadingPolicy`, `LateralBalanceLimit`, `Weight` and `AircraftType` (37). `Uld.hasPosition`
+returning `true` also survives: the lateral balance check asks `isOnSide`, which already skips a
+ULD without a position. Story 22 (cargo without a position) will check it. The score rises as the
+other load-planning stories get their steps.

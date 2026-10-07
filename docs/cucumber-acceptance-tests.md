@@ -6,7 +6,8 @@ step classes are built and why they share one object per scenario.
 
 ## In short
 
-- A `@unit` scenario tests **only the `Flight` aggregate**: no Spring, no database, no mocks.
+- A `@unit` scenario tests **only one aggregate** (`Flight` or `FlightCargo`): no Spring, no database,
+  no mocks.
 - The steps are spread over small classes per topic (delays, departure, ...).
 - Those classes share the state of one scenario through **`FlightWorld`**. Picocontainer creates a
   new `FlightWorld` for every scenario and passes it to every step class.
@@ -74,6 +75,23 @@ refusal reason (e.g. "later than the ATD" for `I register ... as the ATA`), and 
 "the ATA can no longer be changed" (story 13) therefore register a second time and expect
 "already been registered"; story 13 then also checks that the first ATA was kept.
 
+### Load planning
+
+The same set-up in `be.kdg.airfreight.loadplanning.acceptance.unit`, with `CargoWorld` instead of
+`FlightWorld`.
+
+| Class | Contents |
+| --- | --- |
+| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the result of the last load check. `load` books a ULD and puts it on a position; "0 kg" loads nothing, because a `Weight` of 0 does not exist. |
+| `ParameterTypes` | `{weight}`: "1000 kg", "2646 lb", "1200.2 kg". |
+| `LoadCheckSteps` | `the check has passed/failed`, shared by the load check stories (19, 20, 21). |
+| `LateralBalanceSteps` | Story 19. |
+
+The When step goes through the aggregate root (`cargo.checkLoad(...)`), as the application service
+does. The floor plan is the real `Boeing747400FFloorPlan` from `infrastructure/floorplan`: it is
+plain Java without Spring, and the stories name its positions (CL, B1), so a copy in the test code
+could only drift from it.
+
 ## Is this still a unit test?
 
 Yes. "Unit" refers to **what** is tested, not to how the test code is organised.
@@ -89,9 +107,9 @@ Yes. "Unit" refers to **what** is tested, not to how the test code is organised.
 It would be wrong with `static` fields in `FlightWorld`, or with steps that call an application
 service or repository. The latter is an integration test (`@integration`).
 
-**In one sentence:** every `@unit` scenario tests only the `Flight` aggregate without Spring,
-database or mocks; `FlightWorld` is only the test state of one scenario, like the fields of a JUnit
-test class, but shared because Cucumber spreads the steps over several classes.
+**In one sentence:** every `@unit` scenario tests only one aggregate without Spring, database or
+mocks; `FlightWorld` (or `CargoWorld`) is only the test state of one scenario, like the fields of a
+JUnit test class, but shared because Cucumber spreads the steps over several classes.
 
 ## Work in progress and the TDD workflow
 
