@@ -66,12 +66,27 @@ Not every survivor is a problem. For each one, ask:
 
 There is no minimum score (`mutationThreshold`) that fails the build yet.
 
-## First measurement (7 October 2026, after story 13)
+## Measurements
 
-118 mutants, 74 killed (63 %), test strength 84 %. Survivors that show a real gap:
+| Date | State | Mutants | Killed | Test strength |
+| --- | --- | --- | --- | --- |
+| 7 October 2026 | Cucumber `@unit` scenarios up to story 13 | 118 | 74 (63 %) | 84 % |
+| 7 October 2026 | + `FlightTest`, `ActualTimeToleranceTest` | 118 | 88 (75 %) | 99 % |
+
+The first measurement found these gaps; `FlightTest` and `ActualTimeToleranceTest` close them:
 
 - The events returned by `registerDeparture`, `registerArrival`, `recordFinalizedLoad` and
-  `addDelay` are never checked.
+  `addDelay` were never checked. The Cucumber scenarios check the state of `Flight`, and the MVT
+  scenarios are `@e2e`. The events are what Messaging turns into MVT messages, so they get plain
+  JUnit tests in `domain`.
 - `changeDelay` only sends new estimates when the minutes change: not tested.
-- `Delay.equals` may always return `true`: every scenario has only one delay.
-- A negative `ActualTimeTolerance` is not tested (story 37).
+- `Delay.equals` could always return `true`: every scenario removed the first of its delays.
+- A negative `ActualTimeTolerance` was not tested.
+
+**Still surviving (accepted):** one mutant in `Delay.equals` that negates the `instanceof` check.
+It only behaves differently for two `Delay` objects with the same id, and only `hydrate`
+(persistence) creates those. The integration tests cover that.
+
+**No coverage (29):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
+`FlightPlanner` and `RetentionPeriod`. They belong to the integration tests or to stories that
+have no tests yet (2, 38).
