@@ -34,6 +34,16 @@ public class OutcomeSteps {
         assertThat(world.error).isNull();
     }
 
+    @Then("the registration is refused")
+    public void theRegistrationIsRefused() {
+        world.assertRefusedForTheExpectedReason();
+    }
+
+    @Then("the registration is refused with an explanation")
+    public void theRegistrationIsRefusedWithAnExplanation() {
+        world.assertRefusedForTheExpectedReason();
+    }
+
     @Then("the registration is refused: {}")
     public void theRegistrationIsRefusedBecause(String explanation) {
         world.expectedRefusal = switch (explanation) {
