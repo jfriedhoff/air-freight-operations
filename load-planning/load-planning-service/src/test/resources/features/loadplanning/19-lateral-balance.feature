@@ -1,4 +1,3 @@
-@wip
 Feature: The lateral balance is checked
   As a load planner I want the lateral balance to be checked so that the aircraft does not depart loaded unevenly
 
