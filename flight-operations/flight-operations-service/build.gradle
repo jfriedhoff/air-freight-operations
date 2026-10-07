@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id "io.freefair.lombok" version '9.7.0'
+    id "info.solidsoft.pitest" version "1.19.0"
 }
 
 group = 'be.kdg.airfreight'
@@ -43,6 +44,19 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// Mutation testing: ./gradlew :flight-operations:flight-operations-service:pitest
+// Report: build/reports/pitest/index.html. Explanation: docs/mutation-testing-pit.md
+pitest {
+    pitestVersion = '1.30.0'
+    junit5PluginVersion = '1.2.3'
+    targetClasses = ['be.kdg.airfreight.flightoperations.domain.*']
+    targetTests = ['be.kdg.airfreight.flightoperations.acceptance.UnitAcceptanceTest',
+                   'be.kdg.airfreight.flightoperations.domain.*']
+    threads = 4
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
 }
 
 def webAppDir = './src/main/resources/static'
