@@ -7,6 +7,6 @@ import static io.cucumber.junit.platform.engine.Constants.*;
 @IncludeEngines("cucumber")
 @SelectPackages("features.flightoperations")@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "be.kdg.airfreight.flightoperations.acceptance.unit")
 @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@unit and not @to-confirm")
-@ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.core.backend.DefaultObjectFactory")
+@ConfigurationParameter(key = OBJECT_FACTORY_PROPERTY_NAME, value = "io.cucumber.picocontainer.PicoFactory")
 class UnitAcceptanceTest {
 }
