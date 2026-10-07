@@ -4,10 +4,14 @@ import be.kdg.airfreight.flightoperations.domain.DomainRuleViolationException;
 import be.kdg.airfreight.flightoperations.domain.flight.ActualTimeTolerance;
 import be.kdg.airfreight.flightoperations.domain.flight.AircraftRegistration;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
+import be.kdg.airfreight.flightoperations.domain.flight.Delay;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayDuration;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayId;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayKind;
+import be.kdg.airfreight.flightoperations.domain.flight.EstimatedTimes;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
+import be.kdg.airfreight.flightoperations.domain.flight.FlightEvent;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightNumber;
 import be.kdg.airfreight.flightoperations.domain.flight.ScheduledTimes;
 import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerId;
@@ -24,6 +28,7 @@ import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,11 +47,17 @@ public class FlightDelaySteps {
     private static final String NOT_PLANNED = "only change while the flight is planned";
     private static final LocalDate DEPARTURE_DATE = LocalDate.of(2026, Month.JANUARY, 9);
     private static final String LANDED = "no longer change once the flight has landed";
+    private static final String NEW_DESCRIPTION = "Waiting for a late crew member";
 
     private final Map<String, Flight> flights = new HashMap<>();
     private final FlightPlannerId planner = FlightPlannerId.create();
+    private final FlightPlannerId colleague = FlightPlannerId.create();
     private Throwable error;
     private String expectedRefusal;
+    private DelayId delayId;
+    private DelayId arrivalDelayId;
+    private EstimatedTimes estimatedBefore;
+    private List<FlightEvent> events = List.of();
 
     @Given("flight {word} of {int} January {int} is planned with STD {word} and STA {word} UTC")
     public void flightIsPlannedWithStdAndSta(String flightNumber, int day, int year, String std, String sta) {
@@ -74,6 +85,24 @@ public class FlightDelaySteps {
         plan(flightNumber, onDate(DEPARTURE_DATE, etd), onDate(DEPARTURE_DATE, eta));
     }
 
+    @Given("flight {word} with STD {word}, STA {word} UTC and one departure delay of {int} minutes")
+    public void flightWithOneDepartureDelay(String flightNumber, String std, String sta, int minutes) {
+        plan(flightNumber, onDate(DEPARTURE_DATE, std), onDate(DEPARTURE_DATE, sta));
+        Flight flight = flight(flightNumber);
+        flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(minutes), new DelayCode(VALID_REASON), DESCRIPTION,
+            colleague, NOW);
+        delayId = flight.getDelays().getLast().getId();
+        estimatedBefore = flight.getEstimated();
+    }
+
+    @Given("{word} also has a(n) {word} delay of {int} minutes")
+    public void flightAlsoHasADelay(String flightNumber, String kind, int minutes) {
+        DelayId id = addDelay(flightNumber, kind(kind), minutes);
+        if (kind(kind) == DelayKind.ARRIVAL) {
+            arrivalDelayId = id;
+        }
+    }
+
     @Given("flight {word} has departed")
     public void flightHasDeparted(String flightNumber) {
         Flight flight = plannedFlight(flightNumber);
@@ -98,7 +127,7 @@ public class FlightDelaySteps {
     @When("I enter a(n) {word} delay of {int} minutes")
     public void iEnterADelay(String kind, int minutes) {
         expectedRefusal = TOO_LONG;
-        enterDelay(HJ221, DelayKind.valueOf(kind.toUpperCase()), minutes, VALID_REASON, DESCRIPTION);
+        enterDelay(HJ221, kind(kind), minutes, VALID_REASON, DESCRIPTION);
     }
 
     @When("I enter another departure delay of {int} minutes and an arrival delay of {int} minutes")
@@ -136,6 +165,46 @@ public class FlightDelaySteps {
         enterDelay(HJ221, DelayKind.ARRIVAL, 15, VALID_REASON, DESCRIPTION);
     }
 
+    @When("I change the delay to {int} minutes")
+    public void iChangeTheDelayTo(int minutes) {
+        changeDelay(delayId, minutes, DESCRIPTION);
+    }
+
+    @When("I change the departure delay to {int} minutes")
+    public void iChangeTheDepartureDelayTo(int minutes) {
+        expectedRefusal = TOO_LONG;
+        changeDelay(delayId, minutes, DESCRIPTION);
+    }
+
+    @When("I change the description of the delay")
+    public void iChangeTheDescriptionOfTheDelay() {
+        changeDelay(delayId, delay(delayId).getMinutes().minutes(), NEW_DESCRIPTION);
+    }
+
+    @When("I remove the delay")
+    public void iRemoveTheDelay() {
+        removeDelay(delayId);
+    }
+
+    @When("I remove the delay of {int} minutes")
+    public void iRemoveTheDelayOf(int minutes) {
+        removeDelay(flight(HJ221).getDelays().stream()
+            .filter(delay -> delay.getMinutes().minutes() == minutes)
+            .findFirst().orElseThrow().getId());
+    }
+
+    @When("I try to {word} the departure delay")
+    public void iTryToChangeOrRemoveTheDepartureDelay(String action) {
+        expectedRefusal = NOT_PLANNED;
+        changeOrRemove(action, delayId);
+    }
+
+    @When("I {word} the arrival delay")
+    public void iChangeOrRemoveTheArrivalDelay(String action) {
+        expectedRefusal = LANDED;
+        changeOrRemove(action, arrivalDelayId);
+    }
+
     @Then("the ETD is {word}")
     public void theEtdIs(String time) {
         Flight flight = flight(HJ221);
@@ -159,7 +228,7 @@ public class FlightDelaySteps {
         assertThat(flight(HJ221).getDelays().getLast().getLastChangedBy()).isEqualTo(planner);
     }
 
-    @Then("it is {word}")
+    @Then("it/that is {word}")
     public void itIs(String result) {
         switch (result) {
             case "accepted" -> assertThat(error).isNull();
@@ -168,9 +237,45 @@ public class FlightDelaySteps {
         }
     }
 
-    @Then("it is refused with an explanation")
+    @Then("it/that is refused with an explanation")
     public void itIsRefusedWithAnExplanation() {
         assertRefusedForTheExpectedReason();
+    }
+
+    @And("it is recorded that I last changed the delay")
+    public void itIsRecordedThatILastChangedTheDelay() {
+        assertThat(error).isNull();
+        assertThat(delay(delayId).getLastChangedBy()).isEqualTo(planner);
+    }
+
+    @Then("the delay has the new description")
+    public void theDelayHasTheNewDescription() {
+        assertThat(error).isNull();
+        assertThat(delay(delayId).getDescription()).isEqualTo(NEW_DESCRIPTION);
+    }
+
+    @And("the ETD and the ETA remain unchanged")
+    public void theEtdAndTheEtaRemainUnchanged() {
+        assertThat(flight(HJ221).getEstimated()).isEqualTo(estimatedBefore);
+    }
+
+    @Then("the ETD equals the STD again")
+    public void theEtdEqualsTheStdAgain() {
+        assertThat(error).isNull();
+        Flight flight = flight(HJ221);
+        assertThat(flight.getEstimated().departure()).isEqualTo(flight.getScheduled().departure());
+    }
+
+    @And("the ETA equals the STA again")
+    public void theEtaEqualsTheStaAgain() {
+        Flight flight = flight(HJ221);
+        assertThat(flight.getEstimated().arrival()).isEqualTo(flight.getScheduled().arrival());
+    }
+
+    /** Flight keeps no history of removed delays: the removal is recorded in the estimate events it returns. */
+    @And("it is recorded that I removed the delay")
+    public void itIsRecordedThatIRemovedTheDelay() {
+        assertThat(events).isNotEmpty().extracting("changedBy").containsOnly(planner);
     }
 
     @Then("the ETD of {word} is {int} January {int} {word} UTC")
@@ -201,9 +306,37 @@ public class FlightDelaySteps {
             new AircraftRegistration("SXBAA"), new ScheduledTimes(std, sta));
     }
 
-    private void addDelay(String flightNumber, DelayKind kind, int minutes) {
-        flight(flightNumber).addDelay(kind, new DelayDuration(minutes), new DelayCode(VALID_REASON), DESCRIPTION,
-            planner, NOW);
+    private DelayId addDelay(String flightNumber, DelayKind kind, int minutes) {
+        Flight flight = flight(flightNumber);
+        flight.addDelay(kind, new DelayDuration(minutes), new DelayCode(VALID_REASON), DESCRIPTION, planner, NOW);
+        return flight.getDelays().getLast().getId();
+    }
+
+    private void changeDelay(DelayId id, int minutes, String description) {
+        error = catchThrowable(() -> events = flight(HJ221).changeDelay(id, new DelayDuration(minutes), description,
+            planner, NOW));
+    }
+
+    private void removeDelay(DelayId id) {
+        error = catchThrowable(() -> events = flight(HJ221).removeDelay(id, planner, NOW));
+    }
+
+    private void changeOrRemove(String action, DelayId id) {
+        switch (action) {
+            case "change" -> changeDelay(id, delay(id).getMinutes().minutes() + 5, DESCRIPTION);
+            case "remove" -> removeDelay(id);
+            default -> throw new IllegalArgumentException("Unknown action: " + action);
+        }
+    }
+
+    private Delay delay(DelayId id) {
+        return flight(HJ221).getDelays().stream()
+            .filter(delay -> delay.getId().equals(id))
+            .findFirst().orElseThrow();
+    }
+
+    private static DelayKind kind(String kind) {
+        return DelayKind.valueOf(kind.toUpperCase());
     }
 
     private void enterDelay(String flightNumber, DelayKind kind, int minutes, String reason, String description) {
