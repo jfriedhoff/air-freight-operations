@@ -1,4 +1,3 @@
-@wip
 Feature: Be warned when booked cargo has no load position
   As a load planner I want to be warned when booked cargo has no load position so that no cargo is left behind unnoticed
 

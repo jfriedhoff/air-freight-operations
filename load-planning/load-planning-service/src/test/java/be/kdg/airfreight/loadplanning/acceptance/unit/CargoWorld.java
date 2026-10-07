@@ -8,11 +8,15 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightNumber;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlan;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LateralBalanceLimit;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckReport;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckResult;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Weight;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.WeightUnit;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.check.AllCargoLoadedCheck;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.check.LateralBalanceCheck;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.check.OffloadingCheck;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import be.kdg.airfreight.loadplanning.infrastructure.floorplan.Boeing747400FFloorPlan;
 
@@ -32,6 +36,9 @@ public class CargoWorld {
     static final Instant NOW = Instant.parse("2026-01-09T05:00:00Z");
     static final LoadingPolicy POLICY = new LoadingPolicy(Duration.ofHours(12), Duration.ofMinutes(20));
     static final LateralBalanceLimit LATERAL_BALANCE_LIMIT = new LateralBalanceLimit(new BigDecimal("0.10"));
+    /** All load checks, as PolicyConfig gives them to the application service. */
+    static final List<LoadCheck> CHECKS = List.of(
+        new LateralBalanceCheck(LATERAL_BALANCE_LIMIT), new OffloadingCheck(), new AllCargoLoadedCheck());
     private static final AirportCode ATH = new AirportCode("ATH");
 
     final FloorPlan floorPlan = Boeing747400FFloorPlan.build();
@@ -41,6 +48,7 @@ public class CargoWorld {
             Instant.parse("2026-01-09T06:45:00Z"), Instant.parse("2026-01-09T10:00:00Z")));
     final LoadPlannerId planner = LoadPlannerId.create();
     LoadCheckResult result;
+    LoadCheckReport report;
     private int uldCount;
 
     /** The flight as it is, only with another destination. */
@@ -79,6 +87,10 @@ public class CargoWorld {
 
     void check(LoadCheck check) {
         result = cargo.checkLoad(List.of(check), floorPlan).results().getFirst();
+    }
+
+    void checkAll() {
+        report = cargo.checkLoad(CHECKS, floorPlan);
     }
 
     /** "2646 lb" becomes a Weight of 2646 LB. */
