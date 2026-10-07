@@ -29,7 +29,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-public class DepartureDelaySteps {
+public class FlightDelaySteps {
     private static final String HJ221 = "HJ221";
     private static final Instant NOW = Instant.parse("2026-01-09T05:00:00Z");
     private static final String VALID_REASON = "93";
@@ -40,6 +40,8 @@ public class DepartureDelaySteps {
     private static final String INVALID_REASON = "Delay reason 'XY' is invalid";
     private static final String NO_DESCRIPTION = "description of a delay cannot be blank";
     private static final String NOT_PLANNED = "only change while the flight is planned";
+    private static final LocalDate DEPARTURE_DATE = LocalDate.of(2026, Month.JANUARY, 9);
+    private static final String LANDED = "no longer change once the flight has landed";
 
     private final Map<String, Flight> flights = new HashMap<>();
     private final FlightPlannerId planner = FlightPlannerId.create();
@@ -67,12 +69,25 @@ public class DepartureDelaySteps {
         addDelay(flightNumber, DelayKind.DEPARTURE, minutes);
     }
 
+    @Given("flight {word} with ETD {word} and ETA {word} UTC")
+    public void flightWithEtdAndEta(String flightNumber, String etd, String eta) {
+        plan(flightNumber, onDate(DEPARTURE_DATE, etd), onDate(DEPARTURE_DATE, eta));
+    }
+
     @Given("flight {word} has departed")
     public void flightHasDeparted(String flightNumber) {
-        Flight flight = flight(flightNumber);
+        Flight flight = plannedFlight(flightNumber);
         Instant atd = flight.getScheduled().departure();
         flight.recordFinalizedLoad(atd);
         flight.registerDeparture(atd, planner, atd, TOLERANCE);
+    }
+
+    @Given("flight {word} has landed")
+    public void flightHasLanded(String flightNumber) {
+        flightHasDeparted(flightNumber);
+        Flight flight = flight(flightNumber);
+        Instant ata = flight.getScheduled().arrival();
+        flight.registerArrival(ata, planner, ata, TOLERANCE);
     }
 
     @When("I enter a departure delay of {int} minutes with a valid delay reason and a description")
@@ -80,7 +95,7 @@ public class DepartureDelaySteps {
         enterDelay(HJ221, DelayKind.DEPARTURE, minutes, VALID_REASON, DESCRIPTION);
     }
 
-    @When("I enter a {word} delay of {int} minutes")
+    @When("I enter a(n) {word} delay of {int} minutes")
     public void iEnterADelay(String kind, int minutes) {
         expectedRefusal = TOO_LONG;
         enterDelay(HJ221, DelayKind.valueOf(kind.toUpperCase()), minutes, VALID_REASON, DESCRIPTION);
@@ -115,10 +130,22 @@ public class DepartureDelaySteps {
         enterDelay(HJ221, DelayKind.DEPARTURE, 15, VALID_REASON, DESCRIPTION);
     }
 
+    @When("I enter an arrival delay")
+    public void iEnterAnArrivalDelay() {
+        expectedRefusal = LANDED;
+        enterDelay(HJ221, DelayKind.ARRIVAL, 15, VALID_REASON, DESCRIPTION);
+    }
+
     @Then("the ETD is {word}")
     public void theEtdIs(String time) {
         Flight flight = flight(HJ221);
         assertThat(flight.getEstimated().departure()).isEqualTo(onDepartureDate(flight, time));
+    }
+
+    @Then("the ETD remains {word}")
+    public void theEtdRemains(String time) {
+        assertThat(error).isNull();
+        theEtdIs(time);
     }
 
     @And("the ETA is {word}")
@@ -129,7 +156,7 @@ public class DepartureDelaySteps {
 
     @And("it is recorded that I entered the delay")
     public void itIsRecordedThatIEnteredTheDelay() {
-        assertThat(flight(HJ221).getDelays().getFirst().getLastChangedBy()).isEqualTo(planner);
+        assertThat(flight(HJ221).getDelays().getLast().getLastChangedBy()).isEqualTo(planner);
     }
 
     @Then("it is {word}")
@@ -160,8 +187,18 @@ public class DepartureDelaySteps {
     }
 
     private void plan(String flightNumber, Instant std, Instant sta) {
-        flights.put(flightNumber, Flight.plan(new FlightNumber(flightNumber), new AirportCode("BRU"),
-            new AirportCode("ATH"), new AircraftRegistration("SXBAA"), new ScheduledTimes(std, sta)));
+        flights.put(flightNumber, newFlight(flightNumber, std, sta));
+    }
+
+    /** Story 9 starts without a Background: plan the flight like story 8 does if it doesn't exist yet. */
+    private Flight plannedFlight(String flightNumber) {
+        return flights.computeIfAbsent(flightNumber, number ->
+            newFlight(number, onDate(DEPARTURE_DATE, "06:30"), onDate(DEPARTURE_DATE, "09:45")));
+    }
+
+    private static Flight newFlight(String flightNumber, Instant std, Instant sta) {
+        return Flight.plan(new FlightNumber(flightNumber), new AirportCode("BRU"), new AirportCode("ATH"),
+            new AircraftRegistration("SXBAA"), new ScheduledTimes(std, sta));
     }
 
     private void addDelay(String flightNumber, DelayKind kind, int minutes) {
@@ -185,10 +222,14 @@ public class DepartureDelaySteps {
     }
 
     private static Instant utc(int day, int year, String time) {
-        return LocalDate.of(year, Month.JANUARY, day).atTime(LocalTime.parse(time)).toInstant(ZoneOffset.UTC);
+        return onDate(LocalDate.of(year, Month.JANUARY, day), time);
     }
 
     private static Instant onDepartureDate(Flight flight, String time) {
-        return flight.getScheduled().departureDate().atTime(LocalTime.parse(time)).toInstant(ZoneOffset.UTC);
+        return onDate(flight.getScheduled().departureDate(), time);
+    }
+
+    private static Instant onDate(LocalDate date, String time) {
+        return date.atTime(LocalTime.parse(time)).toInstant(ZoneOffset.UTC);
     }
 }
