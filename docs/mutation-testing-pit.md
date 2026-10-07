@@ -6,8 +6,9 @@ test fails because of it.
 
 ## In short
 
-- PIT only mutates the classes in `domain` of flight-operations and only runs the unit tests
-  (`UnitAcceptanceTest` with the `@unit` scenarios, and JUnit tests in `domain`).
+- PIT only mutates the classes in `domain` of a service and only runs its unit tests
+  (`UnitAcceptanceTest` with the `@unit` scenarios, and JUnit tests in `domain`). It is set up in
+  flight-operations, load-planning and messaging; the simulator has no domain.
 - No Spring, database or Docker needed; a full run takes about 15 seconds.
 - It is a separate Gradle task, not part of `gradlew build`. Run it before opening an MR.
 
@@ -41,8 +42,10 @@ Line coverage (≥ 60 % for the evaluation) counts which lines are executed. A t
 ## Running it
 
 - IntelliJ: Gradle tool window → `flight-operations-service` → Tasks → `verification` → `pitest`.
-- Terminal: `./gradlew :flight-operations:flight-operations-service:pitest`
-- Report: `flight-operations/flight-operations-service/build/reports/pitest/index.html`.
+- Terminal: `./gradlew :flight-operations:flight-operations-service:pitest` (or
+  `:load-planning:load-planning-service:pitest`, `:messaging:messaging-service:pitest`)
+- Report: `<service>/build/reports/pitest/index.html`, e.g.
+  `flight-operations/flight-operations-service/build/reports/pitest/index.html`.
   Open a class: green lines are killed, red lines survived or are not covered.
 
 ## Reading a surviving mutant

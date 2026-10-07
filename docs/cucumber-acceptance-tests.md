@@ -93,9 +93,34 @@ service or repository. The latter is an integration test (`@integration`).
 database or mocks; `FlightWorld` is only the test state of one scenario, like the fields of a JUnit
 test class, but shared because Cucumber spreads the steps over several classes.
 
+## Work in progress and the TDD workflow
+
+Every story that has a runnable scenario (`@unit` or `@integration`) has its `.feature` file in the
+service it belongs to, also when it is not implemented yet. Such a file has `@wip` above `Feature:`.
+Both suites skip `@wip`: a scenario without step definitions fails the build
+(`UndefinedStepException`), and PIT needs a green suite.
+
+`@wip` does not skip parsing: a `.feature` file with invalid Gherkin (e.g. a table row with a
+missing cell) breaks the build of its service even when it is `@wip`.
+
+Implementing a story:
+
+1. Remove `@wip`. The scenarios fail: their steps are undefined. (red)
+2. Write the steps. The scenarios fail because the production code is missing. (red)
+3. Implement the production code until they pass. (green)
+4. Refactor, run the suite and `pitest`; add checks for surviving mutants.
+
+The `.feature` file is the source of truth for the acceptance criteria. The GitLab issue links to
+it; when a criterion changes, change the file in the same MR.
+
+Stories with only `@ui` or `@e2e` scenarios have no file: Cucumber does not run them. The
+cross-cutting stories (33, 35, 36, 39) are added once security exists. Story 37 is split over
+flight-operations and load-planning: each file keeps only the Examples rows of its own service.
+
 ## Adding a story
 
-1. Put the Gherkin from the issue literally in `NN-short-name.feature`.
+1. Remove `@wip` from the existing file (or, for a new story, put the Gherkin from the issue
+   literally in `NN-short-name.feature`).
 2. First check whether a step text already exists (Ctrl+click in IntelliJ). If it does, reuse it.
 3. A step that several stories use goes to `OutcomeSteps` or the class of its topic, not into a
    copy.
