@@ -70,6 +70,10 @@ public class Flight {
             registration, scheduled.departure(), scheduled.arrival(), now);
     }
 
+    public FlightRemoved removed(Instant now) {
+        return new FlightRemoved(id, flightNumber, scheduled.departureDate(), departureAirport, now);
+    }
+
     public List<FlightEvent> addDelay(DelayKind kind, DelayDuration minutes, DelayCode reason, String description,
                                       FlightPlannerId by, Instant now) {
         requireDelaysCanChange(kind);
