@@ -9,10 +9,10 @@ Feature: Check the load with Check Load
     And AKE30111HJ is booked without a load position
     When I click Check Load
     Then I see this report:
-      | check                | result | reason                                                         | type |
-      | Lateral balance      | failed | 1000 kg left, 1200 kg right, maximum 1100 kg on heaviest side  | hard |
-      | Offloading           | passed |                                                                | hard |
-      | Not all cargo loaded | failed | AKE30111HJ has no load position                                | soft |
+      | check                | result | reason                                                                              | type |
+      | Lateral balance      | failed | Left carries 1000 kg and right 1200 kg; the heaviest side may carry at most 1100 kg | hard |
+      | Offloading           | passed |                                                                                     | hard |
+      | Not all cargo loaded | failed | AKE30111HJ has no load position                                                     | soft |
 
   @ui @integration
   Scenario Outline: Not outside the loading period
