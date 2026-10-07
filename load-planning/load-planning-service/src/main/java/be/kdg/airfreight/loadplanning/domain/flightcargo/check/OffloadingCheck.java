@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import be.kdg.airfreight.loadplanning.domain.flightcargo.AirportCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.CheckSeverity;
@@ -62,36 +61,46 @@ public final class OffloadingCheck implements LoadCheck {
         if (stuck.isEmpty()) {
             return LoadCheckResult.pass(NAME, severity());
         }
-        return LoadCheckResult.fail(NAME, severity(),
-            "Cannot be unloaded without moving other cargo: " + String.join("; ", stuck));
+        return LoadCheckResult.fail(NAME, severity(), String.join("; ", stuck));
     }
 
     private static boolean hasClearRoute(Uld uld, Map<LoadPosition, Uld> load, Set<Uld> unloadable,
                                          FloorPlan floorPlan) {
         return floorPlan.routesToDoor(positionOf(uld)).stream()
-            .anyMatch(route -> blockedPositions(route, load, unloadable).isEmpty());
+            .anyMatch(route -> blockers(route, load, unloadable).isEmpty());
     }
 
-    /** The positions on a route that hold a ULD which cannot be taken out first. */
-    private static List<LoadPosition> blockedPositions(Route route, Map<LoadPosition, Uld> load,
-                                                       Set<Uld> unloadable) {
+    /** The ULDs on a route that cannot be taken out first. */
+    private static List<Uld> blockers(Route route, Map<LoadPosition, Uld> load, Set<Uld> unloadable) {
         return route.positions().stream()
-            .filter(position -> {
-                Uld occupant = load.get(position);
-                return occupant != null && !unloadable.contains(occupant);
-            })
+            .map(load::get)
+            .filter(occupant -> occupant != null && !unloadable.contains(occupant))
             .toList();
     }
 
+    /** "AKE16689R7 on ML cannot be offloaded because AKE20417HJ on PL is in the way". */
     private static String describe(Uld uld, Map<LoadPosition, Uld> load, Set<Uld> unloadable,
                                    FloorPlan floorPlan) {
-        String blockedAt = floorPlan.routesToDoor(positionOf(uld)).stream()
-            .flatMap(route -> blockedPositions(route, load, unloadable).stream())
-            .map(LoadPosition::name)
+        List<String> inTheWay = floorPlan.routesToDoor(positionOf(uld)).stream()
+            .flatMap(route -> blockers(route, load, unloadable).stream())
             .distinct()
+            .map(OffloadingCheck::where)
             .sorted()
-            .collect(Collectors.joining(", "));
-        return uld.getCode().value() + " at " + positionOf(uld).name() + " (blocked at " + blockedAt + ")";
+            .toList();
+        return where(uld) + " cannot be offloaded because "
+            + listed(inTheWay) + (inTheWay.size() == 1 ? " is" : " are") + " in the way";
+    }
+
+    /** "a", "a and b", "a, b and c". */
+    private static String listed(List<String> items) {
+        if (items.size() == 1) {
+            return items.getFirst();
+        }
+        return String.join(", ", items.subList(0, items.size() - 1)) + " and " + items.getLast();
+    }
+
+    private static String where(Uld uld) {
+        return uld.getCode().value() + " on " + positionOf(uld).name();
     }
 
     private static LoadPosition positionOf(Uld uld) {
