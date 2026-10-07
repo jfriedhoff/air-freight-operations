@@ -4,7 +4,7 @@ import java.time.Instant;
 
 public sealed interface FlightEvent
     permits FlightAnnounced, DepartureEstimateChanged, ArrivalEstimateChanged,
-            FinalizedLoadReceived, FlightDeparted, FlightLanded {
+            FinalizedLoadReceived, FlightDeparted, FlightLanded, FlightRemoved {
     FlightId flightId();
 
     Instant occurredOn();
