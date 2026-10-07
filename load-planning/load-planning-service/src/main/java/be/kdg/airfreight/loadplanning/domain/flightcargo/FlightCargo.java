@@ -44,13 +44,12 @@ public class FlightCargo {
         return cargo;
     }
 
-    /** Replaces the copy of the flight. The loading period follows it: it is computed, never stored. */
+    /** Replaces the copy of the flight, unless it is older than or equal to the one we have. */
     public void updateFlightInfo(FlightInfo newer) {
-        flightInfo = Objects.requireNonNull(newer, "Flight info cannot be null");
-    }
-
-    public boolean hasBooked(UldCode code) {
-        return ulds.stream().anyMatch(uld -> uld.getCode().equals(code));
+        Objects.requireNonNull(newer, "Flight info cannot be null");
+        if (newer.version() > flightInfo.version()) {
+            flightInfo = newer;
+        }
     }
 
     public UldBooked book(UldCode code, Weight weight, AirportCode destination, Instant now) {

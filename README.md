@@ -41,28 +41,3 @@ Frontend tijdens het ontwikkelen: `npm run dev` in `flight-operations/flight-ope
 Elke context heeft een eigen databank (`flight_operations`, `load_planning`, `messaging`) op dezelfde PostgreSQL. Het script `init-scripts/sql/init.sql` maakt ze aan bij de eerste start. Bestond de map `postgresql/` al, verwijder ze dan en start opnieuw.
 
 RabbitMQ: http://localhost:15672 (`user` / `password`). Keycloak: http://localhost:8180 (`admin` / `admin`).
-
-## Berichten tussen de services
-
-De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert op haar eigen exchange en leest van één eigen queue.
-
-| Service | Publiceert op | Leest van |
-| --- | --- | --- |
-| Flight Operations | `flight-operations.events` | `flight-operations.messaging-events` |
-| Load Planning | `load-planning.events` | `load-planning.messaging-events` |
-| Messaging | `messaging.events` (voor de andere services), `messaging.partner-messages` (FLM, MVT, CPM) | `messaging.schedule`, `messaging.bookings`, `messaging.flights`, `messaging.loads` |
-
-- De partnerberichten komen in de queue `partners.all`, zolang er geen partner aangesloten is.
-- Een bericht dat een service niet kan verwerken, belandt in haar dead letter queue: `flight-operations.dlq`, `load-planning.dlq` of `messaging.dlq`.
-- Elke service bewaart haar uitgaande events eerst in de tabel `outbox_events` en verstuurt ze daarna. Is RabbitMQ onbereikbaar, dan volgen ze zodra het terug is.
-- Start nooit twee instanties van dezelfde service tegelijk: de volgorde van de berichten hangt af van één lezer per queue.
-- `messaging/messaging-service/http/messaging.http` stuurt berichten rechtstreeks naar een exchange, om de Messaging-service apart uit te proberen.
-
-De databanken worden niet meer leeggemaakt bij elke start (`spring.jpa.hibernate.ddl-auto=update`). Wie al een lokale omgeving had van vóór deze wijziging, doet één keer:
-
-```bash
-docker compose exec rabbitmq rabbitmqctl delete_queue messaging.flights
-docker compose exec postgres psql -U load_planning -d load_planning -c 'DROP TABLE IF EXISTS ulds, flight_cargos'
-```
-
-Verandert een mapping later op een manier die `update` niet kan volgen (een kolom die verdwijnt of van type verandert), verwijder dan de tabel of de map `postgresql/` en start opnieuw.

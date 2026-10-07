@@ -5,7 +5,6 @@ import java.util.Optional;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
-import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
 import be.kdg.airfreight.loadplanning.infrastructure.flightcargo.jpa.JpaFlightCargo;
 import be.kdg.airfreight.loadplanning.infrastructure.flightcargo.jpa.JpaFlightCargoRepository;
 import jakarta.persistence.EntityManager;
@@ -31,12 +30,6 @@ class DbFlightCargoRepository implements FlightCargoRepository {
     }
 
     @Override
-    public Optional<FlightCargo> findByFlightId(FlightId flightId) {
-        return jpaFlightCargos.findWithUldsByFlight(flightId.flightNumber().value(),
-            flightId.scheduledDepartureDate(), flightId.departureAirport().value()).map(JpaFlightCargo::toDomain);
-    }
-
-    @Override
     @Transactional
     public void save(FlightCargo flightCargo) {
         JpaFlightCargo saved = jpaFlightCargos.save(JpaFlightCargo.fromDomain(flightCargo));
@@ -44,12 +37,5 @@ class DbFlightCargoRepository implements FlightCargoRepository {
             // A changed ULD does not touch the flight_cargos row: raise the version of the aggregate anyway.
             entityManager.lock(saved, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
         }
-    }
-
-    /** Deleting the cargo deletes its ULDs with it: the aggregate goes as a whole. */
-    @Override
-    @Transactional
-    public void delete(FlightCargo flightCargo) {
-        jpaFlightCargos.deleteById(flightCargo.getId().id());
     }
 }

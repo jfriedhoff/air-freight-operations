@@ -25,8 +25,7 @@ class DddArchTest {
             .layer("Domain").definedBy("..flightoperations.domain..")
             .layer("Infrastructure").definedBy("..flightoperations.infrastructure..")
             .whereLayer("API").mayNotBeAccessedByAnyLayer()
-            // Message listeners and schedulers are in infrastructure and call the application layer.
-            .whereLayer("Application").mayOnlyBeAccessedByLayers("API", "Infrastructure")
+            .whereLayer("Application").mayOnlyBeAccessedByLayers("API")
             .whereLayer("Infrastructure").mayNotBeAccessedByAnyLayer()
             .check(classes);
     }
