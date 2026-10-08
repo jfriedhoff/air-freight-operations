@@ -40,6 +40,12 @@ Frontend tijdens het ontwikkelen: `npm run dev` in `flight-operations/flight-ope
 
 Elke context heeft een eigen databank (`flight_operations`, `load_planning`, `messaging`) op dezelfde PostgreSQL. Het script `init-scripts/sql/init.sql` maakt ze aan bij de eerste start. Bestond de map `postgresql/` al, verwijder ze dan en start opnieuw.
 
+De integratietests van Flight Operations gebruiken een eigen databank, `flight_operations_test`, en versturen niets naar RabbitMQ. Bestond de map `postgresql/` al, maak die databank dan één keer aan:
+
+```bash
+docker compose exec app_postgres psql -U user -d postgres -c "CREATE DATABASE flight_operations_test OWNER flight_operations"
+```
+
 RabbitMQ: http://localhost:15672 (`user` / `password`). Keycloak: http://localhost:8180 (`admin` / `admin`).
 
 ## Berichten tussen de services
