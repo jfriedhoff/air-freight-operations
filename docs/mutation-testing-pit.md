@@ -101,6 +101,7 @@ have no tests yet (2, 38).
 | 7 October 2026 | Cucumber `@unit` scenarios of story 19 | 157 | 53 (34 %) | 78 % |
 | 7 October 2026 | + story 20 | 163 | 85 (52 %) | 85 % |
 | 7 October 2026 | + story 21, `OffloadingCheckTest` | 163 | 89 (55 %) | 86 % |
+| 7 October 2026 | + story 22 | 163 | 102 (63 %) | 85 % |
 
 Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
 through but does not check: `book` and `assign` (stories 15, 18) and the validation of
@@ -111,3 +112,7 @@ other load-planning stories get their steps.
 
 Story 21 and `OffloadingCheckTest` kill every mutant in `OffloadingCheck` except `name()`, which no unit test reads. `OffloadingCheckTest` is plain
 JUnit for the report with several ULDs involved, which no scenario checks.
+
+Story 22 kills the `Uld.hasPosition` survivor and every mutant in `AllCargoLoadedCheck` except `name()`.
+Its last step finalizes the load, which brings new survivors in `finalizeLoad`, `isFinalized` and
+`hardChecksPassed`: story 22 only checks that finalizing works, story 24 checks that it is refused.

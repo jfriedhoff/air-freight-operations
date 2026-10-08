@@ -26,13 +26,12 @@ public final class AllCargoLoadedCheck implements LoadCheck {
     public LoadCheckResult check(FlightCargo cargo, FloorPlan floorPlan) {
         List<String> withoutPosition = cargo.getUlds().stream()
             .filter(uld -> !uld.hasPosition())
-            .map(uld -> uld.getCode().value())
+            .map(uld -> uld.getCode().value() + " has no load position")
             .sorted()
             .toList();
         if (withoutPosition.isEmpty()) {
             return LoadCheckResult.pass(NAME, severity());
         }
-        return LoadCheckResult.fail(NAME, severity(),
-            "Booked without a load position: " + String.join(", ", withoutPosition));
+        return LoadCheckResult.fail(NAME, severity(), String.join("; ", withoutPosition));
     }
 }
