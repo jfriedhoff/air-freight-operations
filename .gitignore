@@ -78,3 +78,6 @@ logs/
 # Claude Code: personal settings stay local
 .claude/settings.local.json
 CLAUDE.md
+
+# Local design notes and plans (the two tracked files in docs/ stay tracked)
+/docs/
