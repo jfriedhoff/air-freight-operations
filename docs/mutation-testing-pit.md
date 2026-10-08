@@ -100,6 +100,7 @@ have no tests yet (2, 38).
 | --- | --- | --- | --- | --- |
 | 7 October 2026 | Cucumber `@unit` scenarios of story 19 | 157 | 53 (34 %) | 78 % |
 | 7 October 2026 | + story 20 | 163 | 85 (52 %) | 85 % |
+| 7 October 2026 | + story 21, `OffloadingCheckTest` | 163 | 89 (55 %) | 86 % |
 
 Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
 through but does not check: `book` and `assign` (stories 15, 18) and the validation of
@@ -108,6 +109,5 @@ returning `true` also survives: the lateral balance check asks `isOnSide`, which
 ULD without a position. Story 22 (cargo without a position) will check it. The score rises as the
 other load-planning stories get their steps.
 
-Story 20 kills every covered mutant in `OffloadingCheck`. Not covered yet: a report with several ULDs in
-the way ("... and ... are in the way") or several ULDs that cannot be offloaded; story 21 (nose and
-tail, two routes) may reach them.
+Story 21 and `OffloadingCheckTest` kill every mutant in `OffloadingCheck` except `name()`, which no unit test reads. `OffloadingCheckTest` is plain
+JUnit for the report with several ULDs involved, which no scenario checks.

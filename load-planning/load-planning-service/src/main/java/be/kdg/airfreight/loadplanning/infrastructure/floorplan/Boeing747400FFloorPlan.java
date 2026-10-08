@@ -27,19 +27,29 @@ public final class Boeing747400FFloorPlan {
     public static FloorPlan build() {
         Map<LoadPosition, List<Route>> routes = new LinkedHashMap<>();
         for (String name : NOSE) {
-            routes.put(new LoadPosition(name, null), routesViaRow(ROWS.getFirst()));
+            routes.put(new LoadPosition(name, null), routesViaRow(nosePositionsToPass(name), ROWS.getFirst()));
         }
         for (String row : ROWS) {
             routes.put(inRow(row, Side.LEFT), List.of(new Route(pathToDoor(row, Side.LEFT))));
             routes.put(inRow(row, Side.RIGHT), List.of(new Route(pathToDoor(row, Side.RIGHT))));
         }
-        routes.put(new LoadPosition(TAIL, null), routesViaRow(ROWS.getLast()));
+        routes.put(new LoadPosition(TAIL, null), routesViaRow(List.of(), ROWS.getLast()));
         return new FloorPlan(AIRCRAFT_TYPE, routes);
     }
 
-    /** From the nose or the tail: both positions of the neighbouring row must be clear, then left or right. */
-    private static List<Route> routesViaRow(String row) {
-        List<LoadPosition> manoeuvre = List.of(inRow(row, Side.LEFT), inRow(row, Side.RIGHT));
+    /** The nose positions between this one and row C: A1 passes A2 and B1, A2 passes B1. */
+    private static List<LoadPosition> nosePositionsToPass(String name) {
+        return NOSE.subList(NOSE.indexOf(name) + 1, NOSE.size()).stream()
+            .map(passed -> new LoadPosition(passed, null))
+            .toList();
+    }
+
+    /**
+     * From the nose or the tail: first the positions to pass, then both positions of the neighbouring row must be
+     * clear, then left or right.
+     */
+    private static List<Route> routesViaRow(List<LoadPosition> toPass, String row) {
+        List<LoadPosition> manoeuvre = joined(toPass, List.of(inRow(row, Side.LEFT), inRow(row, Side.RIGHT)));
         return List.of(
             new Route(joined(manoeuvre, pathToDoor(row, Side.LEFT))),
             new Route(joined(manoeuvre, pathToDoor(row, Side.RIGHT))));

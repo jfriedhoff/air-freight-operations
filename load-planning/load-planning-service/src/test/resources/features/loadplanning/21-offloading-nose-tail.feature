@@ -1,4 +1,3 @@
-@wip
 Feature: Offloading from the nose and the tail
   As a load planner I want it to be checked whether cargo for the destination in the nose and the tail can be offloaded without moving other cargo so that offloading goes smoothly
 
