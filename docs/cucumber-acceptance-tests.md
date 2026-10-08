@@ -175,6 +175,19 @@ Two things to know before running the load-planning integration tests:
 - `assertSetAside` takes dead letters until it finds its own, so older dead letters on `load-planning.dlq`
   (from development or earlier runs) are dropped.
 
+The other services, after stories 2, 3, 26 to 29, 37 and 38:
+
+| Part | Where | What it does and why |
+| --- | --- | --- |
+| `MessagingTraffic`, `Messages`, `ScenarioTime` | messaging | Plays the senders on their exchanges and reads what Messaging stored: the inbox, the outbox for the other units, the partner messages. `Messages` builds valid messages that a scenario changes or breaks; `ScenarioTime` gives the mocked `Clock` the time of the stories before every scenario. |
+| Counting before and after | messaging | A queue of the development environment can still hold older messages, which the listeners process first. The steps first let the queue empty (`waitUntilHandled`), then count, so only the message of the scenario can change the count. |
+| Calling the use case | flight-operations | The tests of Flight Operations read nothing from RabbitMQ (see its test profile), and `DddArchTest` lets only the listener call a use case from infrastructure. So the steps of story 2 call `FlightSchedulingService`, as `MessagingEventListener` does. |
+| `TestClock` | flight-operations, load-planning | A `@Primary` clock that a scenario can set (story 38: "it is 16 January 2026 00:00 UTC"); otherwise the system time. |
+| `RabbitMqOutageSteps` | flight-operations | Story 28: points the connection factory at a port where nothing listens (`setAddresses`: Spring Boot passes an address list, which wins over the port) and puts it back after the scenario. |
+| A restarted unit | flight-operations, load-planning | Story 37: a second application context of the same classes, started with only the changed value as a command-line argument (that wins over `application.properties`; `SpringApplicationBuilder.properties` would not). In load-planning it gets `ddl-auto=none`, because the test profile drops the schema when a context closes. |
+
+The messaging tests drain `partners.all` the way `assertSetAside` drains the dead letter queue: older partner messages are dropped.
+
 ## Work in progress and the TDD workflow
 
 Every story that has a runnable scenario (`@unit` or `@integration`) has its `.feature` file in the
