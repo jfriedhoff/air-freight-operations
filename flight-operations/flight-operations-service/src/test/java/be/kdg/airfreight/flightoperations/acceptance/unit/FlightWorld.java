@@ -4,6 +4,9 @@ import be.kdg.airfreight.flightoperations.domain.DomainRuleViolationException;
 import be.kdg.airfreight.flightoperations.domain.flight.ActualTimeTolerance;
 import be.kdg.airfreight.flightoperations.domain.flight.AircraftRegistration;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayCode;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayCodeCatalog;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayReason;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightNumber;
 import be.kdg.airfreight.flightoperations.domain.flight.ScheduledTimes;
@@ -17,6 +20,7 @@ import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +41,8 @@ public class FlightWorld {
 
     final Map<String, Flight> flights = new HashMap<>();
     final FlightPlannerId planner = FlightPlannerId.create();
+    /** The IATA list of a scenario: only the delay reason the steps use. */
+    final DelayCodeCatalog delayCodes = () -> List.of(new DelayReason(new DelayCode("93"), "Aircraft rotation"));
     Instant now = NOW;
     /** What the last When step was refused with, or null when it was accepted. */
     Throwable error;

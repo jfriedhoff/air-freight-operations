@@ -74,8 +74,10 @@ public class Flight {
         return new FlightRemoved(id, flightNumber, scheduled.departureDate(), departureAirport, now);
     }
 
+    /** The delay reason must be in the IATA list: the catalog is handed in, the flight asks it. */
     public List<FlightEvent> addDelay(DelayKind kind, DelayDuration minutes, DelayCode reason, String description,
-                                      FlightPlannerId by, Instant now) {
+                                      FlightPlannerId by, Instant now, DelayCodeCatalog delayCodes) {
+        delayCodes.requireKnown(reason);
         requireDelaysCanChange(kind);
         requireTotalDelayWithinLimit(totalDelayMinutes() + minutes.minutes());
         delays.add(new Delay(DelayId.create(), kind, minutes, reason, description, by));

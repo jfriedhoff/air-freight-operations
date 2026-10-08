@@ -9,6 +9,7 @@ import be.kdg.airfreight.flightoperations.application.command.RegisterArrivalCom
 import be.kdg.airfreight.flightoperations.application.command.RegisterDepartureCommand;
 import be.kdg.airfreight.flightoperations.application.command.RemoveDelayCommand;
 import be.kdg.airfreight.flightoperations.domain.flight.ActualTimeTolerance;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayCodeCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightEvent;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
@@ -22,13 +23,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class FlightService {
     private final FlightRepository flights;
+    private final DelayCodeCatalog delayCodes;
     private final ApplicationEventPublisher events;
     private final ActualTimeTolerance tolerance;
     private final Clock clock;
 
-    public FlightService(FlightRepository flights, ApplicationEventPublisher events,
+    public FlightService(FlightRepository flights, DelayCodeCatalog delayCodes, ApplicationEventPublisher events,
                          ActualTimeTolerance tolerance, Clock clock) {
         this.flights = flights;
+        this.delayCodes = delayCodes;
         this.events = events;
         this.tolerance = tolerance;
         this.clock = clock;
@@ -37,7 +40,7 @@ public class FlightService {
     public Flight addDelay(AddDelayCommand command) {
         Flight flight = find(command.flightId());
         return saved(flight, flight.addDelay(command.kind(), command.minutes(), command.reason(),
-            command.description(), command.by(), clock.instant()));
+            command.description(), command.by(), clock.instant(), delayCodes));
     }
 
     public Flight changeDelay(ChangeDelayCommand command) {

@@ -2,7 +2,7 @@ package be.kdg.airfreight.flightoperations.domain.flight;
 
 import java.time.LocalDate;
 
-import be.kdg.airfreight.flightoperations.domain.DomainRuleViolationException;
+import be.kdg.airfreight.flightoperations.domain.InvalidValueException;
 import org.jmolecules.ddd.annotation.ValueObject;
 
 /** How many days after its scheduled departure date a flight is kept. */
@@ -10,7 +10,7 @@ import org.jmolecules.ddd.annotation.ValueObject;
 public record RetentionPeriod(int days) {
     public RetentionPeriod {
         if (days < 0) {
-            throw new DomainRuleViolationException("The retention period cannot be negative");
+            throw new InvalidValueException("The retention period cannot be negative");
         }
     }
 

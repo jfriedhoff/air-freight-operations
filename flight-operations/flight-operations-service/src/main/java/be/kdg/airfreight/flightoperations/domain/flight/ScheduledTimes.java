@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Objects;
 
-import be.kdg.airfreight.flightoperations.domain.DomainRuleViolationException;
+import be.kdg.airfreight.flightoperations.domain.InvalidValueException;
 import org.jmolecules.ddd.annotation.ValueObject;
 
 @ValueObject
@@ -14,7 +14,7 @@ public record ScheduledTimes(Instant departure, Instant arrival) {
         Objects.requireNonNull(departure, "STD cannot be null");
         Objects.requireNonNull(arrival, "STA cannot be null");
         if (!arrival.isAfter(departure)) {
-            throw new DomainRuleViolationException("The STA must be later than the STD");
+            throw new InvalidValueException("The STA must be later than the STD");
         }
     }
 

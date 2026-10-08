@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
-import be.kdg.airfreight.flightoperations.domain.DomainRuleViolationException;
+import be.kdg.airfreight.flightoperations.domain.InvalidValueException;
 import org.jmolecules.ddd.annotation.ValueObject;
 
 @ValueObject
@@ -12,7 +12,7 @@ public record ActualTimeTolerance(Duration value) {
     public ActualTimeTolerance {
         Objects.requireNonNull(value, "Tolerance cannot be null");
         if (value.isNegative()) {
-            throw new DomainRuleViolationException("The tolerance cannot be negative");
+            throw new InvalidValueException("The tolerance cannot be negative");
         }
     }
 
