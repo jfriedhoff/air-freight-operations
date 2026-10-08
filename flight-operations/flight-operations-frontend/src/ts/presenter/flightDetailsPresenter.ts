@@ -1,0 +1,113 @@
+import {canAddDepartureDelay, showsEta, showsEtd} from "../domain/Flight.ts";
+import type {Airport, Delay, DelayReason, Flight} from "../domain/Flight.ts";
+import {FLIGHT_PLANNER, hasRole} from "../infrastructure/auth.ts";
+import {addDelay, getDelayReasons, getFlight} from "../infrastructure/flightRest.ts";
+import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
+import {createElementWithText} from "./htmlUtil.ts";
+import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
+
+const messageBox = document.getElementById("message-box")!;
+const details = document.getElementById("flight-details")!;
+const delayRows = document.getElementById("delays")!;
+const noDelays = document.getElementById("no-delays")!;
+const delayForm = document.getElementById("delay-form") as HTMLFormElement;
+const minutesField = document.getElementById("minutes") as HTMLInputElement;
+const reasonField = document.getElementById("reason") as HTMLSelectElement;
+const descriptionField = document.getElementById("description") as HTMLTextAreaElement;
+
+const DELAY_KIND = {DEPARTURE: "Vertrek", ARRIVAL: "Aankomst"};
+const STATUS = {PLANNED: "Gepland", DEPARTED: "Opgestegen", LANDED: "Geland"};
+
+const flightId = new URLSearchParams(window.location.search).get("flightId");
+let isFlightPlanner = false;
+
+function text(id: string, value: string): void {
+    document.getElementById(id)!.textContent = value;
+}
+
+function airport(airport: Airport): string {
+    return airport.name ? `${airport.code} – ${airport.name}` : airport.code;
+}
+
+/* Shows the row only when there is something to show: an estimated time that differs, a registered actual time. */
+function optionalTime(rowId: string, valueId: string, instant: string | null, shown: boolean): void {
+    document.getElementById(rowId)!.classList.toggle("hidden", !shown || instant === null);
+    text(valueId, instant === null ? "" : brusselsDateTime(instant));
+}
+
+function delayRow(delay: Delay): HTMLTableRowElement {
+    const row = document.createElement("tr");
+    const reason = delay.reason.description ? `${delay.reason.code} – ${delay.reason.description}` : delay.reason.code;
+    for (const cell of [DELAY_KIND[delay.kind], `${delay.minutes} min`, reason, delay.description]) {
+        row.appendChild(createElementWithText("td", cell));
+    }
+    return row;
+}
+
+function renderFlight(flight: Flight): void {
+    text("flight-number", flight.flightNumber);
+    text("scheduled-departure-date", plainDate(flight.scheduledDepartureDate));
+    text("status", STATUS[flight.status]);
+    text("departure-airport", airport(flight.departureAirport));
+    text("arrival-airport", airport(flight.arrivalAirport));
+    text("std", brusselsDateTime(flight.std));
+    text("sta", brusselsDateTime(flight.sta));
+    optionalTime("etd-row", "etd", flight.etd, showsEtd(flight));
+    optionalTime("eta-row", "eta", flight.eta, showsEta(flight));
+    optionalTime("atd-row", "atd", flight.atd, true);
+    optionalTime("ata-row", "ata", flight.ata, true);
+
+    delayRows.replaceChildren(...flight.delays.map(delayRow));
+    noDelays.classList.toggle("hidden", flight.delays.length > 0);
+    delayForm.classList.toggle("hidden", !canAddDepartureDelay(flight, isFlightPlanner));
+    details.classList.remove("hidden");
+}
+
+function renderDelayReasons(reasons: DelayReason[]): void {
+    for (const reason of reasons) {
+        const option = createElementWithText("option", `${reason.code} – ${reason.description ?? ""}`);
+        option.setAttribute("value", reason.code);
+        reasonField.appendChild(option);
+    }
+}
+
+/* The form only checks that something was entered; whether the delay is allowed is the server's answer. */
+async function enterDelay(event: Event): Promise<void> {
+    event.preventDefault();
+    clearMessages(messageBox);
+    if (!flightId || !delayForm.reportValidity()) {
+        return;
+    }
+    try {
+        const flight = await addDelay(flightId, {
+            kind: "DEPARTURE",
+            minutes: Number(minutesField.value),
+            reason: reasonField.value,
+            description: descriptionField.value.trim(),
+        });
+        delayForm.reset();
+        renderFlight(flight);
+        addInfo(messageBox, "De vertrekvertraging is geregistreerd.");
+    } catch (error) {
+        addError(messageBox, (error as Error).message);
+    }
+}
+
+async function init(): Promise<void> {
+    delayForm.addEventListener("submit", enterDelay);
+    if (!flightId) {
+        addError(messageBox, "Geen vlucht gekozen: open deze pagina met ?flightId=… in het adres.");
+        return;
+    }
+    try {
+        isFlightPlanner = await hasRole(FLIGHT_PLANNER);
+        if (isFlightPlanner) {
+            renderDelayReasons(await getDelayReasons());
+        }
+        renderFlight(await getFlight(flightId));
+    } catch (error) {
+        addError(messageBox, (error as Error).message);
+    }
+}
+
+init();

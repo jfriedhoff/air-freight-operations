@@ -1,0 +1,60 @@
+export type DelayKind = "DEPARTURE" | "ARRIVAL";
+export type FlightStatus = "PLANNED" | "DEPARTED" | "LANDED";
+
+export interface Airport {
+    code: string;
+    name: string | null;
+}
+
+export interface DelayReason {
+    code: string;
+    description: string | null;
+}
+
+export interface Delay {
+    id: string;
+    kind: DelayKind;
+    minutes: number;
+    reason: DelayReason;
+    description: string;
+}
+
+/* All times are UTC instants in ISO-8601, as the API gives them. */
+export interface Flight {
+    id: string;
+    flightNumber: string;
+    scheduledDepartureDate: string;
+    departureAirport: Airport;
+    arrivalAirport: Airport;
+    registration: string;
+    status: FlightStatus;
+    std: string;
+    sta: string;
+    etd: string;
+    eta: string;
+    atd: string | null;
+    ata: string | null;
+    delays: Delay[];
+}
+
+export interface NewDelay {
+    kind: DelayKind;
+    minutes: number;
+    reason: string;
+    description: string;
+}
+
+/* An estimated time is only shown when it differs from the scheduled time. */
+export function showsEtd(flight: Flight): boolean {
+    return flight.etd !== flight.std;
+}
+
+export function showsEta(flight: Flight): boolean {
+    return flight.eta !== flight.sta;
+}
+
+/* What the page offers. The server decides: it refuses a departure delay on a flight that is not planned,
+   and a change by anyone but a flight planner. */
+export function canAddDepartureDelay(flight: Flight, isFlightPlanner: boolean): boolean {
+    return isFlightPlanner && flight.status === "PLANNED";
+}

@@ -48,6 +48,19 @@ docker compose exec app_postgres psql -U user -d postgres -c "CREATE DATABASE fl
 
 RabbitMQ: http://localhost:15672 (`user` / `password`). Keycloak: http://localhost:8180 (`admin` / `admin`).
 
+### Aanmelden
+
+Keycloak importeert bij de eerste start de realm `air-freight` uit `keycloak/air-freight-realm.json`: de rollen `flight-planner` en `load-planner`, de clients van de frontends en de services, en twee testgebruikers.
+
+| Gebruiker | Wachtwoord | Rol |
+| --- | --- | --- |
+| `flight_planner` | `password` | flight planner |
+| `load_planner` | `password` | load planner |
+
+Draaide Keycloak al van vóór deze wijziging, dan bestaat de realm nog niet: `docker compose up -d --force-recreate idp_keycloak`. Wijzigt het realmbestand later, verwijder dan de realm `air-freight` in de Keycloak-console en herstart Keycloak; een bestaande realm wordt niet opnieuw geïmporteerd.
+
+De API antwoordt 401 zonder token en 403 met de verkeerde rol. `flight-operations/flight-operations-service/http/flight_api.http` meldt zich aan als `flight_planner` en probeert de API uit. De clientgeheimen in het realmbestand dienen alleen voor die lokale tests.
+
 ## Berichten tussen de services
 
 De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert op haar eigen exchange en leest van één eigen queue.
