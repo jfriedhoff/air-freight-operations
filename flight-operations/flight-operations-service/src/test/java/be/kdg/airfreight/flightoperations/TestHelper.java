@@ -2,7 +2,11 @@ package be.kdg.airfreight.flightoperations;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import be.kdg.airfreight.flightoperations.domain.flight.ActualTimeTolerance;
 import be.kdg.airfreight.flightoperations.domain.flight.AircraftRegistration;
@@ -59,6 +63,33 @@ public class TestHelper {
         flight.recordFinalizedLoad(STD);
         flight.registerDeparture(STD, saveFlightPlanner(), STD, new ActualTimeTolerance(Duration.ofMinutes(5)));
         flights.save(flight);
+    }
+
+    /** A flight between BRU and ATH, as in the stories. */
+    public void saveFlight(String flightNumber, String departureAirport, LocalDate date, LocalTime std,
+                           String registration) {
+        flights.save(Flight.plan(new FlightNumber(flightNumber), new AirportCode(departureAirport),
+            new AirportCode(otherAirport(departureAirport)), new AircraftRegistration(registration),
+            schedule(date, std)));
+    }
+
+    /** The flights of the stories take 3 h 15 min, like STD 06:30 and STA 09:45. */
+    public static ScheduledTimes schedule(LocalDate date, LocalTime std) {
+        Instant departure = date.atTime(std).toInstant(ZoneOffset.UTC);
+        return new ScheduledTimes(departure, departure.plus(Duration.between(STD, STA)));
+    }
+
+    /** The stories fly between BRU and ATH. */
+    public static String otherAirport(String airport) {
+        return airport.equals("ATH") ? "BRU" : "ATH";
+    }
+
+    public Optional<Flight> findFlight(String flightNumber, LocalDate date, String departureAirport) {
+        return flights.findByFlight(new FlightNumber(flightNumber), date, new AirportCode(departureAirport));
+    }
+
+    public long flightCount() {
+        return jpaFlights.count();
     }
 
     /** A departure delay of 25 minutes, reason 93 (late inbound aircraft). */
