@@ -10,7 +10,9 @@ import be.kdg.airfreight.messaging.infrastructure.persistence.jpa.JpaReceivedMes
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -39,14 +41,19 @@ public class MessagingTraffic {
     private final JpaReceivedMessageRepository received;
     private final JpaOutgoingMessageRepository outgoing;
     private final OutboxEventRepository outbox;
+    private final EntityManager entityManager;
+    private final TransactionTemplate transaction;
 
     public MessagingTraffic(RabbitTemplate rabbit, JsonMapper mapper, JpaReceivedMessageRepository received,
-                            JpaOutgoingMessageRepository outgoing, OutboxEventRepository outbox) {
+                            JpaOutgoingMessageRepository outgoing, OutboxEventRepository outbox,
+                            EntityManager entityManager, TransactionTemplate transaction) {
         this.rabbit = rabbit;
         this.mapper = mapper;
         this.received = received;
         this.outgoing = outgoing;
         this.outbox = outbox;
+        this.entityManager = entityManager;
+        this.transaction = transaction;
     }
 
     /** Publishes the message as JSON, as its sender does; its "type" is the routing key. */
@@ -95,6 +102,14 @@ public class MessagingTraffic {
 
     public List<OutgoingMessage> partnerMessages() {
         return outgoing.findAll().stream().map(JpaOutgoingMessage::toDomain).toList();
+    }
+
+    /** As if Messaging stopped right after publishing the partner message, before it marked it as sent. */
+    public void forgetThatItWasSent(UUID messageId) {
+        transaction.executeWithoutResult(status -> entityManager
+            .createQuery("update JpaOutgoingMessage m set m.sentAt = null where m.id = :id")
+            .setParameter("id", messageId)
+            .executeUpdate());
     }
 
     /** Takes partner messages from the queue until the one with this id; others (older ones) are dropped. */
