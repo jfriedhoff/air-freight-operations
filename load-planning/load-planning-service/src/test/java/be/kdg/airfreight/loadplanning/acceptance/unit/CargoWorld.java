@@ -43,18 +43,38 @@ public class CargoWorld {
     LoadCheckResult result;
     private int uldCount;
 
-    /** Books a new ULD and puts it on the position. "0 kg" loads nothing: a ULD always weighs something. */
+    /** The flight as it is, only with another destination. */
+    void goesTo(String airport) {
+        FlightInfo info = cargo.getFlightInfo();
+        cargo.updateFlightInfo(new FlightInfo(new AirportCode(airport), info.aircraftType(), info.std(), info.sta(),
+            info.etd(), info.eta(), info.departed()));
+    }
+
+    /** Books a new ULD for ATH and puts it on the position. "0 kg" loads nothing: a ULD always weighs something. */
     void load(String position, String weight) {
         if (new BigDecimal(weight.split(" ")[0]).signum() == 0) {
             return;
         }
-        UldCode code = new UldCode("AKE%05dHJ".formatted(++uldCount));
+        UldCode code = nextCode();
         book(code, weight);
-        cargo.assign(code, floorPlan.positionNamed(position).orElseThrow(), planner, NOW, floorPlan, POLICY);
+        place(code, position);
     }
 
     void book(UldCode code, String weight) {
-        cargo.book(code, weightOf(weight), ATH, NOW);
+        book(code, weight, ATH.value());
+    }
+
+    void book(UldCode code, String weight, String destination) {
+        cargo.book(code, weightOf(weight), new AirportCode(destination), NOW);
+    }
+
+    void place(UldCode code, String position) {
+        cargo.assign(code, floorPlan.positionNamed(position).orElseThrow(), planner, NOW, floorPlan, POLICY);
+    }
+
+    /** A code for a ULD the scenario does not name: AKE00001HJ, AKE00002HJ, ... */
+    UldCode nextCode() {
+        return new UldCode("AKE%05dHJ".formatted(++uldCount));
     }
 
     void check(LoadCheck check) {

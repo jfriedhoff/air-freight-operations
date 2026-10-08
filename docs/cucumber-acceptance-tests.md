@@ -82,10 +82,11 @@ The same set-up in `be.kdg.airfreight.loadplanning.acceptance.unit`, with `Cargo
 
 | Class | Contents |
 | --- | --- |
-| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the result of the last load check. `load` books a ULD and puts it on a position; "0 kg" loads nothing, because a `Weight` of 0 does not exist. |
+| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the result of the last load check. `book` and `place` take a destination per ULD and a code (or `nextCode` for a ULD the scenario does not name). `load` books a ULD and puts it on a position; "0 kg" loads nothing, because a `Weight` of 0 does not exist. |
 | `ParameterTypes` | `{weight}`: "1000 kg", "2646 lb", "1200.2 kg". |
 | `LoadCheckSteps` | `the check has passed/failed`, shared by the load check stories (19, 20, 21). |
 | `LateralBalanceSteps` | Story 19. |
+| `OffloadingSteps` | Stories 20 and 21. A `<load>` such as "ATH on RR and UR, FRA on UL" is read by one regex step, because the rows have different shapes. |
 
 The When step goes through the aggregate root (`cargo.checkLoad(...)`), as the application service
 does. The floor plan is the real `Boeing747400FFloorPlan` from `infrastructure/floorplan`: it is

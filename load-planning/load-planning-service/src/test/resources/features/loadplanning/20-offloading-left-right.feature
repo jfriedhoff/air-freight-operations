@@ -1,4 +1,3 @@
-@wip
 Feature: Offloading along the left and right side
   As a load planner I want it to be checked whether cargo for the destination can be offloaded along the left and right side without moving other cargo so that offloading goes smoothly
 
