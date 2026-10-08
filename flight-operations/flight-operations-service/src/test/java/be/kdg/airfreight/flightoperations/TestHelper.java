@@ -130,6 +130,10 @@ public class TestHelper {
         return outbox.findAll().stream().map(OutboxEvent::getType).toList();
     }
 
+    public List<String> unsentOutboxTypes() {
+        return outbox.findAll().stream().filter(event -> event.getSentAt() == null).map(OutboxEvent::getType).toList();
+    }
+
     /** Planners stay: their ids are random, and the seeded one must survive. */
     public void cleanUp() {
         outbox.deleteAll();
