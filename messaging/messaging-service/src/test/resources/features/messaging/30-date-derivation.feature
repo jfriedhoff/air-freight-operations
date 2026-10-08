@@ -1,4 +1,3 @@
-@wip
 Feature: Dates from ULD messages are derived correctly
   As an operations manager I want dates from ULD messages to be derived correctly so that a booking always applies to the right flight
 
@@ -35,7 +34,7 @@ Feature: Dates from ULD messages are derived correctly
 
   @unit
   Scenario Outline: A day that does not exist makes the message invalid
-    When the day of the month <day> is deriv
+    When the day of the month <day> is derived
     Then the message is invalid
 
     Examples:
@@ -44,10 +43,10 @@ Feature: Dates from ULD messages are derived correctly
       | 00  |
 
   @unit @to-confirm
-  Scenario: A day that does not exist in the
+  Scenario: A day that does not exist in the nearest month makes the message invalid
     Given it is 20 April 2026
     When the day of the month 31 is derived
-    Then the message is invalid, because 31
+    Then the message is invalid, because 31 April does not exist
 
   @unit @to-confirm
   Scenario: A time exactly twelve hours away

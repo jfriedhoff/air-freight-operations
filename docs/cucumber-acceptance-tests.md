@@ -107,14 +107,17 @@ could only drift from it.
 
 ### Messaging
 
-`be.kdg.airfreight.messaging.acceptance.unit` has only one story at unit level (story 1), so there is
-no World yet: `ScheduleSteps` keeps its state in its own fields. A World is added when a second step
-class needs the same state (see "Adding a story", rule 4).
+`be.kdg.airfreight.messaging.acceptance.unit` has no World yet: every step class only reads its own
+state (story 1 in `ScheduleSteps`, story 30 in `DateDerivationSteps`), so they keep it in their own
+fields. A World is added when a second step class needs the same state (see "Adding a story", rule 4).
+`ParameterTypes` is in `acceptance.common`: both suites have it in their glue, because the unit and
+integration steps use the same dates and times.
 
 | Class | Contents |
 | --- | --- |
-| `ParameterTypes` | `{time}` ("06:30" as `LocalTime`), `{weekday}`, `{month}` and `{days}` ("5, 8, 12 and 15"). |
+| `ParameterTypes` (`common`) | `{time}` ("06:30" as `LocalTime`), `{hhmm}` ("1200", a telegram time), `{day}` ("09", a day of the month: `{int}` cannot read the leading zero), `{date}` ("9 January 2026"), `{moment}` ("9 January 2026 08:00", UTC), `{weekday}`, `{month}` and `{days}` ("5, 8, 12 and 15"). |
 | `ScheduleSteps` | Story 1. What a scenario does not name gets a default (BRU to ATH, 06:30 and 09:45, SXBAA). A date with a weekday ("Monday 5 January 2026") also checks that the weekday is right, so a typo in the Gherkin cannot make a test pass. |
+| `DateDerivationSteps` | Story 30. Calls `DateDerivation` directly, as `BookingService` does. "The message is invalid" checks the refusal of the derivation: that is what makes `BookingService` set the message aside. The distance scenario also checks the day counts in its Gherkin. |
 
 "The SSM is processed" calls `FlightSeries.flightsScheduled`, the domain logic that
 `ScheduleService` uses after `JsonSsmReader` has read the message. Reading the JSON, the inbox and
@@ -138,6 +141,25 @@ service or repository. The latter is an integration test (`@integration`).
 **In one sentence:** every `@unit` scenario tests only one aggregate without Spring, database or
 mocks; `FlightWorld` (or `CargoWorld`) is only the test state of one scenario, like the fields of a
 JUnit test class, but shared because Cucumber spreads the steps over several classes.
+
+## Integration tests
+
+An `@integration` scenario tests one deployment unit from its entry point to its database: a REST
+endpoint (through MockMvc) or, for a message, its queue. It runs with `IntegrationAcceptanceTest`
+and `SpringCucumberConfig` (`@SpringBootTest` + `@AutoConfigureMockMvc`). So far this is set up in
+messaging (story 30); flight-operations and load-planning follow the same pattern.
+
+| Part | What it does | Why |
+| --- | --- | --- |
+| `src/test/resources/application.properties` | Replaces the main `application.properties` during the tests: the same settings, except that Hibernate uses its own schema `test` (`default_schema`, `create_namespaces`, `ddl-auto=create-drop`). | The tests run against PostgreSQL and RabbitMQ from Docker Compose, as in production, but never touch the dev data (lesson 06: an isolated, reproducible test database). |
+| `DatabaseCleanUp` | An `@After` hook that empties the tables after every scenario. | Every scenario starts empty, like `TestHelper.cleanUp()` in the course. |
+| `Clock` as `@MockitoBean` | Declared in `SpringCucumberConfig`; a step sets the time with `given(clock.instant())`. | System time is outside our code, and a scenario can need two moments ("processed on 2 January", "arrives again on 25 January"). |
+| Awaitility | `await().atMost(...).untilAsserted(...)` in the Then steps. | A message is published on the exchange of its sender, as the real sender does, and the listener handles it on its own thread. The test waits for the result instead of sleeping. |
+
+"Nothing happened" cannot be awaited. `UldMessageSteps` (story 30) therefore publishes a second,
+new message on the same queue after the duplicate: the queue has one consumer, so messages are
+handled in order, and once the second one is booked, the duplicate has been handled too. What
+Messaging passes on to the other units is checked in its outbox.
 
 ## Work in progress and the TDD workflow
 
@@ -189,6 +211,8 @@ flight-operations and load-planning: each file keeps only the Examples rows of i
 
 - In IntelliJ: right-click `UnitAcceptanceTest` → Run. Not the ▶ in the `.feature` file: that scans
   the whole classpath, finds the Spring configuration and needs a database.
-- `@integration` needs `docker compose up -d`. `@e2e` and `@ui` don't run in Cucumber.
+- `@integration`: run `docker compose up -d`, **stop the service itself** (it would read from the same
+  queue), then right-click `IntegrationAcceptanceTest` → Run. While the tests run, the outbox relays
+  really publish on the exchanges. `@e2e` and `@ui` don't run in Cucumber.
 - To check whether the scenarios really notice bugs: see
   [`mutation-testing-pit.md`](mutation-testing-pit.md).
