@@ -82,12 +82,13 @@ The same set-up in `be.kdg.airfreight.loadplanning.acceptance.unit`, with `Cargo
 
 | Class | Contents |
 | --- | --- |
-| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the result of the last load check. `book` and `place` take a destination per ULD and a code (or `nextCode` for a ULD the scenario does not name). `load` books a ULD and puts it on a position; "0 kg" loads nothing, because a `Weight` of 0 does not exist. `CHECKS` holds all checks, as `PolicyConfig` gives them, and `report` the last full report. `now` is the moment of the scenario (`departsAt` and `delayDepartureBy` move the STD and ETD), `error` the refusal of the last When step. |
+| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the result of the last load check. `book` and `place` take a destination per ULD and a code (or `nextCode` for a ULD the scenario does not name). `load` books a ULD and puts it on a position; "0 kg" loads nothing, because a `Weight` of 0 does not exist. `loadFor` does the same for a named ULD with its own weight and destination. `CHECKS` holds all checks, as `PolicyConfig` gives them, and `report` the last full report. `now` is the moment of the scenario (`departsAt` and `delayDepartureBy` move the STD and ETD), `error` the refusal of the last When step. |
 | `ParameterTypes` | `{weight}`: "1000 kg", "2646 lb", "1200.2 kg". `{moment}`: "9 January 2026 06:30" or "8 January 18:29" (2026) as an `Instant`. |
-| `LoadCheckSteps` | `the check has passed/failed`, shared by the load check stories (19, 20, 21), plus `the load is checked` (all checks) and `the soft check "..." has passed/failed`, which takes that check from the report (story 22). |
+| `LoadCheckSteps` | `the check has passed/failed`, shared by the load check stories (19, 20, 21), plus `the load is checked` (all checks) and `the soft check "..." has passed/failed`, which takes that check from the report (story 22). `I click Check Load` and `I see this report:` (story 23): the table is compared as a whole, in the order of `CHECKS`, so a missing or extra check fails too. |
 | `LateralBalanceSteps` | Story 19. |
 | `OffloadingSteps` | Stories 20 and 21. A `<load>` such as "ATH on RR and UR, FRA on UL" is read by one regex step, because the rows have different shapes. "CL and CR free" stays empty; "ATH on A1, A2 and B1" continues the destination. |
-| `CargoWithoutPositionSteps` | Story 22. |
+| `CargoWithoutPositionSteps` | Story 22, plus `... is booked without a load position` (story 23). Story 15 uses that text as a Then: add the `acted` check of `LoadPositionSteps` then. |
+| `CheckLoadSteps` | Story 23: only the Givens that no other story words this way. Its When and Then are in `LoadCheckSteps`. |
 | `LoadPositionSteps` | Story 18. "AKE16689R7 is on CL" is both a Given and a Then: Cucumber ignores the keyword, so one method places the ULD before the When and checks it after the When (`acted`, set by every When). |
 
 The When step goes through the aggregate root (`cargo.checkLoad(...)`), as the application service
@@ -165,7 +166,9 @@ flight-operations and load-planning: each file keeps only the Examples rows of i
 5. Given calls the domain directly (a broken setup fails immediately); When catches the exception
    in `world.error`; a refusable When sets `world.expectedRefusal` to a fragment of the domain
    message.
-6. A scenario that can't be tested yet gets `@to-confirm` and a comment line with the reason.
+6. A scenario that can't be tested yet gets a tag and a comment line with the reason: `@wip` when
+   the production code it needs is missing (e.g. a REST endpoint), `@to-confirm` only when it waits
+   for an answer (how to read the criterion).
 
 ## Running
 
