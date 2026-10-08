@@ -2,7 +2,7 @@ package be.kdg.airfreight.flightoperations.domain.flight;
 
 import java.util.Objects;
 
-import be.kdg.airfreight.flightoperations.domain.DomainRuleViolationException;
+import be.kdg.airfreight.flightoperations.domain.InvalidValueException;
 import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerId;
 import org.jmolecules.ddd.annotation.Entity;
 import org.jmolecules.ddd.annotation.Identity;
@@ -66,7 +66,7 @@ public class Delay {
     private static String requireDescription(String description) {
         Objects.requireNonNull(description, "Description cannot be null");
         if (description.isBlank()) {
-            throw new DomainRuleViolationException("The description of a delay cannot be blank");
+            throw new InvalidValueException("The description of a delay cannot be blank");
         }
         return description;
     }

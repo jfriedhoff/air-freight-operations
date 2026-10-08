@@ -29,13 +29,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Entering, changing and removing delays, and the ETD and ETA they give. */
 public class FlightDelaySteps {
     private static final String VALID_REASON = "93";
-    private static final String UNKNOWN_REASON = "XY";
+    /** Well-formed, but IATA does not use it. */
+    private static final String UNKNOWN_REASON = "50";
     private static final String DESCRIPTION = "Late arrival of the aircraft";
     private static final String NEW_DESCRIPTION = "Waiting for a late crew member";
     /** The minutes of a delay when the scenario does not name them. */
     private static final int ANY_MINUTES = 15;
     private static final String TOO_LONG = "at most 12 hours";
-    private static final String INVALID_REASON = "Delay reason 'XY' is invalid";
+    private static final String INVALID_REASON = "Delay reason '50' is not in the IATA list";
     private static final String NO_DESCRIPTION = "description of a delay cannot be blank";
     private static final String NOT_PLANNED = "only change while the flight is planned";
     private static final String LANDED = "no longer change once the flight has landed";
@@ -57,7 +58,7 @@ public class FlightDelaySteps {
         world.plan(flightNumber, onDepartureDate(std), onDepartureDate(sta));
         Flight flight = world.flight(flightNumber);
         flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(minutes), new DelayCode(VALID_REASON), DESCRIPTION,
-            colleague, NOW);
+            colleague, NOW, world.delayCodes);
         delayId = flight.getDelays().getLast().getId();
         estimatedBefore = flight.getEstimated();
     }
@@ -248,13 +249,13 @@ public class FlightDelaySteps {
     private DelayId addDelay(String flightNumber, DelayKind kind, int minutes) {
         Flight flight = world.flight(flightNumber);
         flight.addDelay(kind, new DelayDuration(minutes), new DelayCode(VALID_REASON), DESCRIPTION, world.planner,
-            NOW);
+            NOW, world.delayCodes);
         return flight.getDelays().getLast().getId();
     }
 
     private void enterDelay(String flightNumber, DelayKind kind, int minutes, String reason, String description) {
         world.attempt(() -> world.flight(flightNumber).addDelay(kind, new DelayDuration(minutes),
-            new DelayCode(reason), description, world.planner, NOW));
+            new DelayCode(reason), description, world.planner, NOW, world.delayCodes));
     }
 
     private void changeDelay(DelayId id, int minutes, String description) {

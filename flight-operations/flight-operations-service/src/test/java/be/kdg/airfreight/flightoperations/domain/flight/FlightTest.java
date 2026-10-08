@@ -20,6 +20,7 @@ class FlightTest {
     private static final ActualTimeTolerance TOLERANCE = new ActualTimeTolerance(Duration.ofMinutes(5));
     private static final DelayCode REASON = new DelayCode("93");
     private static final String DESCRIPTION = "Aircraft arrived late";
+    private static final DelayCodeCatalog DELAY_CODES = () -> List.of(new DelayReason(REASON, "Aircraft rotation"));
 
     private final FlightPlannerId planner = FlightPlannerId.create();
     private final Flight flight = Flight.plan(new FlightNumber("HJ221"), new AirportCode("BRU"),
@@ -28,7 +29,7 @@ class FlightTest {
     @Test
     void aDepartureDelayAnnouncesTheNewEtdAndEta() {
         List<FlightEvent> events = flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(15), REASON,
-            DESCRIPTION, planner, NOW);
+            DESCRIPTION, planner, NOW, DELAY_CODES);
 
         assertThat(events).satisfiesExactly(
             event -> assertThat(event).isInstanceOfSatisfying(DepartureEstimateChanged.class, changed -> {
@@ -42,7 +43,7 @@ class FlightTest {
     @Test
     void anArrivalDelayOnlyAnnouncesTheNewEta() {
         List<FlightEvent> events = flight.addDelay(DelayKind.ARRIVAL, new DelayDuration(20), REASON,
-            DESCRIPTION, planner, NOW);
+            DESCRIPTION, planner, NOW, DELAY_CODES);
 
         assertThat(events).satisfiesExactly(
             event -> assertThat(event).isInstanceOfSatisfying(ArrivalEstimateChanged.class, changed ->
@@ -112,7 +113,8 @@ class FlightTest {
     }
 
     private DelayId addDepartureDelay(int minutes) {
-        flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(minutes), REASON, DESCRIPTION, planner, NOW);
+        flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(minutes), REASON, DESCRIPTION, planner, NOW,
+            DELAY_CODES);
         return flight.getDelays().getLast().getId();
     }
 }
