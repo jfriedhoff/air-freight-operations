@@ -1,4 +1,4 @@
-package be.kdg.airfreight.messaging.acceptance.unit;
+package be.kdg.airfreight.messaging.acceptance.common;
 
 import io.cucumber.java.ParameterType;
 
