@@ -1,4 +1,3 @@
-@wip
 Feature: See the details of a flight
   As an operations employee I want to see the details of a flight so that I know the current state of the flight
 
