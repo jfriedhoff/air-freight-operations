@@ -1,6 +1,9 @@
 package be.kdg.airfreight.simulator.api;
 
+import java.net.ConnectException;
+
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.AmqpConnectException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
@@ -20,5 +23,14 @@ class ErrorHandlingTest {
 
         assertThat(problem.getStatus()).isEqualTo(400);
         assertThat(problem.getDetail()).isEqualTo("The JSON cannot be read: Unexpected end-of-input");
+    }
+
+    @Test
+    void anUnreachableBrokerIsReportedAsServiceUnavailable() {
+        ProblemDetail problem = errorHandling.streamUnavailable(
+            new AmqpConnectException(new ConnectException("Connection refused")));
+
+        assertThat(problem.getStatus()).isEqualTo(503);
+        assertThat(problem.getDetail()).startsWith("RabbitMQ cannot be reached");
     }
 }

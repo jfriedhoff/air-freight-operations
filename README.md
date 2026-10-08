@@ -57,6 +57,7 @@ De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert 
 - Elke service bewaart haar uitgaande events eerst in de tabel `outbox_events` en verstuurt ze daarna. Is RabbitMQ onbereikbaar, dan volgen ze zodra het terug is.
 - Start nooit twee instanties van dezelfde service tegelijk: de volgorde van de berichten hangt af van één lezer per queue.
 - `messaging/messaging-service/http/messaging.http` stuurt berichten rechtstreeks naar een exchange, om de Messaging-service apart uit te proberen.
+- De simulator bootst de twee bronsystemen na: `POST /api/flight-schedules` stuurt één SSM per record naar `network-planning.messages`, `POST /api/cargo-bookings` één ULD-bericht per record naar `cargo-booking.messages`. Voorbeelden staan in `simulator/simulator-service/http/simulator.http`. Start Messaging eerst: die maakt de queues aan. Met `--spring.profiles.active=production` bestaan de endpoints niet (404).
 
 De databanken worden niet meer leeggemaakt bij elke start (`spring.jpa.hibernate.ddl-auto=update`). Wie al een lokale omgeving had van vóór deze wijziging, doet één keer:
 

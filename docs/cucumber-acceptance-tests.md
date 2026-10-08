@@ -120,6 +120,29 @@ class needs the same state (see "Adding a story", rule 4).
 `ScheduleService` uses after `JsonSsmReader` has read the message. Reading the JSON, the inbox and
 storing the message belong to the integration tests.
 
+### Simulator
+
+The simulator has no domain, so no `@unit` scenarios: its unit tests are plain JUnit
+(`ScheduleRecordTest`, `BookingRecordTest`, `SimulatorServiceTest`). The `@integration` scenarios run
+through the API with MockMvc and read the sent message back from a real RabbitMQ.
+
+| Class | Contents |
+| --- | --- |
+| `SimulatorWorld` | A Spring bean with `@ScenarioScope`: posts JSON with MockMvc and keeps every response of the scenario. |
+| `StreamProbe` (test support, not a step class) | A queue on each exchange. `nextSsm` and `nextUldMessage` read what was sent, `nothingSent` checks that nothing was, `clear` empties the queues before a scenario. |
+| `FlightScheduleSteps`, `BookingSteps` | Story 31 and story 32: supplying records and the structure of the sent message, compared strictly with the contract. |
+| `OutcomeSteps` | What both stories share: unreadable JSON (posted to both endpoints), the status of the answer, nothing sent, and the production profile. |
+
+A Spring profile is fixed when the context starts. The "Not in production" scenarios have the tag
+`@production` and run in their own suite, `ProductionAcceptanceTest`, with `ProductionCucumberConfig`
+(`@ActiveProfiles("production")`) and the same step classes. That is why the steps are in
+`acceptance.steps` and each context configuration in its own package: a glue path may hold only one
+`@CucumberContextConfiguration`.
+
+The tests use their own exchanges (`src/test/resources/application.properties`), so a Messaging
+service that happens to run does not receive test messages. The `@e2e` scenarios are run by hand with
+`simulator/simulator-service/http/simulator.http`.
+
 ## Is this still a unit test?
 
 Yes. "Unit" refers to **what** is tested, not to how the test code is organised.
