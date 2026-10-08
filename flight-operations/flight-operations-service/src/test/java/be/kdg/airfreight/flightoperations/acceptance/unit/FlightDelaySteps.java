@@ -233,6 +233,13 @@ public class FlightDelaySteps {
         assertThat(delay(delayId).getDescription()).isEqualTo(NEW_DESCRIPTION);
     }
 
+    /** The domain has no way to change the reason (Delay.reason is final): a change keeps it. */
+    @Then("the delay keeps its delay reason")
+    public void theDelayKeepsItsDelayReason() {
+        assertThat(world.error).isNull();
+        assertThat(delay(delayId).getReason()).isEqualTo(new DelayCode(VALID_REASON));
+    }
+
     @And("the ETD and the ETA remain unchanged")
     public void theEtdAndTheEtaRemainUnchanged() {
         assertThat(world.flight(HJ221).getEstimated()).isEqualTo(estimatedBefore);

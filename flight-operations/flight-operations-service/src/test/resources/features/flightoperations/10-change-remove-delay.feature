@@ -28,11 +28,10 @@ Feature: Change or remove a delay
     Then the delay has the new description
     And the ETD and the ETA remain unchanged
 
-  # Not testable yet: the domain offers no way to change the reason (Delay.reason is final). Waiting for a decision.
-  @unit @to-confirm
-  Scenario: The delay reason cannot be changed
-    When I try to change the delay reason of the delay
-    Then that is refused
+  @unit
+  Scenario: Changing the delay keeps its delay reason
+    When I change the delay to 40 minutes
+    Then the delay keeps its delay reason
 
   @unit
   Scenario: Removing the last delay
