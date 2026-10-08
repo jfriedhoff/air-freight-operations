@@ -1,5 +1,6 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
+import be.kdg.airfreight.loadplanning.acceptance.common.Weights;
 import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.AirportCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
@@ -16,8 +17,6 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Uld;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
-import be.kdg.airfreight.loadplanning.domain.flightcargo.Weight;
-import be.kdg.airfreight.loadplanning.domain.flightcargo.WeightUnit;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.check.AllCargoLoadedCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.check.LateralBalanceCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.check.OffloadingCheck;
@@ -30,8 +29,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -53,7 +54,7 @@ public class CargoWorld {
 
     final FloorPlan floorPlan = Boeing747400FFloorPlan.build();
     final FlightCargo cargo = FlightCargo.create(
-        new FlightId(new FlightNumber("HJ221"), LocalDate.of(2026, Month.JANUARY, 9), new AirportCode("BRU")),
+        flightId("HJ221", LocalDate.of(2026, Month.JANUARY, 9), "BRU"),
         FlightInfo.scheduled(ATH, Boeing747400FFloorPlan.AIRCRAFT_TYPE,
             Instant.parse("2026-01-09T06:45:00Z"), Instant.parse("2026-01-09T10:00:00Z")));
     final LoadPlannerId planner = LoadPlannerId.create();
@@ -70,9 +71,38 @@ public class CargoWorld {
     /** Set by the When steps: a step that is both a Given and a Then sets up before it and checks after it. */
     boolean acted;
     private int uldCount;
+    private final List<FlightCargo> otherFlights = new ArrayList<>();
 
     void assertFlight(String flightNumber) {
         assertThat(cargo.getFlightId().flightNumber().value()).as("flight").isEqualTo(flightNumber);
+    }
+
+    void assertFlight(String flightNumber, LocalDate date, String departureAirport) {
+        assertThat(cargo.getFlightId()).as("flight").isEqualTo(flightId(flightNumber, date, departureAirport));
+    }
+
+    /** Another flight next to cargo, with the same times on its own date ("HJ221 of 16 January"). */
+    void alsoExists(String flightNumber, LocalDate date, String departureAirport) {
+        Duration later = Duration.ofDays(ChronoUnit.DAYS.between(cargo.getFlightId().scheduledDepartureDate(), date));
+        FlightInfo info = cargo.getFlightInfo();
+        otherFlights.add(FlightCargo.create(flightId(flightNumber, date, departureAirport),
+            FlightInfo.scheduled(info.arrivalAirport(), info.aircraftType(), info.std().plus(later),
+                info.sta().plus(later))));
+    }
+
+    /** cargo and the flights the scenario added with alsoExists. */
+    List<FlightCargo> allFlights() {
+        return Stream.concat(Stream.of(cargo), otherFlights.stream()).toList();
+    }
+
+    /** Books a ULD for ATH on one of allFlights. */
+    void bookOn(String flightNumber, LocalDate date, UldCode code) {
+        FlightCargo flight = allFlights().stream()
+            .filter(candidate -> candidate.getFlightId().flightNumber().value().equals(flightNumber)
+                && candidate.getFlightId().scheduledDepartureDate().equals(date))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("The scenario has no flight " + flightNumber + " of " + date));
+        flight.book(code, Weights.of(ANY_WEIGHT), ATH, now);
     }
 
     void assertWithinLoadingPeriod() {
@@ -105,7 +135,7 @@ public class CargoWorld {
     }
 
     void book(UldCode code, String weight, String destination) {
-        cargo.book(code, weightOf(weight), new AirportCode(destination), now);
+        cargo.book(code, Weights.of(weight), new AirportCode(destination), now);
     }
 
     void place(UldCode code, String position) {
@@ -176,9 +206,7 @@ public class CargoWorld {
             .hasMessageContaining(expectedRefusal);
     }
 
-    /** "2646 lb" becomes a Weight of 2646 LB. */
-    private static Weight weightOf(String weight) {
-        String[] parts = weight.split(" ");
-        return new Weight(new BigDecimal(parts[0]), WeightUnit.valueOf(parts[1].toUpperCase(Locale.ROOT)));
+    private static FlightId flightId(String flightNumber, LocalDate date, String departureAirport) {
+        return new FlightId(new FlightNumber(flightNumber), date, new AirportCode(departureAirport));
     }
 }

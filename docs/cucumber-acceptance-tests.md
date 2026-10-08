@@ -147,7 +147,7 @@ JUnit test class, but shared because Cucumber spreads the steps over several cla
 An `@integration` scenario tests one deployment unit from its entry point to its database: a REST
 endpoint (through MockMvc) or, for a message, its queue. It runs with `IntegrationAcceptanceTest`
 and `SpringCucumberConfig` (`@SpringBootTest` + `@AutoConfigureMockMvc`). So far this is set up in
-messaging (story 30); flight-operations and load-planning follow the same pattern.
+messaging (story 30) and load-planning (story 15); flight-operations follows the same pattern.
 
 | Part | What it does | Why |
 | --- | --- | --- |
@@ -160,6 +160,20 @@ messaging (story 30); flight-operations and load-planning follow the same patter
 new message on the same queue after the duplicate: the queue has one consumer, so messages are
 handled in order, and once the second one is booked, the duplicate has been handled too. What
 Messaging passes on to the other units is checked in its outbox.
+
+Load-planning (story 15) uses the same idea for every message it sends:
+
+| Part | What it does | Why |
+| --- | --- | --- |
+| `MessagingEvents` | Plays Messaging: sends flight events and ULD bookings on `messaging.events`, in Messaging's JSON envelope. `waitUntilHandled()` then announces a follow-up flight and waits until it exists. `assertSetAside(id)` reads `load-planning.dlq`. | One way of waiting for all steps, also when the message is refused (a refused message is retried three times first, so the timeout is 30 s). |
+| `MessageWorld` | The state of one scenario (`@Component @ScenarioScope`): the flight, the last message id, the reason it must be refused for. | Several step classes share it. Spring hands them a proxy, so always use its methods: a field read through the proxy is `null`. |
+| `LogCapture` | A Logback `ListAppender` on `be.kdg.airfreight.loadplanning` for the duration of a scenario. | For the steps "... is logged". |
+
+Two things to know before running the load-planning integration tests:
+- **Stop the load-planning service.** Its queue allows a single active consumer: while the service runs, the
+  listener of the test stays idle and every scenario times out.
+- `assertSetAside` takes dead letters until it finds its own, so older dead letters on `load-planning.dlq`
+  (from development or earlier runs) are dropped.
 
 ## Work in progress and the TDD workflow
 

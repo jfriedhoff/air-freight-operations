@@ -5,6 +5,7 @@ import io.cucumber.java.en.When;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 
 /** The flight and the moment of the scenario. */
 public class FlightSteps {
@@ -14,6 +15,16 @@ public class FlightSteps {
 
     public FlightSteps(CargoWorld world) {
         this.world = world;
+    }
+
+    @Given("flight {word} of {date} from {word} exists")
+    public void flightExists(String flightNumber, LocalDate date, String departureAirport) {
+        world.assertFlight(flightNumber, date, departureAirport);
+    }
+
+    @Given("flight {word} of {date} from {word} also exists")
+    public void flightAlsoExists(String flightNumber, LocalDate date, String departureAirport) {
+        world.alsoExists(flightNumber, date, departureAirport);
     }
 
     @Given("flight {word} with STD {moment} UTC")

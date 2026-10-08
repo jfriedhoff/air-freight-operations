@@ -1,4 +1,3 @@
-@wip
 Feature: Booked ULDs appear on the right flight automatically
   As a load planner I want booked ULDs to appear on the right flight automatically so that I know which cargo I have to plan
 
