@@ -57,6 +57,13 @@ public class TestHelper {
         return find(flight.getId());
     }
 
+    /** As if the CPM of the flight was processed: from now on it may depart. */
+    public void recordFinalizedLoad(FlightId id) {
+        Flight flight = find(id);
+        flight.recordFinalizedLoad(STD);
+        flights.save(flight);
+    }
+
     /** Finalizes the load of the flight and lets it depart at its STD. */
     public void depart(FlightId id) {
         Flight flight = find(id);
