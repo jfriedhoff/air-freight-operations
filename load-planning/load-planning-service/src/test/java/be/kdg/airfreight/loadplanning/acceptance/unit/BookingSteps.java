@@ -4,6 +4,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.en.Given;
 
 import static be.kdg.airfreight.loadplanning.acceptance.unit.CargoWorld.ANY_WEIGHT;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Cargo that is booked on the flight but has no load position. */
 public class BookingSteps {
@@ -36,5 +37,11 @@ public class BookingSteps {
     @Given("no cargo on board")
     public void noCargo() {
         // the flight starts without cargo
+    }
+
+    @Given("no cargo is booked on {word}")
+    public void noCargoIsBookedOn(String flightNumber) {
+        world.assertFlight(flightNumber);
+        assertThat(world.cargo.getUlds()).isEmpty();
     }
 }

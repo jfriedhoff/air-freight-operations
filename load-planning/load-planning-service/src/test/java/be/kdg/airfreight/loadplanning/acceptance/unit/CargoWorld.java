@@ -11,6 +11,8 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.LateralBalanceLimit;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckReport;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckResult;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Uld;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
@@ -136,8 +138,17 @@ public class CargoWorld {
             .orElseThrow();
     }
 
-    void finalizeLoad(List<LoadCheck> checks) {
-        cargo.finalizeLoad(planner, now, checks, floorPlan, POLICY);
+    LoadFinalized finalizeLoad(List<LoadCheck> checks) {
+        return cargo.finalizeLoad(planner, now, checks, floorPlan, POLICY);
+    }
+
+    /** A position of the floor plan that holds no ULD. */
+    String freePosition() {
+        return floorPlan.routesByPosition().keySet().stream()
+            .filter(position -> cargo.getUlds().stream().noneMatch(uld -> uld.isAt(position)))
+            .map(LoadPosition::name)
+            .findFirst()
+            .orElseThrow();
     }
 
     void check(LoadCheck check) {

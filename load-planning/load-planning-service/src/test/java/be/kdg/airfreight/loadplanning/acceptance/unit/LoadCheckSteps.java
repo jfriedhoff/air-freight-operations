@@ -3,6 +3,7 @@ package be.kdg.airfreight.loadplanning.acceptance.unit;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.CheckSeverity;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckResult;
 import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
@@ -18,6 +19,15 @@ public class LoadCheckSteps {
 
     public LoadCheckSteps(CargoWorld world) {
         this.world = world;
+    }
+
+    /** Two ULDs for the same destination, one on each side: balanced, and nothing is in the way. */
+    @Given("all hard checks pass")
+    public void allHardChecksPass() {
+        world.loadWeightOn("CL", CargoWorld.ANY_WEIGHT);
+        world.loadWeightOn("CR", CargoWorld.ANY_WEIGHT);
+        assertThat(world.cargo.checkLoad(CargoWorld.CHECKS, world.floorPlan).hardChecksPassed())
+            .as("all hard checks pass").isTrue();
     }
 
     @When("the load is checked")

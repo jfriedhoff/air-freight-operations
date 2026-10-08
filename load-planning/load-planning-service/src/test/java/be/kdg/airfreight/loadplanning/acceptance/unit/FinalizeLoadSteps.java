@@ -1,7 +1,11 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.en.But;
 import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 
 import java.util.List;
 
@@ -12,6 +16,7 @@ public class FinalizeLoadSteps {
     private static final String FINALIZED = "finalized and can no longer change";
 
     private final CargoWorld world;
+    private LoadFinalized finalized;
 
     public FinalizeLoadSteps(CargoWorld world) {
         this.world = world;
@@ -22,6 +27,40 @@ public class FinalizeLoadSteps {
     public void theLoadHasBeenFinalized() {
         world.finalizeLoad(List.of());
         world.expectedRefusal = FINALIZED;
+    }
+
+    @When("I click Finalize Load")
+    public void iClickFinalizeLoad() {
+        world.attempt(() -> finalized = world.finalizeLoad(CargoWorld.CHECKS));
+    }
+
+    @Then("the load is finalized")
+    @Then("the load remains finalized")
+    public void theLoadIsFinalized() {
+        world.assertAccepted();
+        assertThat(world.cargo.isFinalized()).isTrue();
+    }
+
+    @Then("the load is not finalized")
+    public void theLoadIsNotFinalized() {
+        world.assertRefusedForTheExpectedReason();
+        assertThat(world.cargo.isFinalized()).isFalse();
+    }
+
+    /** Tries to put a newly booked ULD on a free position: that must be refused because the load is finalized. */
+    @Then("I can no longer change load positions")
+    public void iCanNoLongerChangeLoadPositions() {
+        UldCode code = world.nextCode();
+        world.book(code, CargoWorld.ANY_WEIGHT);
+        world.expectedRefusal = FINALIZED;
+        world.attempt(() -> world.place(code, world.freePosition()));
+        world.assertRefusedForTheExpectedReason();
+    }
+
+    @Then("it is recorded that I finalized the load")
+    public void itIsRecordedThatIFinalizedTheLoad() {
+        assertThat(finalized.finalizedBy()).isEqualTo(world.planner);
+        assertThat(world.cargo.getFinalizedBy()).isEqualTo(world.planner);
     }
 
     @But("the load can still be finalized if all hard checks pass")

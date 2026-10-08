@@ -1,6 +1,7 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
 import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -38,6 +39,16 @@ public class FlightSteps {
         world.delayDepartureBy(Duration.ofMinutes(minutes));
     }
 
+    @When("a departure delay of {int} minutes is entered")
+    public void aDepartureDelayIsEntered(int minutes) {
+        world.attempt(() -> world.delayDepartureBy(Duration.ofMinutes(minutes)));
+    }
+
+    @Given("it is within the loading period")
+    public void withinTheLoadingPeriod() {
+        world.assertWithinLoadingPeriod();
+    }
+
     @Given("it is {moment} UTC, within the loading period")
     public void itIsWithinTheLoadingPeriod(Instant moment) {
         world.now = moment;
@@ -48,6 +59,19 @@ public class FlightSteps {
     @Given("it is {moment} UTC")
     public void itIs(Instant moment) {
         world.now = moment;
+        world.expectedRefusal = OUTSIDE_LOADING_PERIOD;
+    }
+
+    @Given("the loading period has not started yet")
+    public void theLoadingPeriodHasNotStartedYet() {
+        world.now = world.cargo.loadingPeriod(CargoWorld.POLICY).start().minus(Duration.ofMinutes(1));
+        world.expectedRefusal = OUTSIDE_LOADING_PERIOD;
+    }
+
+    /** The end itself is no longer part of the loading period. */
+    @Given("the loading period is over")
+    public void theLoadingPeriodIsOver() {
+        world.now = world.cargo.loadingPeriod(CargoWorld.POLICY).end();
         world.expectedRefusal = OUTSIDE_LOADING_PERIOD;
     }
 }
