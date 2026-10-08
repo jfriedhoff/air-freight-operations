@@ -2,9 +2,10 @@ package be.kdg.airfreight.flightoperations.acceptance.unit;
 
 import io.cucumber.java.en.Then;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-/** Then steps that several stories share: accepted or refused, and for which reason. */
+/**
+ * Then steps that several stories share: accepted or refused. A refusal has to be for the reason the scenario
+ * causes: the step that causes it (usually the When step) sets that reason.
+ */
 public class OutcomeSteps {
     private static final String DELAY_FIRST = "delay first";
     private static final String IN_THE_FUTURE = "cannot be in the future";
@@ -16,34 +17,22 @@ public class OutcomeSteps {
     }
 
     @Then("it/that is {word}")
-    public void itIs(String result) {
-        switch (result) {
-            case "accepted" -> assertThat(world.error).isNull();
+    @Then("the registration is {word}")
+    public void itIs(String outcome) {
+        switch (outcome) {
+            case "accepted" -> world.assertAccepted();
             case "refused" -> world.assertRefusedForTheExpectedReason();
-            default -> throw new IllegalArgumentException("Unknown result: " + result);
+            default -> throw new IllegalArgumentException("Unknown outcome: " + outcome);
         }
     }
 
     @Then("it/that is refused with an explanation")
+    @Then("the registration is refused with an explanation")
     public void itIsRefusedWithAnExplanation() {
         world.assertRefusedForTheExpectedReason();
     }
 
-    @Then("the registration is accepted")
-    public void theRegistrationIsAccepted() {
-        assertThat(world.error).isNull();
-    }
-
-    @Then("the registration is refused")
-    public void theRegistrationIsRefused() {
-        world.assertRefusedForTheExpectedReason();
-    }
-
-    @Then("the registration is refused with an explanation")
-    public void theRegistrationIsRefusedWithAnExplanation() {
-        world.assertRefusedForTheExpectedReason();
-    }
-
+    /** The explanation names another reason than the usual one of the When step. */
     @Then("the registration is refused: {}")
     public void theRegistrationIsRefusedBecause(String explanation) {
         world.expectedRefusal = switch (explanation) {

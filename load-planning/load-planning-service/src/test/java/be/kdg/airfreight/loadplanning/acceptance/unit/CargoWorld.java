@@ -21,6 +21,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.check.LateralBalanceChe
 import be.kdg.airfreight.loadplanning.domain.flightcargo.check.OffloadingCheck;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import be.kdg.airfreight.loadplanning.infrastructure.floorplan.Boeing747400FFloorPlan;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -29,6 +30,9 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.Locale;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 /**
  * The state of one scenario, shared by all step classes. Picocontainer creates a new one for every scenario,
@@ -41,6 +45,8 @@ public class CargoWorld {
     /** All load checks, as PolicyConfig gives them to the application service. */
     static final List<LoadCheck> CHECKS = List.of(
         new LateralBalanceCheck(LATERAL_BALANCE_LIMIT), new OffloadingCheck(), new AllCargoLoadedCheck());
+    /** The weight of a ULD when the scenario does not name it. */
+    static final String ANY_WEIGHT = "1000 kg";
     private static final AirportCode ATH = new AirportCode("ATH");
 
     final FloorPlan floorPlan = Boeing747400FFloorPlan.build();
@@ -51,13 +57,25 @@ public class CargoWorld {
     final LoadPlannerId planner = LoadPlannerId.create();
     /** The moment the scenario takes place; the loading period of the flight is open at NOW. */
     Instant now = NOW;
-    LoadCheckResult result;
+    /** The result of one check, which the Then steps of that check read. */
+    LoadCheckResult checkResult;
+    /** The results of all checks. */
     LoadCheckReport report;
     /** What the last When step was refused with, or null when it was accepted. */
-    DomainRuleViolationException error;
+    Throwable error;
+    /** A fragment of the reason the scenario expects a refusal for, set by the step that causes it. */
+    String expectedRefusal;
     /** Set by the When steps: a step that is both a Given and a Then sets up before it and checks after it. */
     boolean acted;
     private int uldCount;
+
+    void assertFlight(String flightNumber) {
+        assertThat(cargo.getFlightId().flightNumber().value()).as("flight").isEqualTo(flightNumber);
+    }
+
+    void assertWithinLoadingPeriod() {
+        assertThat(cargo.loadingPeriod(POLICY).contains(now)).as("%s is within the loading period", now).isTrue();
+    }
 
     /** The flight as it is, only with another destination. */
     void goesTo(String airport) {
@@ -79,22 +97,7 @@ public class CargoWorld {
         cargo.updateFlightInfo(info.withEstimatedDeparture(info.std().plus(delays)));
     }
 
-    /** Books a new ULD for ATH and puts it on the position. "0 kg" loads nothing: a ULD always weighs something. */
-    void load(String position, String weight) {
-        if (new BigDecimal(weight.split(" ")[0]).signum() == 0) {
-            return;
-        }
-        UldCode code = nextCode();
-        book(code, weight);
-        place(code, position);
-    }
-
-    /** Books the ULD for the destination and puts it on the position. */
-    void loadFor(UldCode code, String weight, String destination, String position) {
-        book(code, weight, destination);
-        place(code, position);
-    }
-
+    /** Books a ULD for ATH. */
     void book(UldCode code, String weight) {
         book(code, weight, ATH.value());
     }
@@ -107,11 +110,18 @@ public class CargoWorld {
         cargo.assign(code, floorPlan.positionNamed(position).orElseThrow(), planner, now, floorPlan, POLICY);
     }
 
-    Uld uld(String code) {
-        return cargo.getUlds().stream()
-            .filter(uld -> uld.getCode().equals(new UldCode(code)))
-            .findFirst()
-            .orElseThrow();
+    /** Books the ULD and puts it on the position. */
+    void load(UldCode code, String weight, String destination, String position) {
+        book(code, weight, destination);
+        place(code, position);
+    }
+
+    /** Puts the weight on the position in a ULD for ATH. "0 kg" loads nothing: a ULD always weighs something. */
+    void loadWeightOn(String position, String weight) {
+        if (new BigDecimal(weight.split(" ")[0]).signum() == 0) {
+            return;
+        }
+        load(nextCode(), weight, ATH.value(), position);
     }
 
     /** A code for a ULD the scenario does not name: AKE00001HJ, AKE00002HJ, ... */
@@ -119,12 +129,40 @@ public class CargoWorld {
         return new UldCode("AKE%05dHJ".formatted(++uldCount));
     }
 
+    Uld uld(UldCode code) {
+        return cargo.getUlds().stream()
+            .filter(uld -> uld.getCode().equals(code))
+            .findFirst()
+            .orElseThrow();
+    }
+
+    void finalizeLoad(List<LoadCheck> checks) {
+        cargo.finalizeLoad(planner, now, checks, floorPlan, POLICY);
+    }
+
     void check(LoadCheck check) {
-        result = cargo.checkLoad(List.of(check), floorPlan).results().getFirst();
+        checkResult = cargo.checkLoad(List.of(check), floorPlan).results().getFirst();
     }
 
     void checkAll() {
         report = cargo.checkLoad(CHECKS, floorPlan);
+    }
+
+    /** For the When steps: runs the action and keeps its refusal in error. */
+    void attempt(ThrowingCallable action) {
+        acted = true;
+        error = catchThrowable(action);
+    }
+
+    void assertAccepted() {
+        assertThat(error).as("refusal").isNull();
+    }
+
+    void assertRefusedForTheExpectedReason() {
+        assertThat(expectedRefusal).as("expected refusal, set by the step that causes it").isNotNull();
+        assertThat(error)
+            .isInstanceOf(DomainRuleViolationException.class)
+            .hasMessageContaining(expectedRefusal);
     }
 
     /** "2646 lb" becomes a Weight of 2646 LB. */

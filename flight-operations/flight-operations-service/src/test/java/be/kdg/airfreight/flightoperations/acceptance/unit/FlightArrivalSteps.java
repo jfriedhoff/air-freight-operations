@@ -9,18 +9,18 @@ import io.cucumber.java.en.When;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.Objects;
 
-import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.DEPARTURE_DATE;
 import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.HJ221;
+import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.STA;
+import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.STD;
 import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.TOLERANCE;
-import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.onDate;
+import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.onDepartureDate;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
+/** Registering the ATA. */
 public class FlightArrivalSteps {
-    private static final String ETD = "06:45";
-    private static final String ETA = "10:00";
     private static final String NOT_DEPARTED = "once the flight has departed";
     private static final String NOT_AFTER_ATD = "later than the ATD";
     private static final String ALREADY_REGISTERED = "already been registered";
@@ -32,41 +32,27 @@ public class FlightArrivalSteps {
         this.world = world;
     }
 
-    @Given("flight {word} is planned")
-    public void flightIsPlanned(String flightNumber) {
-        world.plan(flightNumber, onDate(DEPARTURE_DATE, ETD), onDate(DEPARTURE_DATE, ETA));
-    }
-
-    @Given("flight {word} has departed with ATD {word} UTC and has ETA {word} UTC")
-    public void flightHasDepartedWithAtdAndEta(String flightNumber, String atd, String eta) {
-        departed(flightNumber, atd, eta);
-    }
-
-    @Given("flight {word} has departed with ETA {word} UTC")
-    public void flightHasDepartedWithEta(String flightNumber, String eta) {
-        departed(flightNumber, ETD, eta);
-    }
-
+    /** The flight departed at its STD and landed at its STA. */
     @Given("the ATA has been registered")
     public void theAtaHasBeenRegistered() {
-        departed(HJ221, ETD, ETA);
-        registeredAta = onDate(DEPARTURE_DATE, ETA);
-        world.flight(HJ221).registerArrival(registeredAta, world.planner, registeredAta, TOLERANCE);
+        world.plan(HJ221);
+        world.depart(HJ221, onDepartureDate(STD));
+        registeredAta = onDepartureDate(STA);
+        world.land(HJ221, registeredAta);
     }
 
     @When("I register an ATA")
     public void iRegisterAnAta() {
         world.expectedRefusal = NOT_DEPARTED;
-        Instant ata = onDate(DEPARTURE_DATE, ETA);
-        world.error = catchThrowable(() -> world.flight(HJ221).registerArrival(ata, world.planner, ata, TOLERANCE));
+        Instant ata = onDepartureDate(STA);
+        world.attempt(() -> world.flight(HJ221).registerArrival(ata, world.planner, ata, TOLERANCE));
     }
 
-    @When("I register {word} as the ATA")
-    public void iRegisterAsTheAta(String ata) {
+    @When("I register {time} as the ATA")
+    public void iRegisterAsTheAta(LocalTime ata) {
         world.expectedRefusal = NOT_AFTER_ATD;
-        registeredAta = onDate(DEPARTURE_DATE, ata);
-        world.error = catchThrowable(() -> world.flight(HJ221).registerArrival(registeredAta, world.planner,
-            world.now, TOLERANCE));
+        registeredAta = onDepartureDate(ata);
+        world.attempt(() -> world.flight(HJ221).registerArrival(registeredAta, world.planner, world.now, TOLERANCE));
     }
 
     @Then("the flight has landed")
@@ -80,9 +66,8 @@ public class FlightArrivalSteps {
     @And("the ATA can no longer be changed")
     public void theAtaCanNoLongerBeChanged() {
         Instant otherAta = Objects.requireNonNull(world.flight(HJ221).getActualArrival()).plus(Duration.ofMinutes(1));
-        world.error = catchThrowable(() -> world.flight(HJ221).registerArrival(otherAta, world.planner, otherAta,
-            TOLERANCE));
         world.expectedRefusal = ALREADY_REGISTERED;
+        world.attempt(() -> world.flight(HJ221).registerArrival(otherAta, world.planner, otherAta, TOLERANCE));
         world.assertRefusedForTheExpectedReason();
         assertThat(world.flight(HJ221).getActualArrival()).isEqualTo(registeredAta);
     }
@@ -90,14 +75,5 @@ public class FlightArrivalSteps {
     @And("it is recorded who registered the ATA")
     public void itIsRecordedWhoRegisteredTheAta() {
         assertThat(world.flight(HJ221).getArrivalRegisteredBy()).isEqualTo(world.planner);
-    }
-
-    /** Plans the flight with ETD 06:45 and the given ETA, receives the CPM and registers the ATD. */
-    private void departed(String flightNumber, String atd, String eta) {
-        world.plan(flightNumber, onDate(DEPARTURE_DATE, ETD), onDate(DEPARTURE_DATE, eta));
-        Instant departure = onDate(DEPARTURE_DATE, atd);
-        Flight flight = world.flight(flightNumber);
-        flight.recordFinalizedLoad(departure);
-        flight.registerDeparture(departure, world.planner, departure, TOLERANCE);
     }
 }
