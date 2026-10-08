@@ -110,9 +110,21 @@ returning `true` also survives: the lateral balance check asks `isOnSide`, which
 ULD without a position. Story 22 (cargo without a position) will check it. The score rises as the
 other load-planning stories get their steps.
 
-Story 21 and `OffloadingCheckTest` kill every mutant in `OffloadingCheck` except `name()`, which no unit test reads. `OffloadingCheckTest` is plain
-JUnit for the report with several ULDs involved, which no scenario checks.
+Story 21 and `OffloadingCheckTest` kill every mutant in `OffloadingCheck` except `name()`, which no unit
+test reads. `OffloadingCheckTest` is plain JUnit for the report with several ULDs involved, which no
+scenario checks.
 
 Story 22 kills the `Uld.hasPosition` survivor and every mutant in `AllCargoLoadedCheck` except `name()`.
 Its last step finalizes the load, which brings new survivors in `finalizeLoad`, `isFinalized` and
 `hardChecksPassed`: story 22 only checks that finalizing works, story 24 checks that it is refused.
+
+### Messaging
+
+| Date | State | Mutants | Killed | Test strength |
+| --- | --- | --- | --- | --- |
+| 7 October 2026 | Cucumber `@unit` scenarios of story 1 | 86 | 12 (14 %) | 100 % |
+
+Every mutant in `FlightSeries` and `SchedulePeriod` is killed, including the arrival at or before the
+departure time (next day) and the last day of the period. The 74 without coverage are in the
+telegram writers and `DateDerivation` (story 30) and in `ReceivedMessage` and `OutgoingMessage`,
+which the integration tests cover.

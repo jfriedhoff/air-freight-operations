@@ -94,6 +94,21 @@ does. The floor plan is the real `Boeing747400FFloorPlan` from `infrastructure/f
 plain Java without Spring, and the stories name its positions (CL, B1), so a copy in the test code
 could only drift from it.
 
+### Messaging
+
+`be.kdg.airfreight.messaging.acceptance.unit` has only one story at unit level (story 1), so there is
+no World yet: `ScheduleSteps` keeps its state in its own fields. A World is added when a second step
+class needs the same state (see "Adding a story", rule 4).
+
+| Class | Contents |
+| --- | --- |
+| `ParameterTypes` | `{time}` ("06:30" as `LocalTime`), `{weekday}`, `{month}` and `{days}` ("5, 8, 12 and 15"). |
+| `ScheduleSteps` | Story 1. What a scenario does not name gets a default (BRU to ATH, 06:30 and 09:45, SXBAA). A date with a weekday ("Monday 5 January 2026") also checks that the weekday is right, so a typo in the Gherkin cannot make a test pass. |
+
+"The SSM is processed" calls `FlightSeries.flightsScheduled`, the domain logic that
+`ScheduleService` uses after `JsonSsmReader` has read the message. Reading the JSON, the inbox and
+storing the message belong to the integration tests.
+
 ## Is this still a unit test?
 
 Yes. "Unit" refers to **what** is tested, not to how the test code is organised.
