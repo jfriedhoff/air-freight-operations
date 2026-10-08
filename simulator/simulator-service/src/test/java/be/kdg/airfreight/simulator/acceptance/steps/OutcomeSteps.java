@@ -28,6 +28,7 @@ public class OutcomeSteps {
     @When("I supply JSON that cannot be read")
     public void supplyUnreadableJson() throws Exception {
         world.post(SimulatorWorld.FLIGHT_SCHEDULES, "[{ \"flightNumber\": ");
+        world.post(SimulatorWorld.CARGO_BOOKINGS, "[{ \"flightNumber\": ");
     }
 
     @Then("the API responds with 400 Bad Request and the reason")
