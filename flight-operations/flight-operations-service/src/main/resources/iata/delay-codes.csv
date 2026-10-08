@@ -1,0 +1,82 @@
+00;Airline internal code
+01;Airline internal code
+02;Airline internal code
+03;Airline internal code
+04;Airline internal code
+05;Airline internal code
+06;No gate or stand available
+09;Scheduled ground time less than declared minimum
+11;Late check-in, acceptance after deadline
+12;Late check-in, congestion in check-in area
+13;Check-in error
+14;Oversales, booking errors
+15;Boarding, discrepancies and paging
+16;Commercial publicity, passenger convenience
+17;Catering order
+18;Baggage processing, sorting
+19;Reduced mobility, boarding or deboarding
+21;Cargo documentation, errors
+22;Late positioning of cargo
+23;Late acceptance of cargo
+24;Inadequate packing of cargo
+25;Cargo oversales, booking errors
+26;Late preparation in warehouse
+27;Mail oversales, packing
+28;Late positioning of mail
+29;Late acceptance of mail
+31;Aircraft documentation late or inaccurate
+32;Loading, unloading
+33;Loading equipment
+34;Servicing equipment
+35;Aircraft cleaning
+36;Fuelling, defuelling
+37;Catering
+38;ULD, lack of or serviceability
+39;Technical equipment
+41;Aircraft defects
+42;Scheduled maintenance, late release
+43;Non-scheduled maintenance
+44;Spares and maintenance equipment
+45;AOG spares
+46;Aircraft change for technical reasons
+47;Standby aircraft, lack of
+48;Scheduled cabin configuration adjustments
+51;Damage during flight operations
+52;Damage during ground operations
+55;Departure control system
+56;Cargo preparation, documentation system
+57;Flight plans system
+58;Other automated systems
+61;Flight plan, late completion or change
+62;Operational requirements
+63;Late crew boarding or departure procedures
+64;Flight deck crew shortage
+65;Flight deck crew special request
+66;Late cabin crew boarding or departure procedures
+67;Cabin crew shortage
+68;Cabin crew error or special request
+69;Captain request for security check
+71;Weather at departure station
+72;Weather at destination station
+73;Weather en route or alternate
+75;De-icing of aircraft
+76;Removal of snow, ice, water and sand from airport
+77;Ground handling impaired by adverse weather
+81;ATFM due to ATC en-route demand or capacity
+82;ATFM due to ATC staff or equipment en route
+83;ATFM due to restriction at destination airport
+84;ATFM due to weather at destination
+85;Mandatory security
+86;Immigration, customs, health
+87;Airport facilities
+88;Restrictions at airport of destination
+89;Restrictions at airport of departure
+91;Load connection
+92;Through check-in error
+93;Aircraft rotation
+94;Cabin crew rotation
+95;Crew rotation
+96;Operations control
+97;Industrial action within own airline
+98;Industrial action outside own airline
+99;Miscellaneous
