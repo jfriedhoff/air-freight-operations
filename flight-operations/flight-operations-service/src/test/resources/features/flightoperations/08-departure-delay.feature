@@ -64,3 +64,46 @@ Feature: Enter a departure delay with a delay reason and a description
     Given flight HJ221 has departed
     When I enter a departure delay
     Then it is refused with an explanation
+
+  @integration
+  Scenario: A flight planner enters a departure delay through the API
+    Given I am logged in as a flight planner
+    When I enter a departure delay of 25 minutes through the API
+    Then the API answers 200
+    And the API shows the ETD 06:55 and the ETA 10:10
+    And DepartureEstimateChanged and ArrivalEstimateChanged wait in the outbox
+
+  @integration
+  Scenario Outline: Only a registered flight planner enters a delay through the API
+    Given I am logged in as <who>
+    When I enter a departure delay of 25 minutes through the API
+    Then the API answers <status>
+    And HJ221 has no delay
+
+    Examples:
+      | who                                    | status |
+      | a load planner                         | 403    |
+      | a user with both planner roles         | 403    |
+      | a flight planner who is not registered | 403    |
+      | nobody                                 | 401    |
+
+  @integration
+  Scenario: A delay reason outside the IATA list is refused through the API
+    Given I am logged in as a flight planner
+    When I enter a departure delay with delay reason 50 through the API
+    Then the API answers 400
+    And the explanation says "Delay reason '50' is not in the IATA list"
+
+  @integration
+  Scenario: A departure delay on a departed flight is refused through the API
+    Given I am logged in as a flight planner
+    And flight HJ221 has departed
+    When I enter a departure delay of 25 minutes through the API
+    Then the API answers 409
+    And the explanation says "A departure delay can only change while the flight is planned"
+
+  @integration
+  Scenario: A delay for a flight that does not exist
+    Given I am logged in as a flight planner
+    When I enter a departure delay for a flight that does not exist through the API
+    Then the API answers 404
