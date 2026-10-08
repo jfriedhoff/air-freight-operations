@@ -93,9 +93,9 @@ class FlightScheduleApiTest {
     @Test
     void aFlightNumberMessagingWillRefuseIsStillPassedOn() throws Exception {
         mockMvc.perform(post("/api/flight-schedules").contentType(MediaType.APPLICATION_JSON)
-                .content("[" + RECORD.formatted("221") + "]"))
+                .content("[" + RECORD.formatted("hj221") + "]"))
             .andExpect(status().isAccepted());
 
-        assertThat(probe.nextSsm().body()).contains("\"flightNumber\":\"221\"");
+        assertThat(probe.nextSsm().body()).contains("\"flightNumber\":\"hj221\"");
     }
 }

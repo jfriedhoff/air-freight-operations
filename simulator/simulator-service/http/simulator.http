@@ -63,13 +63,13 @@ Content-Type: application/json
     });
 %}
 
-### A record that is readable but wrong (flight number) -> 202 here, set aside by Messaging (story 29)
+### A record that is readable but wrong (lowercase flight number) -> 202 here, set aside by Messaging (story 29)
 
 POST http://localhost:8090/api/flight-schedules
 Content-Type: application/json
 
 [
   { "periodFrom": "2026-10-12", "periodTo": "2026-10-18", "weekdays": ["MONDAY"],
-    "departureTime": "06:30", "arrivalTime": "09:45", "flightNumber": "221",
+    "departureTime": "06:30", "arrivalTime": "09:45", "flightNumber": "hj221",
     "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" }
 ]
