@@ -54,8 +54,7 @@ Feature: Dates from ULD messages are derived correctly
     When the time 0000 is derived
     Then the moment is 10 January 2026 00:00 UTC
 
-  # Integration steps not written yet: they need Docker (Postgres)
-  @integration @wip
+  @integration
   Scenario: A ULD message that arrives again later is not derived again
     Given a ULD message for HJ221, day 09, was processed on 2 January 2026 and booked the ULD on the flight of 9 January
     When the same message arrives again on 25 January 2026
