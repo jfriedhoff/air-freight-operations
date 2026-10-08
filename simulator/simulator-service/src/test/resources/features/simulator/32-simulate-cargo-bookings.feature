@@ -20,8 +20,7 @@ Feature: Simulate cargo bookings by supplying JSON
     Then the API responds with 400 Bad Request and the reason
     And no ULD message is sent
 
-  # Waits for the production profile
-  @integration @wip
+  @integration @production
   Scenario: Not in production
     Given the application runs with the production profile
     When I supply booking records

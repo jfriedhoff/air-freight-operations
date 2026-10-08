@@ -18,8 +18,7 @@ Feature: Simulate flight schedules by supplying JSON
     Then the API responds with 400 Bad Request and the reason
     And no SSM is sent
 
-  # Waits for the production profile
-  @integration @wip
+  @integration @production
   Scenario: Not in production
     Given the application runs with the production profile
     When I supply flight schedule records

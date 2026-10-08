@@ -31,6 +31,11 @@ public class FlightScheduleSteps {
         world.post(SimulatorWorld.FLIGHT_SCHEDULES, "[" + HJ221_ON_MONDAYS + "]");
     }
 
+    @When("I supply flight schedule records")
+    public void supplyFlightScheduleRecords() throws Exception {
+        world.post(SimulatorWorld.FLIGHT_SCHEDULES, "[" + HJ221_ON_MONDAYS + "," + HJ221_ON_MONDAYS + "]");
+    }
+
     /** Strict comparison: a missing field fails, and so does a field the contract does not have. */
     @Then("the sent SSM conforms to the fixed structure of an SSM")
     public void theSentSsmConformsToTheFixedStructure() throws Exception {
