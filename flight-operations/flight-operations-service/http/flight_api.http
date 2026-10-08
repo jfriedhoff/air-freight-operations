@@ -1,0 +1,107 @@
+### Put the id of a flight here: from the table flights, or from a flight the simulator announced
+@flight-id = 00000000-0000-0000-0000-000000000000
+
+### Log in first: password grant, the access token goes into access_token for the requests below
+POST {{keycloak}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id={{client-id}}&client_secret={{client-secret}}&username={{username}}&password={{password}}&scope=openid
+
+> {%
+    client.global.set("access_token", response.body.access_token);
+%}
+
+### Without a token: 401
+GET {{api}}/flights/{{flight-id}}
+
+> {%
+    client.test("No token, no answer", function () {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
+
+### The IATA delay reasons
+GET {{api}}/delay-codes
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The list has the IATA delay reasons", function () {
+        client.assert(response.status === 200 && response.body.some(reason => reason.code === "93"),
+            "Expected a list with code 93");
+    });
+%}
+
+### The details of a flight
+GET {{api}}/flights/{{flight-id}}
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The flight has its airports with code and name", function () {
+        client.assert(response.status === 200 && response.body.departureAirport.code.length === 3,
+            "Expected a flight, got " + response.status);
+    });
+%}
+
+### Enter a departure delay
+POST {{api}}/flights/{{flight-id}}/delays
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "kind": "DEPARTURE",
+  "minutes": 25,
+  "reason": "93",
+  "description": "Late inbound aircraft"
+}
+
+> {%
+    client.test("The delay shifts the ETD", function () {
+        client.assert(response.status === 200 && response.body.etd !== response.body.std,
+            "Expected 200 and an ETD later than the STD, got " + response.status);
+    });
+%}
+
+### A delay reason outside the IATA list: 400 with the reason
+POST {{api}}/flights/{{flight-id}}/delays
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "kind": "DEPARTURE",
+  "minutes": 25,
+  "reason": "50",
+  "description": "Late inbound aircraft"
+}
+
+> {%
+    client.test("An unknown delay reason is refused with an explanation", function () {
+        client.assert(response.status === 400 && response.body.code === "invalid-input",
+            "Expected 400 invalid-input, got " + response.status);
+    });
+%}
+
+### Nobody changes the STD: 405
+PATCH {{api}}/flights/{{flight-id}}
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "std": "2026-01-09T08:00:00Z"
+}
+
+> {%
+    client.test("Scheduled times cannot be changed", function () {
+        client.assert(response.status === 405, "Expected 405, got " + response.status);
+    });
+%}
+
+### A flight that does not exist: 404
+GET {{api}}/flights/11111111-1111-1111-1111-111111111111
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("An unknown flight is not found", function () {
+        client.assert(response.status === 404 && response.body.code === "not-found",
+            "Expected 404 not-found, got " + response.status);
+    });
+%}

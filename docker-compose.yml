@@ -61,7 +61,9 @@ services:
       KC_DB_URL_DATABASE: 'keycloak'
       KC_DB_USERNAME: 'keycloak'
       KC_DB_PASSWORD: 'password'
-    command: start-dev                 # OPTIONAL: use "start-dev --import-realm" + the volume below to share your realm
+    command: start-dev --import-realm  # imports keycloak/air-freight-realm.json when the realm does not exist yet
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
     ports:
       - "8180:8080"
     depends_on:
@@ -69,8 +71,6 @@ services:
         condition: service_healthy     # CHANGED: wait for the healthcheck, not just container start
     networks:
       - kdg-kc
-    # volumes:                         # OPTIONAL: auto-import the realm you exported (roles, client, test users)
-    #   - ./keycloak:/opt/keycloak/data/import:ro
 
 networks:
   kdg-kc:
