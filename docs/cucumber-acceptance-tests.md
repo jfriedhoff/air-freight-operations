@@ -61,15 +61,19 @@ start. In the integration tests a Spring bean with `@ScenarioScope` plays the sa
 
 | Class | Contents |
 | --- | --- |
-| `FlightWorld` | The state of one scenario: the flights, the planner ("I"), `now`, the caught `error` and the expected refusal reason. Plus `plan`, `flight` and the check "refused for the expected reason". |
-| `OutcomeSteps` | Then steps that several stories share: `it/that is accepted/refused`, `the registration is accepted`, `the registration is refused`, `the registration is refused with an explanation`, `the registration is refused: ...`. |
-| `FlightDelaySteps` | Stories 8, 9, 10 (delays). |
-| `FlightDepartureSteps` | Story 12 (ATD). Also contains `it is now ... UTC`, which story 13 reuses. |
-| `FlightArrivalSteps` | Story 13 (ATA). |
+| `FlightWorld` | The state of one scenario: the flights, the planner ("I"), `now`, the caught `error` and the expected refusal reason. `plan` (with or without times: the default schedule is STD 06:30, STA 09:45 on 9 January 2026), `depart`, `land`, `attempt` (runs a When and keeps its refusal), `assertAccepted` and `assertRefusedForTheExpectedReason`. |
+| `ParameterTypes` | `{time}`: "06:45" as a `LocalTime`. `{date}`: "9 January 2026" as a `LocalDate`. `{delayKind}`: "departure" or "arrival" as a `DelayKind`. |
+| `FlightSteps` | The flight before the When step: planned (with its STD, STA, ETD or ETA), departed, landed, and `it is now ... UTC`. |
+| `FlightDelaySteps` | Entering, changing and removing delays, and the ETD and ETA they give. |
+| `FlightDepartureSteps` | The finalized load (CPM) and registering the ATD. |
+| `FlightArrivalSteps` | Registering the ATA. |
+| `OutcomeSteps` | Then steps that several stories share: `it/that is accepted/refused`, `the registration is accepted/refused`, `... refused with an explanation` and `the registration is refused: ...`. |
 
 A plain `refused` still checks the reason: the When step sets `expectedRefusal` to the usual
 refusal reason (e.g. "later than the ATD" for `I register ... as the ATA`), and a step like
-`the registration is refused: enter a delay first` overrides it with its own reason.
+`the registration is refused: enter a delay first` overrides it with its own reason. A refusal
+without an expected reason fails the test: every refusal has to be for the reason the scenario
+causes.
 
 `Flight` has no method to change an ATD or ATA. "I try to change the ATD" (story 12) and
 "the ATA can no longer be changed" (story 13) therefore register a second time and expect
@@ -82,14 +86,19 @@ The same set-up in `be.kdg.airfreight.loadplanning.acceptance.unit`, with `Cargo
 
 | Class | Contents |
 | --- | --- |
-| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the result of the last load check. `book` and `place` take a destination per ULD and a code (or `nextCode` for a ULD the scenario does not name). `load` books a ULD and puts it on a position; "0 kg" loads nothing, because a `Weight` of 0 does not exist. `loadFor` does the same for a named ULD with its own weight and destination. `CHECKS` holds all checks, as `PolicyConfig` gives them, and `report` the last full report. `now` is the moment of the scenario (`departsAt` and `delayDepartureBy` move the STD and ETD), `error` the refusal of the last When step. |
-| `ParameterTypes` | `{weight}`: "1000 kg", "2646 lb", "1200.2 kg". `{moment}`: "9 January 2026 06:30" or "8 January 18:29" (2026) as an `Instant`. |
-| `LoadCheckSteps` | `the check has passed/failed`, shared by the load check stories (19, 20, 21), plus `the load is checked` (all checks) and `the soft check "..." has passed/failed`, which takes that check from the report (story 22). `I click Check Load` and `I see this report:` (story 23): the table is compared as a whole, in the order of `CHECKS`, so a missing or extra check fails too. |
-| `LateralBalanceSteps` | Story 19. |
-| `OffloadingSteps` | Stories 20 and 21. A `<load>` such as "ATH on RR and UR, FRA on UL" is read by one regex step, because the rows have different shapes. "CL and CR free" stays empty; "ATH on A1, A2 and B1" continues the destination. |
-| `CargoWithoutPositionSteps` | Story 22, plus `... is booked without a load position` (story 23). Story 15 uses that text as a Then: add the `acted` check of `LoadPositionSteps` then. |
-| `CheckLoadSteps` | Story 23: only the Givens that no other story words this way. Its When and Then are in `LoadCheckSteps`. |
-| `LoadPositionSteps` | Story 18. "AKE16689R7 is on CL" is both a Given and a Then: Cucumber ignores the keyword, so one method places the ULD before the When and checks it after the When (`acted`, set by every When). |
+| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the scenario state: `now`, `checkResult` (the check the Then steps read), `report` (all checks), `error`, `expectedRefusal` and `acted`. Flight helpers: `goesTo`, `departsAt`, `delayDepartureBy`, `assertFlight`, `assertWithinLoadingPeriod`. Cargo helpers: `book`, `place`, `load` (book and place), `loadWeightOn` (a ULD for ATH; "0 kg" loads nothing, because a `Weight` of 0 does not exist) and `nextCode` for a ULD the scenario does not name. `ANY_WEIGHT` for a ULD whose weight the scenario does not name, `CHECKS` for all checks as `PolicyConfig` gives them. Plus `attempt`, `assertAccepted` and `assertRefusedForTheExpectedReason`, as in `FlightWorld`. |
+| `ParameterTypes` | `{uld}`: "AKE16689R7" as a `UldCode`. `{weight}`: "1000 kg", "2646 lb", "1200.2 kg". `{moment}`: "9 January 2026 06:30" or "8 January 18:29" (2026) as an `Instant`. |
+| `FlightSteps` | The flight and the moment of the scenario: STD, destination, departure delays, `it is ... UTC` (a refusal then has to be for the loading period) and `it is ... UTC, within the loading period`. |
+| `BookingSteps` | Cargo that is booked but has no load position, and a flight without cargo. Story 15 uses `... is booked without a load position` as a Then: add the `acted` check of `LoadPositionSteps.isOn` then. |
+| `CargoOnBoardSteps` | Cargo that is already on a load position before the When step: weights per side or position, named ULDs for a destination, `<load>` descriptions and `... is already on ...` (a refusal then has to be for that occupied position). |
+| `LoadDescription` | Plain Java, no Cucumber: reads a `<load>` such as "ATH on RR and UR, FRA on UL" into ULDs. "CL and CR free" stays empty; "ATH on A1, A2 and B1" continues the destination. One regex step uses it, because the rows have different shapes. |
+| `LoadPositionSteps` | Placing a ULD and clearing it. "AKE16689R7 is on CL" is both a Given and a Then: Cucumber ignores the keyword, so one method places the ULD before the When and checks it after the When (`acted`, set by `attempt`). A position that is not on the floor plan has to be refused for that reason. |
+| `FinalizeLoadSteps` | `the load has been finalized` (a refusal then has to be for the finalized load) and `the load can still be finalized if all hard checks pass`. |
+| `OutcomeSteps` | `it/that is accepted/refused` and `it/that is refused with an explanation`, as in flight-operations. |
+| `LoadCheckSteps` | All checks together: `the load is checked` (also `I click Check Load`), `the check has passed/failed`, `the soft check "..." has passed/failed` (which also selects that check in the report) and `I see this report:` (the table compared as a whole, in the order of `CHECKS`, so a missing or extra check fails too). |
+| `LateralBalanceSteps` | The lateral balance check: its When and its report text. |
+| `OffloadingSteps` | The offloading check: its When and its report text. |
+| `AllCargoLoadedSteps` | The soft check "not all cargo loaded": its report text. It only runs with all checks together. |
 
 The When step goes through the aggregate root (`cargo.checkLoad(...)`), as the application service
 does. The floor plan is the real `Boeing747400FFloorPlan` from `infrastructure/floorplan`: it is
@@ -159,13 +168,19 @@ flight-operations and load-planning: each file keeps only the Examples rows of i
 1. Remove `@wip` from the existing file (or, for a new story, put the Gherkin from the issue
    literally in `NN-short-name.feature`).
 2. First check whether a step text already exists (Ctrl+click in IntelliJ). If it does, reuse it.
-3. A step that several stories use goes to `OutcomeSteps` or the class of its topic, not into a
-   copy.
+   A text that means the same as an existing one gets a second annotation on that method
+   (`@Given("the load is checked")` and `@Given("I click Check Load")`): Cucumber annotations are
+   repeatable. A step method never calls another step method; shared code goes into a private
+   method or the World.
+3. A step goes to the class of its topic (the flight, booking, a load check, ...), not to a class
+   per story: stories reuse each other's steps. `OutcomeSteps` holds the accepted/refused steps.
 4. State that only one class reads stays a `private` field in that class. Only when another class
-   needs it does it move to `FlightWorld`.
-5. Given calls the domain directly (a broken setup fails immediately); When catches the exception
-   in `world.error`; a refusable When sets `world.expectedRefusal` to a fragment of the domain
-   message.
+   needs it does it move to the World.
+5. Given calls the domain directly (a broken setup fails immediately); When runs through
+   `world.attempt(...)`, which keeps the refusal in `world.error`. The step that causes a refusal
+   sets `world.expectedRefusal` to a fragment of the domain message: usually the When, in
+   load-planning often the Given that blocks the change (the loading period, an occupied position,
+   a finalized load).
 6. A scenario that can't be tested yet gets a tag and a comment line with the reason: `@wip` when
    the production code it needs is missing (e.g. a REST endpoint), `@to-confirm` only when it waits
    for an answer (how to read the criterion).
