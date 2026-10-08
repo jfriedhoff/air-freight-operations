@@ -89,6 +89,12 @@ public class CargoWorld {
         place(code, position);
     }
 
+    /** Books the ULD for the destination and puts it on the position. */
+    void loadFor(UldCode code, String weight, String destination, String position) {
+        book(code, weight, destination);
+        place(code, position);
+    }
+
     void book(UldCode code, String weight) {
         book(code, weight, ATH.value());
     }

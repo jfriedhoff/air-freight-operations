@@ -21,6 +21,12 @@ public class CargoWithoutPositionSteps {
         world.book(new UldCode(code), ANY_WEIGHT);
     }
 
+    /** Story 15 uses the same text as a Then: add the acted check of LoadPositionSteps.isOn then. */
+    @Given("{word} is booked without a load position")
+    public void isBookedWithoutALoadPosition(String code) {
+        world.book(new UldCode(code), ANY_WEIGHT);
+    }
+
     @Given("{word} and {word} are booked and both have a load position")
     public void areBookedAndBothHaveALoadPosition(String first, String second) {
         world.book(new UldCode(first), ANY_WEIGHT);

@@ -1,4 +1,3 @@
-@wip
 Feature: Check the load with Check Load
   As a load planner I want to check the load with Check Load so that I know what I still have to change
 
@@ -14,7 +13,8 @@ Feature: Check the load with Check Load
       | Offloading           | passed |                                                                                     | hard |
       | Not all cargo loaded | failed | AKE30111HJ has no load position                                                     | soft |
 
-  @ui @integration
+  # Needs the REST endpoint for Check Load, which load-planning does not have yet. checkLoad also works outside the loading period (REFLECTIE.md)
+  @ui @integration @wip
   Scenario Outline: Not outside the loading period
     Given the loading period <state>
     Then I cannot use Check Load
@@ -25,7 +25,8 @@ Feature: Check the load with Check Load
       | has not started yet |
       | is over             |
 
-  @integration
+  # Needs the REST endpoint for Check Load, which load-planning does not have yet
+  @integration @wip
   Scenario: Check Load changes nothing
     Given it is within the loading period
     When I click Check Load
