@@ -62,6 +62,10 @@ public class MessagingEvents {
         send("messaging.flight.departed", flight, Map.of());
     }
 
+    public void departureEstimateChanged(FlightId flight, Instant etd) {
+        send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", etd.toString()));
+    }
+
     /** Messaging has already turned the day of the month into a date: Load Planning gets that date. */
     public UUID uldBookingReceived(FlightId flight, UldCode code, Weight weight) {
         Map<String, Object> fields = new LinkedHashMap<>();

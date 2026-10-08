@@ -6,6 +6,7 @@ import io.cucumber.java.ParameterType;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.Locale;
@@ -25,6 +26,12 @@ public class ParameterTypes {
     @ParameterType("\\d+(?:\\.\\d+)? (?:kg|lb)")
     public String weight(String weight) {
         return weight;
+    }
+
+    /** "06:45". */
+    @ParameterType("\\d{2}:\\d{2}")
+    public LocalTime time(String time) {
+        return LocalTime.parse(time);
     }
 
     /** "09": a day of the month as a ULD message writes it. */
