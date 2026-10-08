@@ -1,4 +1,3 @@
-@wip
 Feature: Invalid and duplicate incoming messages are set aside and logged
   As an operations manager I want invalid and duplicate incoming messages to be set aside and logged so that I can find out what happened
 
@@ -11,14 +10,20 @@ Feature: Invalid and duplicate incoming messages are set aside and logged
     Examples:
       | error                                        |
       | no ULD code                                  |
-      | ULD code AK16689R7                           |
       | a weight without a unit                      |
-      | weight 1.25 t                                |
       | weight 0 kg                                  |
       | weight -50 kg                                |
-      | a destination that is not in the IATA list   |
       | day 32                                       |
       | JSON that cannot be read                     |
+
+    # Messaging does not check these yet: the format of the ULD code, the weight unit (Load Planning refuses
+    # both later, on its own dead letter queue) and the destination against the IATA list (nobody checks that).
+    @wip
+    Examples:
+      | error                                        |
+      | ULD code AK16689R7                           |
+      | weight 1.25 t                                |
+      | a destination that is not in the IATA list   |
 
   @integration
   Scenario Outline: An invalid SSM is set aside
@@ -30,10 +35,16 @@ Feature: Invalid and duplicate incoming messages are set aside and logged
       | error                                       |
       | an end date before the start date           |
       | no weekdays                                 |
-      | an airport that is not in the IATA list     |
-      | the same departure and arrival airport      |
       | departure time 25:00                        |
       | no aircraft registration                    |
+
+    # Nobody checks these yet, not even Flight Operations: airports against the IATA list, and a departure
+    # airport that is also the arrival airport.
+    @wip
+    Examples:
+      | error                                       |
+      | an airport that is not in the IATA list     |
+      | the same departure and arrival airport      |
 
   @integration
   Scenario: A duplicate message has one effect
@@ -42,9 +53,5 @@ Feature: Invalid and duplicate incoming messages are set aside and logged
     Then nothing changes
     And the duplicate is logged with its identification
 
-  @integration
-  Scenario: A change to a non-existent flight through the API
-    Given I am logged in as a flight planner
-    When I enter a delay through the API for HJ999 of 9 January 2026 from BRU, a flight that does not exist
-    Then the API responds with 404 Not Found
-    And the attempt is logged with a warning
+  # "A change to a non-existent flight through the API" tests the REST API of Flight Operations: it is in
+  # flight-operations/.../features/flightoperations/29-invalid-duplicate-messages.feature.
