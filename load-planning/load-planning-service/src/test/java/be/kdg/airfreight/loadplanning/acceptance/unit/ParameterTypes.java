@@ -1,5 +1,6 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
+import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.ParameterType;
 
 import java.time.Instant;
@@ -9,6 +10,12 @@ import java.time.ZoneOffset;
 import java.util.Locale;
 
 public class ParameterTypes {
+    /** A ULD code as the stories write it: "AKE16689R7". */
+    @ParameterType("[A-Z]{3}\\d{4,5}[A-Z0-9]{2}")
+    public UldCode uld(String code) {
+        return new UldCode(code);
+    }
+
     /** A weight as the stories write it: "1000 kg", "2646 lb", "1200.2 kg". */
     @ParameterType("\\d+(?:\\.\\d+)? (?:kg|lb)")
     public String weight(String weight) {
