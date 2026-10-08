@@ -23,6 +23,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, "index.html"),
+                flightDetails: resolve(__dirname, "html/flight-details.html"),
             },
         },
         outDir: "../flight-operations-service/src/main/resources/static",
