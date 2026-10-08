@@ -1,4 +1,3 @@
-@wip
 Feature: Dates from ULD messages are derived correctly
   As an operations manager I want dates from ULD messages to be derived correctly so that a booking always applies to the right flight
 
@@ -35,7 +34,7 @@ Feature: Dates from ULD messages are derived correctly
 
   @unit
   Scenario Outline: A day that does not exist makes the message invalid
-    When the day of the month <day> is deriv
+    When the day of the month <day> is derived
     Then the message is invalid
 
     Examples:
@@ -55,7 +54,8 @@ Feature: Dates from ULD messages are derived correctly
     When the time 0000 is derived
     Then the moment is 10 January 2026 00:00 UTC
 
-  @integration
+  # Integration steps not written yet: they need Docker (Postgres)
+  @integration @wip
   Scenario: A ULD message that arrives again later is not derived again
     Given a ULD message for HJ221, day 09, was processed on 2 January 2026 and booked the ULD on the flight of 9 January
     When the same message arrives again on 25 January 2026
