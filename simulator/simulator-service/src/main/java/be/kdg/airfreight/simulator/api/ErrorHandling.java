@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -41,6 +42,17 @@ class ErrorHandling {
             .collect(Collectors.joining("; "));
         log.warn("Refused incomplete records: {}", reasons);
         return problem(HttpStatus.BAD_REQUEST, reasons);
+    }
+
+    /**
+     * The broker cannot be reached. The simulator has no outbox: the trainer sends again. That is
+     * safe, because a flight or a booking that already exists is not created a second time.
+     */
+    @ExceptionHandler(AmqpException.class)
+    ProblemDetail streamUnavailable(AmqpException e) {
+        log.error("RabbitMQ cannot be reached, so not every record was sent: {}", e.getMessage());
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "RabbitMQ cannot be reached, so not every record was sent. "
+            + "Supply the records again once it is back: what was already sent is not created twice.");
     }
 
     private static ProblemDetail problem(HttpStatusCode status, String detail) {

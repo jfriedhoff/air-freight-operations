@@ -1,0 +1,75 @@
+### The @e2e scenarios of stories 31 and 32, by hand. Start RabbitMQ and PostgreSQL (docker compose up -d),
+### then Messaging first (it owns the queues), then Flight Operations, Load Planning and the simulator.
+### Adjust the dates to the current week: Messaging derives the date of a booking from its day of the
+### month as the nearest date to today, so a booking only lands on a flight less than two weeks away.
+
+### Story 31: two flight schedule records -> two SSMs -> flights HJ221 (Mon, Thu) and 3V11 (Mon-Wed)
+
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  { "periodFrom": "2026-10-12", "periodTo": "2026-10-18", "weekdays": ["MONDAY", "THURSDAY"],
+    "departureTime": "06:30", "arrivalTime": "09:45", "flightNumber": "HJ221",
+    "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" },
+  { "periodFrom": "2026-10-12", "periodTo": "2026-10-14",
+    "weekdays": ["MONDAY", "TUESDAY", "WEDNESDAY"],
+    "departureTime": "22:15", "arrivalTime": "01:05", "flightNumber": "3V11",
+    "departureAirport": "LGG", "arrivalAirport": "BRU", "registration": "OOTFA" }
+]
+
+> {%
+    client.test("Two records give two SSMs", function () {
+        client.assert(response.status === 202, "Response status is not 202");
+        client.assert(response.body.messageIds.length === 2, "Expected two message ids");
+    });
+%}
+
+### The same records again: new SSMs, but no flight is created twice (see the log of Flight Operations)
+
+### Story 32: three booking records -> three ULD messages -> three ULDs booked on HJ221 of 12 October
+### Send this after the flights above have been processed.
+
+POST http://localhost:8090/api/cargo-bookings
+Content-Type: application/json
+
+[
+  { "flightNumber": "HJ221", "scheduledDepartureDate": "2026-10-12", "departureAirport": "BRU",
+    "uldCode": "AKE16689R7", "weight": 1250.5, "weightUnit": "KG", "destination": "ATH" },
+  { "flightNumber": "HJ221", "scheduledDepartureDate": "2026-10-12", "departureAirport": "BRU",
+    "uldCode": "PMC12345KL", "weight": 2646, "weightUnit": "LB", "destination": "ATH" },
+  { "flightNumber": "HJ221", "scheduledDepartureDate": "2026-10-12", "departureAirport": "BRU",
+    "uldCode": "AKE22222R7", "weight": 980, "weightUnit": "KG", "destination": "SKG" }
+]
+
+> {%
+    client.test("Three records give three ULD messages", function () {
+        client.assert(response.status === 202, "Response status is not 202");
+        client.assert(response.body.messageIds.length === 3, "Expected three message ids");
+    });
+%}
+
+### JSON that cannot be read -> 400 with the reason, nothing is sent
+
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[{ "flightNumber":
+
+> {%
+    client.test("Unreadable JSON is refused with the reason", function () {
+        client.assert(response.status === 400, "Response status is not 400");
+        client.assert(response.body.detail.startsWith("The JSON cannot be read"), "No reason given");
+    });
+%}
+
+### A record that is readable but wrong (lowercase flight number) -> 202 here, set aside by Messaging (story 29)
+
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  { "periodFrom": "2026-10-12", "periodTo": "2026-10-18", "weekdays": ["MONDAY"],
+    "departureTime": "06:30", "arrivalTime": "09:45", "flightNumber": "hj221",
+    "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" }
+]

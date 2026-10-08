@@ -34,6 +34,14 @@ public class BookingSteps {
             """.formatted(flightNumber, scheduledDepartureDate, airport));
     }
 
+    @When("I supply booking records")
+    public void supplyBookingRecords() throws Exception {
+        world.post(SimulatorWorld.CARGO_BOOKINGS, """
+            [{ "flightNumber": "HJ221", "scheduledDepartureDate": "2026-01-09", "departureAirport": "BRU",
+               "uldCode": "AKE16689R7", "weight": 1250.5, "weightUnit": "KG", "destination": "ATH" }]
+            """);
+    }
+
     /** A regular expression, because the flight number is followed by a comma. "09" is the day 9. */
     @Then("^the sent ULD message contains flight number (\\w+), day (\\d{2}) and airport (\\w+)$")
     public void theSentUldMessageContains(String flightNumber, String day, String airport) {
