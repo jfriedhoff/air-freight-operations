@@ -1,5 +1,6 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
+import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.AirportCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
@@ -11,6 +12,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckReport;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckResult;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.Uld;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Weight;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.WeightUnit;
@@ -47,8 +49,14 @@ public class CargoWorld {
         FlightInfo.scheduled(ATH, Boeing747400FFloorPlan.AIRCRAFT_TYPE,
             Instant.parse("2026-01-09T06:45:00Z"), Instant.parse("2026-01-09T10:00:00Z")));
     final LoadPlannerId planner = LoadPlannerId.create();
+    /** The moment the scenario takes place; the loading period of the flight is open at NOW. */
+    Instant now = NOW;
     LoadCheckResult result;
     LoadCheckReport report;
+    /** What the last When step was refused with, or null when it was accepted. */
+    DomainRuleViolationException error;
+    /** Set by the When steps: a step that is both a Given and a Then sets up before it and checks after it. */
+    boolean acted;
     private int uldCount;
 
     /** The flight as it is, only with another destination. */
@@ -56,6 +64,19 @@ public class CargoWorld {
         FlightInfo info = cargo.getFlightInfo();
         cargo.updateFlightInfo(new FlightInfo(new AirportCode(airport), info.aircraftType(), info.std(), info.sta(),
             info.etd(), info.eta(), info.departed()));
+    }
+
+    /** The flight with another STD. Without delays the ETD is the STD. */
+    void departsAt(Instant std) {
+        FlightInfo info = cargo.getFlightInfo();
+        cargo.updateFlightInfo(new FlightInfo(info.arrivalAirport(), info.aircraftType(), std, info.sta(), std,
+            info.eta(), info.departed()));
+    }
+
+    /** The ETD becomes the STD plus the departure delays. */
+    void delayDepartureBy(Duration delays) {
+        FlightInfo info = cargo.getFlightInfo();
+        cargo.updateFlightInfo(info.withEstimatedDeparture(info.std().plus(delays)));
     }
 
     /** Books a new ULD for ATH and puts it on the position. "0 kg" loads nothing: a ULD always weighs something. */
@@ -73,11 +94,18 @@ public class CargoWorld {
     }
 
     void book(UldCode code, String weight, String destination) {
-        cargo.book(code, weightOf(weight), new AirportCode(destination), NOW);
+        cargo.book(code, weightOf(weight), new AirportCode(destination), now);
     }
 
     void place(UldCode code, String position) {
-        cargo.assign(code, floorPlan.positionNamed(position).orElseThrow(), planner, NOW, floorPlan, POLICY);
+        cargo.assign(code, floorPlan.positionNamed(position).orElseThrow(), planner, now, floorPlan, POLICY);
+    }
+
+    Uld uld(String code) {
+        return cargo.getUlds().stream()
+            .filter(uld -> uld.getCode().equals(new UldCode(code)))
+            .findFirst()
+            .orElseThrow();
     }
 
     /** A code for a ULD the scenario does not name: AKE00001HJ, AKE00002HJ, ... */

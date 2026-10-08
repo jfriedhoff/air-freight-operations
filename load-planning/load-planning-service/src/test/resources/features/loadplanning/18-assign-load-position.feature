@@ -1,4 +1,3 @@
-@wip
 Feature: Assign, change or clear a load position from the floor plan
   As a load planner I want to assign, change or clear a load position from the floor plan for a ULD so that the cargo is planned on the aircraft
 
@@ -102,7 +101,8 @@ Feature: Assign, change or clear a load position from the floor plan
       | place AKE16689R7 on CR                 |
       | clear the load position of AKE16689R7  |
 
-  @integration
+  # Needs the REST endpoint for placing a ULD, which load-planning does not have yet
+  @integration @to-confirm
   Scenario: Two load planners choose the same position at the same time
     Given AKE20417HJ is also booked on HJ221
     When two load planners place AKE16689R7 and AKE20417HJ on CL at the same time

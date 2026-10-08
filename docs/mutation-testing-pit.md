@@ -102,6 +102,7 @@ have no tests yet (2, 38).
 | 7 October 2026 | + story 20 | 163 | 85 (52 %) | 85 % |
 | 7 October 2026 | + story 21, `OffloadingCheckTest` | 163 | 89 (55 %) | 86 % |
 | 7 October 2026 | + story 22 | 163 | 102 (63 %) | 85 % |
+| 7 October 2026 | + story 18 | 163 | 120 (74 %) | 90 % |
 
 Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
 through but does not check: `book` and `assign` (stories 15, 18) and the validation of
@@ -117,6 +118,13 @@ scenario checks.
 Story 22 kills the `Uld.hasPosition` survivor and every mutant in `AllCargoLoadedCheck` except `name()`.
 Its last step finalizes the load, which brings new survivors in `finalizeLoad`, `isFinalized` and
 `hardChecksPassed`: story 22 only checks that finalizing works, story 24 checks that it is refused.
+
+Story 18 kills every survivor in `assign` and `clear`: the loading period, the occupied position,
+`FloorPlan.contains`, `LoadingPeriod.contains`, `Uld.isAt` and the returned events. Still surviving:
+finalizing (story 24), `book` (story 15), the validation of `Weight`, `LoadingPolicy` and
+`LateralBalanceLimit` (story 37), and `Uld.hashCode` returning 0 and one `Uld.equals` mutant. The
+`Uld.equals` mutant only behaves differently for two `Uld` objects with the same code, which only
+`hydrate` creates (the same as `Delay.equals` in flight-operations).
 
 ### Messaging
 
