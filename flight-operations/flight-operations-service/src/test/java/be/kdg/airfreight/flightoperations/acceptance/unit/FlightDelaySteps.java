@@ -16,25 +16,24 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.Month;
+import java.time.LocalTime;
 import java.util.List;
 
-import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.DEPARTURE_DATE;
 import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.HJ221;
 import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.NOW;
-import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.TOLERANCE;
 import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.onDate;
+import static be.kdg.airfreight.flightoperations.acceptance.unit.FlightWorld.onDepartureDate;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
+/** Entering, changing and removing delays, and the ETD and ETA they give. */
 public class FlightDelaySteps {
     private static final String VALID_REASON = "93";
     private static final String UNKNOWN_REASON = "XY";
     private static final String DESCRIPTION = "Late arrival of the aircraft";
     private static final String NEW_DESCRIPTION = "Waiting for a late crew member";
+    /** The minutes of a delay when the scenario does not name them. */
+    private static final int ANY_MINUTES = 15;
     private static final String TOO_LONG = "at most 12 hours";
     private static final String INVALID_REASON = "Delay reason 'XY' is invalid";
     private static final String NO_DESCRIPTION = "description of a delay cannot be blank";
@@ -52,35 +51,10 @@ public class FlightDelaySteps {
         this.world = world;
     }
 
-    @Given("flight {word} of {int} January {int} is planned with STD {word} and STA {word} UTC")
-    public void flightIsPlannedWithStdAndSta(String flightNumber, int day, int year, String std, String sta) {
-        world.plan(flightNumber, utc(day, year, std), utc(day, year, sta));
-    }
-
-    @Given("flight {word} of {int} January {int} is planned with STD {word} UTC")
-    public void flightIsPlannedWithStd(String flightNumber, int day, int year, String std) {
-        Instant departure = utc(day, year, std);
-        world.plan(flightNumber, departure, departure.plus(Duration.ofHours(3)));
-    }
-
-    @Given("{word} already has a departure delay of {int} minutes")
-    public void flightAlreadyHasADepartureDelay(String flightNumber, int minutes) {
-        addDelay(flightNumber, DelayKind.DEPARTURE, minutes);
-    }
-
-    @Given("{word} has a departure delay of {int} minutes")
-    public void flightHasADepartureDelay(String flightNumber, int minutes) {
-        addDelay(flightNumber, DelayKind.DEPARTURE, minutes);
-    }
-
-    @Given("flight {word} with ETD {word} and ETA {word} UTC")
-    public void flightWithEtdAndEta(String flightNumber, String etd, String eta) {
-        world.plan(flightNumber, onDate(DEPARTURE_DATE, etd), onDate(DEPARTURE_DATE, eta));
-    }
-
-    @Given("flight {word} with STD {word}, STA {word} UTC and one departure delay of {int} minutes")
-    public void flightWithOneDepartureDelay(String flightNumber, String std, String sta, int minutes) {
-        world.plan(flightNumber, onDate(DEPARTURE_DATE, std), onDate(DEPARTURE_DATE, sta));
+    /** A colleague entered the delay, so "I last changed the delay" really tests the change. */
+    @Given("flight {word} with STD {time}, STA {time} UTC and one departure delay of {int} minutes")
+    public void flightWithOneDepartureDelay(String flightNumber, LocalTime std, LocalTime sta, int minutes) {
+        world.plan(flightNumber, onDepartureDate(std), onDepartureDate(sta));
         Flight flight = world.flight(flightNumber);
         flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(minutes), new DelayCode(VALID_REASON), DESCRIPTION,
             colleague, NOW);
@@ -88,28 +62,18 @@ public class FlightDelaySteps {
         estimatedBefore = flight.getEstimated();
     }
 
-    @Given("{word} also has a(n) {word} delay of {int} minutes")
-    public void flightAlsoHasADelay(String flightNumber, String kind, int minutes) {
-        DelayId id = addDelay(flightNumber, kind(kind), minutes);
-        if (kind(kind) == DelayKind.ARRIVAL) {
+    @Given("{word} has a departure delay of {int} minutes")
+    @Given("{word} already has a departure delay of {int} minutes")
+    public void hasADepartureDelay(String flightNumber, int minutes) {
+        addDelay(flightNumber, DelayKind.DEPARTURE, minutes);
+    }
+
+    @Given("{word} also has a(n) {delayKind} delay of {int} minutes")
+    public void alsoHasADelay(String flightNumber, DelayKind kind, int minutes) {
+        DelayId id = addDelay(flightNumber, kind, minutes);
+        if (kind == DelayKind.ARRIVAL) {
             arrivalDelayId = id;
         }
-    }
-
-    @Given("flight {word} has departed")
-    public void flightHasDeparted(String flightNumber) {
-        Flight flight = plannedFlight(flightNumber);
-        Instant atd = flight.getScheduled().departure();
-        flight.recordFinalizedLoad(atd);
-        flight.registerDeparture(atd, world.planner, atd, TOLERANCE);
-    }
-
-    @Given("flight {word} has landed")
-    public void flightHasLanded(String flightNumber) {
-        flightHasDeparted(flightNumber);
-        Flight flight = world.flight(flightNumber);
-        Instant ata = flight.getScheduled().arrival();
-        flight.registerArrival(ata, world.planner, ata, TOLERANCE);
     }
 
     @When("I enter a departure delay of {int} minutes with a valid delay reason and a description")
@@ -117,10 +81,10 @@ public class FlightDelaySteps {
         enterDelay(HJ221, DelayKind.DEPARTURE, minutes, VALID_REASON, DESCRIPTION);
     }
 
-    @When("I enter a(n) {word} delay of {int} minutes")
-    public void iEnterADelay(String kind, int minutes) {
+    @When("I enter a(n) {delayKind} delay of {int} minutes")
+    public void iEnterADelay(DelayKind kind, int minutes) {
         world.expectedRefusal = TOO_LONG;
-        enterDelay(HJ221, kind(kind), minutes, VALID_REASON, DESCRIPTION);
+        enterDelay(HJ221, kind, minutes, VALID_REASON, DESCRIPTION);
     }
 
     @When("I enter another departure delay of {int} minutes and an arrival delay of {int} minutes")
@@ -132,13 +96,13 @@ public class FlightDelaySteps {
     @When("I enter a departure delay with a delay reason that is not in the IATA list")
     public void iEnterADepartureDelayWithAnUnknownReason() {
         world.expectedRefusal = INVALID_REASON;
-        enterDelay(HJ221, DelayKind.DEPARTURE, 15, UNKNOWN_REASON, DESCRIPTION);
+        enterDelay(HJ221, DelayKind.DEPARTURE, ANY_MINUTES, UNKNOWN_REASON, DESCRIPTION);
     }
 
     @When("I enter a departure delay without a description")
     public void iEnterADepartureDelayWithoutADescription() {
         world.expectedRefusal = NO_DESCRIPTION;
-        enterDelay(HJ221, DelayKind.DEPARTURE, 15, VALID_REASON, "");
+        enterDelay(HJ221, DelayKind.DEPARTURE, ANY_MINUTES, VALID_REASON, "");
     }
 
     @When("I enter a departure delay of {int} minutes for {word}")
@@ -149,13 +113,13 @@ public class FlightDelaySteps {
     @When("I enter a departure delay")
     public void iEnterADepartureDelay() {
         world.expectedRefusal = NOT_PLANNED;
-        enterDelay(HJ221, DelayKind.DEPARTURE, 15, VALID_REASON, DESCRIPTION);
+        enterDelay(HJ221, DelayKind.DEPARTURE, ANY_MINUTES, VALID_REASON, DESCRIPTION);
     }
 
     @When("I enter an arrival delay")
     public void iEnterAnArrivalDelay() {
         world.expectedRefusal = LANDED;
-        enterDelay(HJ221, DelayKind.ARRIVAL, 15, VALID_REASON, DESCRIPTION);
+        enterDelay(HJ221, DelayKind.ARRIVAL, ANY_MINUTES, VALID_REASON, DESCRIPTION);
     }
 
     @When("I change the delay to {int} minutes")
@@ -198,22 +162,21 @@ public class FlightDelaySteps {
         changeOrRemove(action, arrivalDelayId);
     }
 
-    @Then("the ETD is {word}")
-    public void theEtdIs(String time) {
-        Flight flight = world.flight(HJ221);
-        assertThat(flight.getEstimated().departure()).isEqualTo(onDepartureDate(flight, time));
+    @Then("the ETD is {time}")
+    public void theEtdIs(LocalTime time) {
+        assertEtd(time);
     }
 
-    @Then("the ETD remains {word}")
-    public void theEtdRemains(String time) {
-        assertThat(world.error).isNull();
-        theEtdIs(time);
+    @Then("the ETD remains {time}")
+    public void theEtdRemains(LocalTime time) {
+        world.assertAccepted();
+        assertEtd(time);
     }
 
-    @And("the ETA is {word}")
-    public void theEtaIs(String time) {
+    @And("the ETA is {time}")
+    public void theEtaIs(LocalTime time) {
         Flight flight = world.flight(HJ221);
-        assertThat(flight.getEstimated().arrival()).isEqualTo(onDepartureDate(flight, time));
+        assertThat(flight.getEstimated().arrival()).isEqualTo(onDate(flight.getScheduled().departureDate(), time));
     }
 
     @And("it is recorded that I entered the delay")
@@ -223,20 +186,20 @@ public class FlightDelaySteps {
 
     @And("it is recorded that I last changed the delay")
     public void itIsRecordedThatILastChangedTheDelay() {
-        assertThat(world.error).isNull();
+        world.assertAccepted();
         assertThat(delay(delayId).getLastChangedBy()).isEqualTo(world.planner);
     }
 
     @Then("the delay has the new description")
     public void theDelayHasTheNewDescription() {
-        assertThat(world.error).isNull();
+        world.assertAccepted();
         assertThat(delay(delayId).getDescription()).isEqualTo(NEW_DESCRIPTION);
     }
 
     /** The domain has no way to change the reason (Delay.reason is final): a change keeps it. */
     @Then("the delay keeps its delay reason")
     public void theDelayKeepsItsDelayReason() {
-        assertThat(world.error).isNull();
+        world.assertAccepted();
         assertThat(delay(delayId).getReason()).isEqualTo(new DelayCode(VALID_REASON));
     }
 
@@ -247,7 +210,7 @@ public class FlightDelaySteps {
 
     @Then("the ETD equals the STD again")
     public void theEtdEqualsTheStdAgain() {
-        assertThat(world.error).isNull();
+        world.assertAccepted();
         Flight flight = world.flight(HJ221);
         assertThat(flight.getEstimated().departure()).isEqualTo(flight.getScheduled().departure());
     }
@@ -264,25 +227,22 @@ public class FlightDelaySteps {
         assertThat(events).isNotEmpty().extracting("changedBy").containsOnly(world.planner);
     }
 
-    @Then("the ETD of {word} is {int} January {int} {word} UTC")
-    public void theEtdOfFlightIs(String flightNumber, int day, int year, String time) {
-        assertThat(world.error).isNull();
-        assertThat(world.flight(flightNumber).getEstimated().departure()).isEqualTo(utc(day, year, time));
+    @Then("the ETD of {word} is {date} {time} UTC")
+    public void theEtdOfFlightIs(String flightNumber, LocalDate date, LocalTime time) {
+        world.assertAccepted();
+        assertThat(world.flight(flightNumber).getEstimated().departure()).isEqualTo(onDate(date, time));
     }
 
-    @But("it remains the flight {word} of {int} January {int}")
-    public void itRemainsTheFlight(String flightNumber, int day, int year) {
+    @But("it remains the flight {word} of {date}")
+    public void itRemainsTheFlight(String flightNumber, LocalDate date) {
         Flight flight = world.flight(flightNumber);
         assertThat(flight.getFlightNumber()).isEqualTo(new FlightNumber(flightNumber));
-        assertThat(flight.getScheduled().departureDate()).isEqualTo(LocalDate.of(year, Month.JANUARY, day));
+        assertThat(flight.getScheduled().departureDate()).isEqualTo(date);
     }
 
-    /** Story 9 starts without a Background: plan the flight like story 8 does if it doesn't exist yet. */
-    private Flight plannedFlight(String flightNumber) {
-        if (world.flight(flightNumber) == null) {
-            world.plan(flightNumber, onDate(DEPARTURE_DATE, "06:30"), onDate(DEPARTURE_DATE, "09:45"));
-        }
-        return world.flight(flightNumber);
+    private void assertEtd(LocalTime time) {
+        Flight flight = world.flight(HJ221);
+        assertThat(flight.getEstimated().departure()).isEqualTo(onDate(flight.getScheduled().departureDate(), time));
     }
 
     private DelayId addDelay(String flightNumber, DelayKind kind, int minutes) {
@@ -293,19 +253,20 @@ public class FlightDelaySteps {
     }
 
     private void enterDelay(String flightNumber, DelayKind kind, int minutes, String reason, String description) {
-        world.error = catchThrowable(() -> world.flight(flightNumber).addDelay(kind, new DelayDuration(minutes),
+        world.attempt(() -> world.flight(flightNumber).addDelay(kind, new DelayDuration(minutes),
             new DelayCode(reason), description, world.planner, NOW));
     }
 
     private void changeDelay(DelayId id, int minutes, String description) {
-        world.error = catchThrowable(() -> events = world.flight(HJ221).changeDelay(id, new DelayDuration(minutes),
-            description, world.planner, NOW));
+        world.attempt(() -> events = world.flight(HJ221).changeDelay(id, new DelayDuration(minutes), description,
+            world.planner, NOW));
     }
 
     private void removeDelay(DelayId id) {
-        world.error = catchThrowable(() -> events = world.flight(HJ221).removeDelay(id, world.planner, NOW));
+        world.attempt(() -> events = world.flight(HJ221).removeDelay(id, world.planner, NOW));
     }
 
+    /** "change" adds 5 minutes, which stays within all limits of these scenarios. */
     private void changeOrRemove(String action, DelayId id) {
         switch (action) {
             case "change" -> changeDelay(id, delay(id).getMinutes().minutes() + 5, DESCRIPTION);
@@ -318,17 +279,5 @@ public class FlightDelaySteps {
         return world.flight(HJ221).getDelays().stream()
             .filter(delay -> delay.getId().equals(id))
             .findFirst().orElseThrow();
-    }
-
-    private static DelayKind kind(String kind) {
-        return DelayKind.valueOf(kind.toUpperCase());
-    }
-
-    private static Instant utc(int day, int year, String time) {
-        return onDate(LocalDate.of(year, Month.JANUARY, day), time);
-    }
-
-    private static Instant onDepartureDate(Flight flight, String time) {
-        return onDate(flight.getScheduled().departureDate(), time);
     }
 }
