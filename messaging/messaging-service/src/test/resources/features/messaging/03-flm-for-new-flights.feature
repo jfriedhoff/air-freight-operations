@@ -1,4 +1,3 @@
-@wip
 Feature: Partners receive an FLM for every newly created flight
   As a partner I want to receive an FLM for every newly created flight so that I know which flights are coming
 
@@ -10,7 +9,9 @@ Feature: Partners receive an FLM for every newly created flight
     And each FLM contains the flight number, the scheduled departure date, STD, STA and the departure and arrival airport
     And STD and STA are full UTC timestamps in the FLM
 
-  @integration @e2e
+  # Whether a flight already exists is decided by Flight Operations (story 2 tests that there): within
+  # Messaging alone this scenario would only test what the test itself plays, so it is end-to-end only.
+  @e2e
   Scenario: No FLM for an existing flight
     Given an SSM that announces two flights, one of which already exists
     When the SSM is processed
