@@ -3,6 +3,7 @@ package be.kdg.airfreight.flightoperations.acceptance.integration;
 import be.kdg.airfreight.flightoperations.TestHelper;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
+import ch.qos.logback.classic.Level;
 import io.cucumber.java.After;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -16,6 +17,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,6 +43,8 @@ public class FlightApiSteps {
     private MockMvc mockMvc;
     @Autowired
     private TestHelper testHelper;
+    @Autowired
+    private LogCapture logs;
 
     /** Who sends the request; null is nobody: a request without a token. */
     private RequestPostProcessor login;
@@ -54,6 +58,7 @@ public class FlightApiSteps {
 
     /** The schedule in the step is the one TestHelper plans: 9 January 2026, STD 06:30 and STA 09:45 UTC. */
     @Given("^flight HJ221 of 9 January 2026 is planned with STD 06:30 and STA 09:45 UTC$")
+    @Given("flight HJ221 of 9 January 2026 with STD 06:30 and STA 09:45 UTC")
     public void flightHj221IsPlanned() {
         flightId = testHelper.savePlannedFlight().getId();
     }
@@ -91,6 +96,20 @@ public class FlightApiSteps {
         enterDelay(UUID.randomUUID(), 25, "93");
     }
 
+    /** The API names a flight by its id: a flight that does not exist has an id that nobody knows. */
+    @When("I enter a delay through the API for {word} of {date} from {word}, a flight that does not exist")
+    public void iEnterADelayForAFlightThatDoesNotExist(String flightNumber, LocalDate date, String departureAirport)
+        throws Exception {
+        assertThat(testHelper.findFlight(flightNumber, date, departureAirport)).isEmpty();
+        enterDelay(UUID.randomUUID(), 25, "93");
+    }
+
+    @When("the flight planner enters a departure delay of {int} minutes")
+    public void theFlightPlannerEntersADepartureDelay(int minutes) throws Exception {
+        iAmLoggedInAs("a flight planner");
+        iEnterADepartureDelay(minutes);
+    }
+
     /** Story #5 has no Background: the flight is planned here. Both ways to change a resource are tried. */
     @When("I try to change the STD or the ETD of HJ221 through the API")
     public void iTryToChangeTheStdOrTheEtd() throws Exception {
@@ -101,6 +120,7 @@ public class FlightApiSteps {
     }
 
     @Then("the API answers {int}")
+    @Then("the API responds with {int} Not Found")
     public void theApiAnswers(int statusCode) throws Exception {
         lastAnswer().andExpect(status().is(statusCode));
     }
@@ -111,6 +131,28 @@ public class FlightApiSteps {
         for (ResultActions answer : answers) {
             answer.andExpect(status().isMethodNotAllowed());
         }
+    }
+
+    @Then("he gets a confirmation")
+    public void heGetsAConfirmation() throws Exception {
+        lastAnswer().andExpect(status().isOk());
+    }
+
+    @And("the delay has been stored")
+    public void theDelayHasBeenStored() {
+        assertThat(testHelper.find(flight()).getDelays()).hasSize(1);
+    }
+
+    @And("the event is waiting in the outbox of Flight Operations")
+    public void theEventIsWaitingInTheOutbox() {
+        assertThat(testHelper.unsentOutboxTypes()).containsExactly(
+            "flight-operations.flight.departure-estimate-changed",
+            "flight-operations.flight.arrival-estimate-changed");
+    }
+
+    @And("the attempt is logged with a warning")
+    public void theAttemptIsLoggedWithAWarning() {
+        logs.assertLogged(Level.WARN, "does not exist");
     }
 
     @And("the STD and the ETD remain unchanged")

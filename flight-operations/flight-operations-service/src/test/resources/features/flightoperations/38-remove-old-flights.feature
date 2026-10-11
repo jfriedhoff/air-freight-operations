@@ -1,4 +1,3 @@
-@wip
 Feature: Flights are removed 7 days after their scheduled departure date
   As an operations manager I want flights to be removed 7 days after their scheduled departure date so that the system keeps no old data
 

@@ -1,4 +1,3 @@
-@wip
 Feature: Change the policy values without a new release
   As an operations manager I want to change the policy values without a new release so that I can adjust the policy
 
