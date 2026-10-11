@@ -3,6 +3,7 @@ image: eclipse-temurin:25-jdk
 
 stages:
   - test
+  - mutation
 
 # One pipeline per change: for merge requests and for main
 workflow:
@@ -75,3 +76,37 @@ simulator:
     - rabbitmq:4.3.6-management   # no database
   variables:
     MODULE: "simulator:simulator-service"
+
+# Mutation testing with PIT (docs/mutation-testing-pit.md). It is slow, so a job only runs when someone
+# clicks its play button. PIT runs the unit tests on the domain: no database or RabbitMQ needed
+.mutation-tests:
+  stage: mutation
+  when: manual
+  needs: []                    # does not wait for the test jobs
+  interruptible: true
+  cache:
+    key: "gradle-$CI_JOB_NAME"
+    paths:
+      - .gradle-home/caches
+      - .gradle-home/wrapper
+  script:
+    - ./gradlew ":$MODULE:pitest"
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - "**/build/reports/pitest/"
+
+pit-flight-operations:
+  extends: .mutation-tests
+  variables:
+    MODULE: "flight-operations:flight-operations-service"
+
+pit-load-planning:
+  extends: .mutation-tests
+  variables:
+    MODULE: "load-planning:load-planning-service"
+
+pit-messaging:
+  extends: .mutation-tests
+  variables:
+    MODULE: "messaging:messaging-service"

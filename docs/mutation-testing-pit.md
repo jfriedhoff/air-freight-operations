@@ -10,7 +10,8 @@ test fails because of it.
   (`UnitAcceptanceTest` with the `@unit` scenarios, and JUnit tests in `domain`). It is set up in
   flight-operations, load-planning and messaging; the simulator has no domain.
 - No Spring, database or Docker needed; a full run takes about 15 seconds.
-- It is a separate Gradle task, not part of `gradlew build`. Run it before opening an MR.
+- It is a separate Gradle task, not part of `gradlew build`. Run it before opening an MR. In GitLab it is a
+  manual job per service in the stage `mutation` (see [`ci-pipeline.md`](ci-pipeline.md)).
 
 ## How it works
 

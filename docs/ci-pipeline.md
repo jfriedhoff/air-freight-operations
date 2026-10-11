@@ -48,3 +48,10 @@ pipeline; the tests use mocked JWTs and the service only contacts Keycloak for a
 
 - The Gradle distribution and the dependencies are cached per job (`.gradle-home`).
 - A newer push cancels a pipeline that is still running (`interruptible`).
+
+## Mutation testing
+
+The stage `mutation` has one job per main service (`pit-flight-operations`, `pit-load-planning`,
+`pit-messaging`). They are manual: a job only runs when someone clicks its play button in the pipeline,
+because PIT is slow. The report is in the job artifacts: `build/reports/pitest/index.html`. See
+[`mutation-testing-pit.md`](mutation-testing-pit.md).
