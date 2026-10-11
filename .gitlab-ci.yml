@@ -34,7 +34,7 @@ variables:
     # Sums LINE_MISSED (column 8) and LINE_COVERED (column 9) of the JaCoCo CSV; GitLab reads the printed line
     - |
       awk -F, 'NR > 1 { missed += $8; covered += $9 } END { printf "Line coverage: %.1f%%\n", 100 * covered / (missed + covered) }' */*/build/reports/jacoco/test/jacocoTestReport.csv
-  coverage: '/Line coverage: \d+(\.\d+)?%/'
+  coverage: '/Line coverage: \d+\.\d+%/'
   artifacts:
     when: always               # also keep the reports when a test fails
     expire_in: 1 week
