@@ -12,7 +12,6 @@ workflow:
 
 variables:
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"   # inside the project so GitLab can cache it
-  GRADLE_OPTS: "-Dorg.gradle.daemon=false"           # the container is thrown away, a daemon is no use
   CI_DB_HOST_PORT: "postgres:5432"                   # the postgres service is reachable as host 'postgres'
   CI_RABBIT_HOST: "rabbitmq"                         # the rabbitmq service is reachable as host 'rabbitmq'
   POSTGRES_PASSWORD: "password"
@@ -32,13 +31,21 @@ variables:
       - .gradle-home/wrapper
   script:
     - ./gradlew ":$MODULE:test"
+    # Sums LINE_MISSED (column 8) and LINE_COVERED (column 9) of the JaCoCo CSV; GitLab reads the printed line
+    - |
+      awk -F, 'NR > 1 { missed += $8; covered += $9 } END { printf "Line coverage: %.1f%%\n", 100 * covered / (missed + covered) }' */*/build/reports/jacoco/test/jacocoTestReport.csv
+  coverage: '/Line coverage: \d+(\.\d+)?%/'
   artifacts:
     when: always               # also keep the reports when a test fails
     expire_in: 1 week
     reports:
       junit: "**/build/test-results/test/TEST-*.xml"
+      coverage_report:         # marks covered and uncovered lines in the changes of a merge request
+        coverage_format: jacoco
+        path: "**/build/reports/jacoco/test/jacocoTestReport.xml"
     paths:
       - "**/build/reports/tests/test/"
+      - "**/build/reports/jacoco/test/html/"
 
 # Same database names and users as the test profiles (src/test/resources/application.properties)
 flight-operations:

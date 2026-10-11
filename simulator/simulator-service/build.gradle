@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'jacoco'
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id "io.freefair.lombok" version '9.7.0'
@@ -38,4 +39,14 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy 'jacocoTestReport'
+}
+
+// Line coverage of the tests. Report: build/reports/jacoco/test/html/index.html
+// The pipeline reads the CSV (total) and the XML (covered lines in a merge request)
+tasks.named('jacocoTestReport') {
+    reports {
+        csv.required = true
+        xml.required = true
+    }
 }
