@@ -170,7 +170,7 @@ JUnit test class, but shared because Cucumber spreads the steps over several cla
 An `@integration` scenario tests one deployment unit from its entry point to its database: a REST
 endpoint (through MockMvc) or, for a message, its queue. It runs with `IntegrationAcceptanceTest`
 and `SpringCucumberConfig` (`@SpringBootTest` + `@AutoConfigureMockMvc`). So far this is set up in
-messaging (story 30); flight-operations and load-planning follow the same pattern.
+messaging (story 30) and load-planning (story 15); flight-operations follows the same pattern.
 
 | Part | What it does | Why |
 | --- | --- | --- |
@@ -183,6 +183,33 @@ messaging (story 30); flight-operations and load-planning follow the same patter
 new message on the same queue after the duplicate: the queue has one consumer, so messages are
 handled in order, and once the second one is booked, the duplicate has been handled too. What
 Messaging passes on to the other units is checked in its outbox.
+
+Load-planning (story 15) uses the same idea for every message it sends:
+
+| Part | What it does | Why |
+| --- | --- | --- |
+| `MessagingEvents` | Plays Messaging: sends flight events and ULD bookings on `messaging.events`, in Messaging's JSON envelope. `waitUntilHandled()` then announces a follow-up flight and waits until it exists. `assertSetAside(id)` reads `load-planning.dlq`. | One way of waiting for all steps, also when the message is refused (a refused message is retried three times first, so the timeout is 30 s). |
+| `MessageWorld` | The state of one scenario (`@Component @ScenarioScope`): the flight, the last message id, the reason it must be refused for. | Several step classes share it. Spring hands them a proxy, so always use its methods: a field read through the proxy is `null`. |
+| `LogCapture` | A Logback `ListAppender` on `be.kdg.airfreight.loadplanning` for the duration of a scenario. | For the steps "... is logged". |
+
+Two things to know before running the load-planning integration tests:
+- **Stop the load-planning service.** Its queue allows a single active consumer: while the service runs, the
+  listener of the test stays idle and every scenario times out.
+- `assertSetAside` takes dead letters until it finds its own, so older dead letters on `load-planning.dlq`
+  (from development or earlier runs) are dropped.
+
+The other services, after stories 2, 3, 26 to 29, 37 and 38:
+
+| Part | Where | What it does and why |
+| --- | --- | --- |
+| `MessagingTraffic`, `Messages`, `ScenarioTime` | messaging | Plays the senders on their exchanges and reads what Messaging stored: the inbox, the outbox for the other units, the partner messages. `Messages` builds valid messages that a scenario changes or breaks; `ScenarioTime` gives the mocked `Clock` the time of the stories before every scenario. |
+| Counting before and after | messaging | A queue of the development environment can still hold older messages, which the listeners process first. The steps first let the queue empty (`waitUntilHandled`), then count, so only the message of the scenario can change the count. |
+| Calling the use case | flight-operations | The tests of Flight Operations read nothing from RabbitMQ (see its test profile), and `DddArchTest` lets only the listener call a use case from infrastructure. So the steps of story 2 call `FlightSchedulingService`, as `MessagingEventListener` does. |
+| `TestClock` | flight-operations, load-planning | A `@Primary` clock that a scenario can set (story 38: "it is 16 January 2026 00:00 UTC"); otherwise the system time. |
+| `RabbitMqOutageSteps` | flight-operations | Story 28: points the connection factory at a port where nothing listens (`setAddresses`: Spring Boot passes an address list, which wins over the port) and puts it back after the scenario. |
+| A restarted unit | flight-operations, load-planning | Story 37: a second application context of the same classes, started with only the changed value as a command-line argument (that wins over `application.properties`; `SpringApplicationBuilder.properties` would not). In load-planning it gets `ddl-auto=none`, because the test profile drops the schema when a context closes. |
+
+The messaging tests drain `partners.all` the way `assertSetAside` drains the dead letter queue: older partner messages are dropped.
 
 ## Work in progress and the TDD workflow
 

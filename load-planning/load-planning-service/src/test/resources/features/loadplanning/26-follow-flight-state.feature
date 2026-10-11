@@ -1,4 +1,3 @@
-@wip
 Feature: Load Planning follows the latest state of a flight
   As a load planner I want Load Planning to always follow the latest state of a flight so that I work with the right loading period and state
 
@@ -28,7 +27,9 @@ Feature: Load Planning follows the latest state of a flight
     When the flight planner registers the ATA of HJ221
     Then HJ221 is still not in the default list of flights to load
 
-  @integration
+  # Waits for the coach (REFLECTIE.md, question about the inbox): Load Planning has no inbox, by choice. A
+  # duplicate changes nothing (natural idempotency), but it is not recognized, so "the duplicate is logged" cannot pass.
+  @integration @to-confirm
   Scenario: The same flight event twice has one effect
     Given Load Planning has already processed the event about the delay of HJ221
     When the same event arrives again
