@@ -1,0 +1,70 @@
+# Runs the tests of every service in its own job, with its own PostgreSQL and RabbitMQ (slides 06)
+image: eclipse-temurin:25-jdk
+
+stages:
+  - test
+
+# One pipeline per change: for merge requests and for main
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+variables:
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"   # inside the project so GitLab can cache it
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"           # the container is thrown away, a daemon is no use
+  CI_DB_HOST_PORT: "postgres:5432"                   # the postgres service is reachable as host 'postgres'
+  CI_RABBIT_HOST: "rabbitmq"                         # the rabbitmq service is reachable as host 'rabbitmq'
+  POSTGRES_PASSWORD: "password"
+  RABBITMQ_DEFAULT_USER: "user"
+  RABBITMQ_DEFAULT_PASS: "password"
+
+.service-tests:
+  stage: test
+  interruptible: true          # a newer push cancels this run
+  services:
+    - postgres:18.6-alpine
+    - rabbitmq:4.3.6-management
+  cache:
+    key: "gradle-$CI_JOB_NAME" # one cache per job, so parallel jobs don't overwrite each other
+    paths:
+      - .gradle-home/caches
+      - .gradle-home/wrapper
+  script:
+    - ./gradlew ":$MODULE:test"
+  artifacts:
+    when: always               # also keep the reports when a test fails
+    expire_in: 1 week
+    reports:
+      junit: "**/build/test-results/test/TEST-*.xml"
+    paths:
+      - "**/build/reports/tests/test/"
+
+# Same database names and users as the test profiles (src/test/resources/application.properties)
+flight-operations:
+  extends: .service-tests
+  variables:
+    MODULE: "flight-operations:flight-operations-service"
+    POSTGRES_DB: "flight_operations_test"
+    POSTGRES_USER: "flight_operations"
+
+load-planning:
+  extends: .service-tests
+  variables:
+    MODULE: "load-planning:load-planning-service"
+    POSTGRES_DB: "load_planning"
+    POSTGRES_USER: "load_planning"
+
+messaging:
+  extends: .service-tests
+  variables:
+    MODULE: "messaging:messaging-service"
+    POSTGRES_DB: "messaging"
+    POSTGRES_USER: "messaging"
+
+simulator:
+  extends: .service-tests
+  services:
+    - rabbitmq:4.3.6-management   # no database
+  variables:
+    MODULE: "simulator:simulator-service"
