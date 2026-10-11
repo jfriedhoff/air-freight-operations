@@ -266,3 +266,5 @@ flight-operations and load-planning: each file keeps only the Examples rows of i
   really publish on the exchanges. `@e2e` and `@ui` don't run in Cucumber.
 - To check whether the scenarios really notice bugs: see
   [`mutation-testing-pit.md`](mutation-testing-pit.md).
+- In GitLab the same suites run in the pipeline, every service with its own database and RabbitMQ:
+  see [`ci-pipeline.md`](ci-pipeline.md).
