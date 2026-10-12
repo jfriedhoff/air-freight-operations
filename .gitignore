@@ -25,6 +25,7 @@ bin/
 # Java / Gradle / Maven (build output, per service)
 # ---------------------------------------------------------------
 .gradle/
+.gradle-home/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 target/
