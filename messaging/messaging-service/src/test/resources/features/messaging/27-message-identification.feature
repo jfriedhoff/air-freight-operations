@@ -1,4 +1,3 @@
-@wip
 Feature: Every message contains a unique identification, its creation time and the format version
   As a partner I want every message to contain a unique identification, its creation time and the format version so that I can recognize messages and process them correctly
 
