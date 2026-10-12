@@ -7,6 +7,7 @@ import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,7 +23,6 @@ class MessagingConfig {
     static final String CARGO_BOOKING_MESSAGES = "cargo-booking.messages";
     static final String FLIGHT_OPERATIONS_EVENTS = "flight-operations.events";
     static final String LOAD_PLANNING_EVENTS = "load-planning.events";
-    static final String MESSAGING_EVENTS = "messaging.events";
     static final String PARTNER_MESSAGES = "messaging.partner-messages";
 
     static final String SCHEDULE_QUEUE = "messaging.schedule";
@@ -35,12 +35,12 @@ class MessagingConfig {
     static final String DEAD_LETTER_QUEUE = "messaging.dlq";
 
     @Bean
-    Declarables topology() {
+    Declarables topology(@Value("${messaging.events-exchange}") String eventsExchange) {
         TopicExchange networkPlanning = new TopicExchange(NETWORK_PLANNING_MESSAGES);
         TopicExchange cargoBooking = new TopicExchange(CARGO_BOOKING_MESSAGES);
         TopicExchange flightOperations = new TopicExchange(FLIGHT_OPERATIONS_EVENTS);
         TopicExchange loadPlanning = new TopicExchange(LOAD_PLANNING_EVENTS);
-        TopicExchange messagingEvents = new TopicExchange(MESSAGING_EVENTS);
+        TopicExchange messagingEvents = new TopicExchange(eventsExchange);
         TopicExchange partnerMessages = new TopicExchange(PARTNER_MESSAGES);
         FanoutExchange deadLetters = new FanoutExchange(DEAD_LETTER_EXCHANGE);
 
