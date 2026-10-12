@@ -1,4 +1,3 @@
-@wip
 Feature: A flight that already exists is not created again
   As a flight planner I want a flight that already exists not to be created again so that the flight schedule never contains duplicate flights
 

@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 /** The parameter types of both suites: the unit and the integration glue both read this package. */
@@ -35,6 +37,17 @@ public class ParameterTypes {
         return LocalDateTime.of(Integer.parseInt(year), Month.valueOf(month.toUpperCase(Locale.ROOT)),
                 Integer.parseInt(day), Integer.parseInt(hour), Integer.parseInt(minute))
             .toInstant(ZoneOffset.UTC);
+    }
+
+    @ParameterType(MONTHS)
+    public Month month(String month) {
+        return Month.valueOf(month.toUpperCase(Locale.ROOT));
+    }
+
+    /** "5 and 8", "5, 8 and 12": days of a month. */
+    @ParameterType("\\d{1,2}(?:, \\d{1,2})*(?: and \\d{1,2})?")
+    public List<Integer> days(String days) {
+        return Arrays.stream(days.split(", | and ")).map(Integer::valueOf).toList();
     }
 
     /** "departure" or "arrival". */
