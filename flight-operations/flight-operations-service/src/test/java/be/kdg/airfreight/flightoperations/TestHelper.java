@@ -7,6 +7,10 @@ import java.util.List;
 import be.kdg.airfreight.flightoperations.domain.flight.ActualTimeTolerance;
 import be.kdg.airfreight.flightoperations.domain.flight.AircraftRegistration;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayCode;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayCodeCatalog;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayDuration;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayKind;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightNumber;
@@ -18,6 +22,7 @@ import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerRepo
 import be.kdg.airfreight.flightoperations.infrastructure.flight.jpa.JpaFlightRepository;
 import be.kdg.airfreight.flightoperations.infrastructure.messaging.OutboxEvent;
 import be.kdg.airfreight.flightoperations.infrastructure.messaging.OutboxEventRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +40,10 @@ public class TestHelper {
     private JpaFlightRepository jpaFlights;
     @Autowired
     private OutboxEventRepository outbox;
+    @Autowired
+    private DelayCodeCatalog delayCodes;
+    @Autowired
+    private EntityManager entityManager;
 
     /** HJ221 from BRU to ATH on 9 January 2026, STD 06:30 and STA 09:45 UTC. */
     public Flight savePlannedFlight() {
@@ -50,6 +59,30 @@ public class TestHelper {
         flight.recordFinalizedLoad(STD);
         flight.registerDeparture(STD, saveFlightPlanner(), STD, new ActualTimeTolerance(Duration.ofMinutes(5)));
         flights.save(flight);
+    }
+
+    /** A departure delay of 25 minutes, reason 93 (late inbound aircraft). */
+    public void addDepartureDelay(FlightId id) {
+        Flight flight = find(id);
+        flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(25), new DelayCode("93"), "Late inbound aircraft",
+            saveFlightPlanner(), STD, delayCodes);
+        flights.save(flight);
+    }
+
+    /** Lands the departed flight at its STA. */
+    public void land(FlightId id) {
+        Flight flight = find(id);
+        flight.registerArrival(STA, saveFlightPlanner(), STA, new ActualTimeTolerance(Duration.ofMinutes(5)));
+        flights.save(flight);
+    }
+
+    public boolean exists(FlightId id) {
+        return flights.findById(id).isPresent();
+    }
+
+    /** The delay rows of all flights: a delay can only be seen through its flight otherwise. */
+    public long delayCount() {
+        return entityManager.createQuery("select count(d) from JpaDelay d", Long.class).getSingleResult();
     }
 
     public Flight find(FlightId id) {
