@@ -9,7 +9,6 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,17 +38,20 @@ public class FlightApiSteps {
     private static final String CHANGED_TIMES = """
         {"std": "2026-01-09T08:00:00Z", "etd": "2026-01-09T08:00:00Z"}""";
 
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private TestHelper testHelper;
-    @Autowired
-    private LogCapture logs;
+    private final MockMvc mockMvc;
+    private final TestHelper testHelper;
+    private final LogCapture logs;
 
     /** Who sends the request; null is nobody: a request without a token. */
     private RequestPostProcessor login;
     private FlightId flightId;
     private final List<ResultActions> answers = new ArrayList<>();
+
+    public FlightApiSteps(MockMvc mockMvc, TestHelper testHelper, LogCapture logs) {
+        this.mockMvc = mockMvc;
+        this.testHelper = testHelper;
+        this.logs = logs;
+    }
 
     @After
     public void cleanUp() {
