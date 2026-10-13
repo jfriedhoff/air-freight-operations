@@ -11,7 +11,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Story #28: RabbitMQ cannot be reached. Every new connection goes to a port where nothing listens; after the
  * scenario RabbitMQ is reachable again.
+ * <p>
+ * The class has no Spring annotation on purpose: cucumber-spring registers every step class in the glue packages as
+ * a bean itself and refuses one that has {@code @Component}. IntelliJ does not know that and warns about the
+ * {@code @Autowired} field, so that warning is suppressed.
  */
+@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 public class RabbitMqOutageSteps {
     private static final int NOTHING_LISTENS = 1;
 
