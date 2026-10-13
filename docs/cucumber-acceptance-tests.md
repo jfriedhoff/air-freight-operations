@@ -269,3 +269,20 @@ flight-operations and load-planning: each file keeps only the Examples rows of i
   [`mutation-testing-pit.md`](mutation-testing-pit.md).
 - In GitLab the same suites run in the pipeline, every service with its own database and RabbitMQ:
   see [`ci-pipeline.md`](ci-pipeline.md).
+
+## References
+
+- Course slides 06 (Spring testing): "Unit tests", "Integration tests" and "TestHelper".
+- [Cucumber — Sharing state between steps](https://cucumber.io/docs/cucumber/state/): why step
+  classes need a shared object, and dependency injection as the way to get one.
+- [Cucumber — Gherkin reference](https://cucumber.io/docs/gherkin/reference/): `Scenario Outline`,
+  `Examples`, tags.
+- [Cucumber — API reference](https://cucumber.io/docs/cucumber/api/): step definitions, hooks, tags
+  and custom parameter types.
+- [cucumber-picocontainer](https://github.com/cucumber/cucumber-jvm/tree/main/cucumber-picocontainer),
+  [cucumber-spring](https://github.com/cucumber/cucumber-jvm/tree/main/cucumber-spring) and
+  [cucumber-junit-platform-engine](https://github.com/cucumber/cucumber-jvm/tree/main/cucumber-junit-platform-engine):
+  the object factories of the two suites and how a suite selects its glue, tags and factory.
+- [Awaitility — Usage](https://github.com/awaitility/awaitility/wiki/Usage): waiting for the result
+  of a listener.
+- `architecture/analyse.md` §9: the test strategy and the test levels.

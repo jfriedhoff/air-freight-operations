@@ -55,3 +55,18 @@ The stage `mutation` has one job per main service (`pit-flight-operations`, `pit
 `pit-messaging`). They are manual: a job only runs when someone clicks its play button in the pipeline,
 because PIT is slow. The report is in the job artifacts: `build/reports/pitest/index.html`. See
 [`mutation-testing-pit.md`](mutation-testing-pit.md).
+
+## References
+
+- Course slides 06 (Spring testing), "Continuous Integration": "Configuratie met variabelen" and
+  "Database in de GitLab pipeline".
+- [GitLab — Services](https://docs.gitlab.com/ci/services/) and
+  [Using PostgreSQL](https://docs.gitlab.com/ci/services/postgres/): a database next to a job, and
+  the host name it gets.
+- [GitLab — Unit test reports](https://docs.gitlab.com/ci/testing/unit_test_reports/): where the
+  Tests tab gets its results from.
+- [GitLab — Code coverage](https://docs.gitlab.com/ci/testing/code_coverage/): the percentage per
+  job and in the merge request.
+- [GitLab — CI/CD YAML syntax reference](https://docs.gitlab.com/ci/yaml/): `services`, `cache`,
+  `interruptible`, `when: manual`.
+- [JaCoCo — Documentation](https://www.jacoco.org/jacoco/trunk/doc/): the coverage report.
