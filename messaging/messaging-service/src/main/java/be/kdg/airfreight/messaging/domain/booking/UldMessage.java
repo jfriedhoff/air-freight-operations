@@ -17,7 +17,7 @@ import org.jmolecules.ddd.annotation.ValueObject;
 /** A ULD message as read. It names the flight by the day of the month only, as a telegram does. */
 @ValueObject
 public record UldMessage(MessageId id, FormatVersion version, FlightNumber flightNumber, int dayOfMonth,
-                         AirportCode departureAirport, String uldCode, BigDecimal weight, String weightUnit,
+                         AirportCode departureAirport, UldCode uldCode, BigDecimal weight, WeightUnit weightUnit,
                          AirportCode destination) implements IncomingMessage {
     public UldMessage {
         Objects.requireNonNull(id, "Id cannot be null");
@@ -28,9 +28,6 @@ public record UldMessage(MessageId id, FormatVersion version, FlightNumber fligh
         Objects.requireNonNull(weight, "Weight cannot be null");
         Objects.requireNonNull(weightUnit, "Weight unit cannot be null");
         Objects.requireNonNull(destination, "Destination cannot be null");
-        if (uldCode.isBlank() || weightUnit.isBlank()) {
-            throw new DomainRuleViolationException("The ULD code and the weight unit cannot be blank");
-        }
         if (weight.signum() <= 0) {
             throw new DomainRuleViolationException("The weight of a ULD must be greater than 0");
         }
@@ -38,6 +35,6 @@ public record UldMessage(MessageId id, FormatVersion version, FlightNumber fligh
 
     public UldBookingReceived bookingOn(LocalDate scheduledDepartureDate, Instant now) {
         return new UldBookingReceived(new FlightId(flightNumber, scheduledDepartureDate, departureAirport),
-            uldCode, weight, weightUnit, destination, now);
+            uldCode.value(), weight, weightUnit.name(), destination, now);
     }
 }
