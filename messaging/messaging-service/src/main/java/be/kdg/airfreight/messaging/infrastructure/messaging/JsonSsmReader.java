@@ -1,7 +1,7 @@
 package be.kdg.airfreight.messaging.infrastructure.messaging;
 
 import be.kdg.airfreight.messaging.domain.AircraftRegistration;
-import be.kdg.airfreight.messaging.domain.AirportCode;
+import be.kdg.airfreight.messaging.domain.AirportCatalog;
 import be.kdg.airfreight.messaging.domain.FlightNumber;
 import be.kdg.airfreight.messaging.domain.FormatVersion;
 import be.kdg.airfreight.messaging.domain.MessageId;
@@ -15,25 +15,27 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 class JsonSsmReader implements MessageReader<Ssm> {
     private final JsonMapper mapper;
+    private final AirportCatalog airports;
 
-    JsonSsmReader(JsonMapper mapper) {
+    JsonSsmReader(JsonMapper mapper, AirportCatalog airports) {
         this.mapper = mapper;
+        this.airports = airports;
     }
 
     @Override
     public Ssm read(String body) {
-        return JsonReading.read(mapper, body, SsmJson.class, JsonSsmReader::toDomain);
+        return JsonReading.read(mapper, body, SsmJson.class, this::toDomain);
     }
 
-    private static Ssm toDomain(SsmJson json) {
+    private Ssm toDomain(SsmJson json) {
         FlightSeries series = new FlightSeries(
             new SchedulePeriod(json.periodFrom(), json.periodTo()),
             JsonReading.required(json.weekdays(), "weekdays"),
             json.departureTime(),
             json.arrivalTime(),
             new FlightNumber(json.flightNumber()),
-            new AirportCode(json.departureAirport()),
-            new AirportCode(json.arrivalAirport()),
+            airports.airport(json.departureAirport()),
+            airports.airport(json.arrivalAirport()),
             new AircraftRegistration(json.registration()));
         return new Ssm(new MessageId(json.messageId()),
             new FormatVersion(JsonReading.required(json.version(), "version")), series);
