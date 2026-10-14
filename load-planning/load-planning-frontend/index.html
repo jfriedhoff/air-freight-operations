@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- no icon of our own: an empty one stops the browser from asking for /favicon.ico (a 404 on every page) -->
+    <link rel="icon" href="data:,"/>
     <title>Load Planning</title>
-    <script type="module" src="./src/ts/presenter/indexPresenter.ts"></script>
+    <script type="module" src="./src/ts/presenter/userPresenter.ts"></script>
     <link rel="stylesheet" href="./src/css/style.css"/>
 </head>
-<body class="container m-5">
-<h1>Load Planning</h1>
-<p id="status">Lading plannen.</p>
+<body class="container m-5 invisible">
+<div class="flex justify-end items-center gap-2">
+    <span id="user-name"></span>
+    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
+</div>
+<h1 class="text-2xl font-bold">Load Planning</h1>
+<p><a class="link" href="html/flights-to-load.html">Te beladen vluchten</a></p>
 </body>
 </html>
