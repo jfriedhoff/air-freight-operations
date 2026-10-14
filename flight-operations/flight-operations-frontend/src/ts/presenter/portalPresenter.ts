@@ -1,4 +1,4 @@
-import {LOAD_PLANNING_URL} from "../infrastructure/contexts.ts";
+import {loadPlanningAddress} from "../infrastructure/contexts.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
@@ -15,7 +15,7 @@ async function init(): Promise<void> {
         return;
     }
     document.getElementById("role")!.textContent = ROLE_NAME[role];
-    flightsToLoadLink.href = new URL("html/flights-to-load.html", LOAD_PLANNING_URL + "/").href;
+    flightsToLoadLink.href = loadPlanningAddress("html/flights-to-load.html");
     portal.classList.remove("hidden");
 }
 
