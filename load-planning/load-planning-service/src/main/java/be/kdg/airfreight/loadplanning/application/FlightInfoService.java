@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.function.UnaryOperator;
 
 import be.kdg.airfreight.loadplanning.application.command.AnnounceFlightCommand;
-import be.kdg.airfreight.loadplanning.domain.NotFoundException;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.AircraftType;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
@@ -53,7 +52,7 @@ public class FlightInfoService {
 
     /** A new ETD moves the end of the loading period, as long as it has not ended. */
     public void departureEstimateChanged(FlightId flightId, Instant etd) {
-        FlightCargo cargo = cargos.findByFlightId(flightId).orElseThrow(() -> notFound(flightId));
+        FlightCargo cargo = cargos.findByFlightId(flightId).orElseThrow(flightId::cargoNotFound);
         cargo.changeEstimatedDeparture(etd, clock.instant(), policy);
         cargos.save(cargo);
     }
@@ -80,13 +79,8 @@ public class FlightInfoService {
     }
 
     private void update(FlightId flightId, UnaryOperator<FlightInfo> change) {
-        FlightCargo cargo = cargos.findByFlightId(flightId).orElseThrow(() -> notFound(flightId));
+        FlightCargo cargo = cargos.findByFlightId(flightId).orElseThrow(flightId::cargoNotFound);
         cargo.updateFlightInfo(change.apply(cargo.getFlightInfo()));
         cargos.save(cargo);
-    }
-
-    static NotFoundException notFound(FlightId flightId) {
-        return new NotFoundException("No cargo for flight " + flightId.flightNumber().value() + " of "
-            + flightId.scheduledDepartureDate() + " from " + flightId.departureAirport().value());
     }
 }

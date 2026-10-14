@@ -14,7 +14,9 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlan;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlanCatalog;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckReport;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionCleared;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -53,8 +55,9 @@ public class LoadService {
 
     public FlightCargo clear(ClearLoadPositionCommand command) {
         FlightCargo cargo = find(command.flightCargoId());
-        events.publishEvent(cargo.clear(command.uldCode(), command.by(), clock.instant(), policy));
+        LoadPositionCleared cleared = cargo.clear(command.uldCode(), command.by(), clock.instant(), policy);
         cargos.save(cargo);
+        events.publishEvent(cleared);
         return cargo;
     }
 
@@ -74,8 +77,9 @@ public class LoadService {
         Instant now = clock.instant();
         LoadCheckReport report = cargo.checkLoad(checks, floorPlan);
         if (report.hardChecksPassed()) {
-            events.publishEvent(cargo.finalizeLoad(command.by(), now, checks, floorPlan, policy));
+            LoadFinalized finalized = cargo.finalizeLoad(command.by(), now, checks, floorPlan, policy);
             cargos.save(cargo);
+            events.publishEvent(finalized);
         }
         return report;
     }
