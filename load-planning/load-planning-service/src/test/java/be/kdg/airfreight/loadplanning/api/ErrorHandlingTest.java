@@ -1,8 +1,11 @@
 package be.kdg.airfreight.loadplanning.api;
 
 import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
+import be.kdg.airfreight.loadplanning.domain.InvalidValueException;
 import be.kdg.airfreight.loadplanning.domain.NotFoundException;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ProblemDetail;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -11,18 +14,55 @@ class ErrorHandlingTest {
     private final ErrorHandling errorHandling = new ErrorHandling();
 
     @Test
-    void aMissingResourceIsReportedAsNotFoundWithItsReason() {
-        ProblemDetail problem = errorHandling.notFound(new NotFoundException("Not found: HJ221"));
+    void aValueThatIsInvalidInItselfIsABadRequestWithItsReason() {
+        ProblemDetail problem = errorHandling.invalidValue(new InvalidValueException("ULD code 'AKE1' is invalid"));
 
-        assertThat(problem.getStatus()).isEqualTo(404);
-        assertThat(problem.getDetail()).isEqualTo("Not found: HJ221");
+        assertProblem(problem, 400, "invalid-input", "ULD code 'AKE1' is invalid");
     }
 
     @Test
-    void aBrokenDomainRuleIsReportedAsConflictWithItsReason() {
-        ProblemDetail problem = errorHandling.domainRuleViolated(new DomainRuleViolationException("Rule broken"));
+    void aMissingResourceIsReportedAsNotFoundWithItsReason() {
+        ProblemDetail problem = errorHandling.notFound(new NotFoundException("Not found: HJ221"));
 
-        assertThat(problem.getStatus()).isEqualTo(409);
-        assertThat(problem.getDetail()).isEqualTo("Rule broken");
+        assertProblem(problem, 404, "not-found", "Not found: HJ221");
+    }
+
+    @Test
+    void anActionThatDoesNotFitTheStateIsAConflictWithItsReason() {
+        ProblemDetail problem = errorHandling.ruleRefused(
+            new DomainRuleViolationException("The load is finalized and can no longer change"));
+
+        assertProblem(problem, 409, "rule-refused", "The load is finalized and can no longer change");
+    }
+
+    @Test
+    void aConcurrentChangeIsAConflictThatAsksToTryAgain() {
+        ProblemDetail problem = errorHandling.concurrentChange(
+            new OptimisticLockingFailureException("Row was updated or deleted by another transaction"));
+
+        assertProblem(problem, 409, "concurrent-change",
+            "Someone else changed the load of this flight at the same time: reload it and try again");
+    }
+
+    @Test
+    void anUnreachableDatabaseIsServiceUnavailableWithoutInternalDetails() {
+        ProblemDetail problem = errorHandling.databaseUnavailable(
+            new DataAccessResourceFailureException("Connection to localhost:5443 refused"));
+
+        assertProblem(problem, 503, "database-unavailable", "The service is temporarily unavailable: try again later");
+    }
+
+    /** The reason of an invalid value can repeat what the caller typed: in the log it stays on one line. */
+    @Test
+    void aReasonThatRepeatsWhatTheCallerSentIsLoggedOnOneLine() {
+        assertThat(ErrorHandling.onOneLine("Load position CL\r\n2026-01-09 INFO forged log line is not on the floor plan"))
+            .isEqualTo("Load position CL__2026-01-09 INFO forged log line is not on the floor plan");
+        assertThat(ErrorHandling.onOneLine(null)).isEmpty();
+    }
+
+    private static void assertProblem(ProblemDetail problem, int status, String code, String detail) {
+        assertThat(problem.getStatus()).isEqualTo(status);
+        assertThat(problem.getProperties()).containsEntry("code", code);
+        assertThat(problem.getDetail()).isEqualTo(detail);
     }
 }
