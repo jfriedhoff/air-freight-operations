@@ -4,8 +4,7 @@ Feature: Log in through Keycloak
   # The tokens are imitated in the tests: what Keycloak puts in a token is its own work, what the API does with
   # the roles in it is ours.
 
-  # Waits for the endpoint to assign a load position: a load planner is one who can change the load
-  @integration @wip
+  @integration
   Scenario Outline: Logging in gives the right role
     Given there is a user with the role <role> in Keycloak
     When that user logs in

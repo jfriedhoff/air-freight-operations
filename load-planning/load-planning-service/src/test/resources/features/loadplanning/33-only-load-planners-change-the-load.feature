@@ -7,8 +7,7 @@ Feature: Only flight planners can change flights and only load planners can chan
   # login, not from the request"): for Load Planning they are JUnit tests, SecurityConfigTest and
   # FlightCargoControllerTest.
 
-  # Waits for the endpoint to assign a load position
-  @integration @wip
+  @integration
   Scenario Outline: Changes according to the role, also directly through the API
     Given I am logged in as a <role>
     When I <action> through the API
@@ -38,8 +37,7 @@ Feature: Only flight planners can change flights and only load planners can chan
       | flight planner |
       | load planner   |
 
-  # Waits for the endpoint to assign a load position
-  @integration @wip
+  @integration
   Scenario Outline: Every change records which planner made it
     Given I am logged in as the <role> <user>
     When I <action> through the API
