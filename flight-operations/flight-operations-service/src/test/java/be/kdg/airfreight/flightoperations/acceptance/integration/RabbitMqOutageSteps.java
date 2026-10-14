@@ -4,7 +4,6 @@ import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import org.springframework.amqp.AmqpConnectException;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -15,11 +14,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class RabbitMqOutageSteps {
     private static final int NOTHING_LISTENS = 1;
 
-    @Autowired
-    private CachingConnectionFactory connectionFactory;
+    private final CachingConnectionFactory connectionFactory;
 
     /** Where RabbitMQ really is, to go back to after the scenario. */
     private String address;
+
+    public RabbitMqOutageSteps(CachingConnectionFactory connectionFactory) {
+        this.connectionFactory = connectionFactory;
+    }
 
     @Given("RabbitMQ is unreachable")
     public void rabbitMqIsUnreachable() {

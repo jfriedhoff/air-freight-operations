@@ -53,8 +53,11 @@ export function showsEta(flight: Flight): boolean {
     return flight.eta !== flight.sta;
 }
 
-/* What the page offers. The server decides: it refuses a departure delay on a flight that is not planned,
-   and a change by anyone but a flight planner. */
-export function canAddDepartureDelay(flight: Flight, isFlightPlanner: boolean): boolean {
-    return isFlightPlanner && flight.status === "PLANNED";
+/* Which delays the page offers. The server decides: it refuses a departure delay on a flight that is not planned,
+   an arrival delay on a flight that has landed, and a change by anyone but a flight planner. */
+export function delayKindsToAdd(flight: Flight, isFlightPlanner: boolean): DelayKind[] {
+    if (!isFlightPlanner || flight.status === "LANDED") {
+        return [];
+    }
+    return flight.status === "PLANNED" ? ["DEPARTURE", "ARRIVAL"] : ["ARRIVAL"];
 }

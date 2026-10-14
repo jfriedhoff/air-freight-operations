@@ -53,7 +53,7 @@ class OffloadingCheckTest {
     private final FlightCargo cargo = FlightCargo.create(
         new FlightId(new FlightNumber("HJ221"), LocalDate.of(2026, Month.JANUARY, 9), new AirportCode("BRU")),
         FlightInfo.scheduled(ATH, new AircraftType("TEST"),
-            Instant.parse("2026-01-09T06:45:00Z"), Instant.parse("2026-01-09T10:00:00Z")));
+            Instant.parse("2026-01-09T06:45:00Z"), Instant.parse("2026-01-09T10:00:00Z")), POLICY);
 
     @Test
     void theReportNamesEveryUldInTheWay() {

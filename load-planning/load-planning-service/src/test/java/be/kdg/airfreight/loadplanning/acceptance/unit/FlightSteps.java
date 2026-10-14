@@ -7,6 +7,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /** The flight and the moment of the scenario. */
 public class FlightSteps {
     private static final String OUTSIDE_LOADING_PERIOD = "only change within the loading period";
@@ -53,6 +55,28 @@ public class FlightSteps {
     @When("a departure delay of {int} minutes is entered")
     public void aDepartureDelayIsEntered(int minutes) {
         world.attempt(() -> world.delayDepartureBy(Duration.ofMinutes(minutes)));
+    }
+
+    @Given("there is no departure delay and the load has not been finalized")
+    public void noDepartureDelayAndNotFinalized() {
+        assertThat(world.cargo.getFlightInfo().etd()).as("ETD").isEqualTo(world.cargo.getFlightInfo().std());
+        assertThat(world.cargo.isFinalized()).as("finalized").isFalse();
+    }
+
+    @Given("there is a departure delay of {int} minutes")
+    public void thereIsADepartureDelay(int minutes) {
+        world.delayDepartureBy(Duration.ofMinutes(minutes));
+    }
+
+    /** Entered at the moment the scenario named before. */
+    @Given("afterwards a departure delay of {int} minutes is entered")
+    public void afterwardsADepartureDelayIsEntered(int minutes) {
+        world.delayDepartureBy(Duration.ofMinutes(minutes));
+    }
+
+    @Given("afterwards that delay is removed")
+    public void afterwardsThatDelayIsRemoved() {
+        world.delayDepartureBy(Duration.ZERO);
     }
 
     @Given("it is within the loading period")

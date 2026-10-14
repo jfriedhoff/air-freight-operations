@@ -11,7 +11,6 @@ import ch.qos.logback.classic.Level;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -38,18 +37,21 @@ public class FlightScheduleSteps {
     private static final String ANNOUNCED = "flight-operations.flight.announced";
     private static final String ALREADY_EXISTS = "already exists";
 
-    @Autowired
-    private TestHelper testHelper;
-    @Autowired
-    private FlightSchedulingService scheduling;
-    @Autowired
-    private LogCapture logs;
+    private final TestHelper testHelper;
+    private final FlightSchedulingService scheduling;
+    private final LogCapture logs;
 
     /** The flight that exists before the SSM arrives. */
     private String flightNumber;
     private String departureAirport;
     private LocalDate date;
     private final List<Runnable> announcements = new ArrayList<>();
+
+    public FlightScheduleSteps(TestHelper testHelper, FlightSchedulingService scheduling, LogCapture logs) {
+        this.testHelper = testHelper;
+        this.scheduling = scheduling;
+        this.logs = logs;
+    }
 
     @Given("the flight {word} of {date} from {word} already exists")
     public void theFlightAlreadyExists(String flightNumber, LocalDate date, String departureAirport) {

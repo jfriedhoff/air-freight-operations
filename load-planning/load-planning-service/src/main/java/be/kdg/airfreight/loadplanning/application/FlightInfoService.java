@@ -1,5 +1,6 @@
 package be.kdg.airfreight.loadplanning.application;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.function.UnaryOperator;
 
@@ -10,6 +11,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightInfo;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,10 +26,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class FlightInfoService {
     private final FlightCargoRepository cargos;
     private final AircraftType aircraftType;
+    private final LoadingPolicy policy;
+    private final Clock clock;
 
-    public FlightInfoService(FlightCargoRepository cargos, AircraftType aircraftType) {
+    public FlightInfoService(FlightCargoRepository cargos, AircraftType aircraftType, LoadingPolicy policy,
+                             Clock clock) {
         this.cargos = cargos;
         this.aircraftType = aircraftType;
+        this.policy = policy;
+        this.clock = clock;
     }
 
     /** A new flight gets an empty cargo. One that already has a cargo keeps it. */
@@ -39,14 +46,16 @@ public class FlightInfoService {
             return;
         }
         cargos.save(FlightCargo.create(flightId, FlightInfo.scheduled(command.arrivalAirport(), aircraftType,
-            command.std(), command.sta())));
+            command.std(), command.sta()), policy));
         log.info("Cargo created for flight {} of {}", flightId.flightNumber().value(),
             flightId.scheduledDepartureDate());
     }
 
-    /** A new ETD moves the end of the loading period. */
+    /** A new ETD moves the end of the loading period, as long as it has not ended. */
     public void departureEstimateChanged(FlightId flightId, Instant etd) {
-        update(flightId, info -> info.withEstimatedDeparture(etd));
+        FlightCargo cargo = cargos.findByFlightId(flightId).orElseThrow(() -> notFound(flightId));
+        cargo.changeEstimatedDeparture(etd, clock.instant(), policy);
+        cargos.save(cargo);
     }
 
     public void arrivalEstimateChanged(FlightId flightId, Instant eta) {

@@ -10,7 +10,6 @@ import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -31,13 +30,16 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 public class PolicyValueSteps {
     private static final LocalDate DATE = LocalDate.of(2026, 1, 9);
 
-    @Autowired
-    private TestHelper testHelper;
+    private final TestHelper testHelper;
 
     private String property;
     private ConfigurableApplicationContext restarted;
     private FlightId flightId;
     private Throwable error;
+
+    public PolicyValueSteps(TestHelper testHelper) {
+        this.testHelper = testHelper;
+    }
 
     @After
     public void stopTheRestartedUnit() {

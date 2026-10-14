@@ -1,5 +1,5 @@
-import {canAddDepartureDelay, showsEta, showsEtd} from "../domain/Flight.ts";
-import type {Airport, Delay, DelayReason, Flight} from "../domain/Flight.ts";
+import {delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
+import type {Airport, Delay, DelayKind, DelayReason, Flight} from "../domain/Flight.ts";
 import {FLIGHT_PLANNER, hasRole} from "../infrastructure/auth.ts";
 import {addDelay, getDelayReasons, getFlight} from "../infrastructure/flightRest.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
@@ -11,11 +11,13 @@ const details = document.getElementById("flight-details")!;
 const delayRows = document.getElementById("delays")!;
 const noDelays = document.getElementById("no-delays")!;
 const delayForm = document.getElementById("delay-form") as HTMLFormElement;
+const kindField = document.getElementById("kind") as HTMLSelectElement;
 const minutesField = document.getElementById("minutes") as HTMLInputElement;
 const reasonField = document.getElementById("reason") as HTMLSelectElement;
 const descriptionField = document.getElementById("description") as HTMLTextAreaElement;
 
 const DELAY_KIND = {DEPARTURE: "Vertrek", ARRIVAL: "Aankomst"};
+const DELAY_ADDED = {DEPARTURE: "De vertrekvertraging is geregistreerd.", ARRIVAL: "De aankomstvertraging is geregistreerd."};
 const STATUS = {PLANNED: "Gepland", DEPARTED: "Opgestegen", LANDED: "Geland"};
 
 const flightId = new URLSearchParams(window.location.search).get("flightId");
@@ -44,6 +46,12 @@ function delayRow(delay: Delay): HTMLTableRowElement {
     return row;
 }
 
+function kindOption(kind: DelayKind): HTMLElement {
+    const option = createElementWithText("option", DELAY_KIND[kind]);
+    option.setAttribute("value", kind);
+    return option;
+}
+
 function renderFlight(flight: Flight): void {
     text("flight-number", flight.flightNumber);
     text("scheduled-departure-date", plainDate(flight.scheduledDepartureDate));
@@ -59,7 +67,9 @@ function renderFlight(flight: Flight): void {
 
     delayRows.replaceChildren(...flight.delays.map(delayRow));
     noDelays.classList.toggle("hidden", flight.delays.length > 0);
-    delayForm.classList.toggle("hidden", !canAddDepartureDelay(flight, isFlightPlanner));
+    const kinds = delayKindsToAdd(flight, isFlightPlanner);
+    kindField.replaceChildren(...kinds.map(kindOption));
+    delayForm.classList.toggle("hidden", kinds.length === 0);
     details.classList.remove("hidden");
 }
 
@@ -78,16 +88,17 @@ async function enterDelay(event: Event): Promise<void> {
     if (!flightId || !delayForm.reportValidity()) {
         return;
     }
+    const kind = kindField.value as DelayKind;
     try {
         const flight = await addDelay(flightId, {
-            kind: "DEPARTURE",
+            kind,
             minutes: Number(minutesField.value),
             reason: reasonField.value,
             description: descriptionField.value.trim(),
         });
         delayForm.reset();
         renderFlight(flight);
-        addInfo(messageBox, "De vertrekvertraging is geregistreerd.");
+        addInfo(messageBox, DELAY_ADDED[kind]);
     } catch (error) {
         addError(messageBox, (error as Error).message);
     }

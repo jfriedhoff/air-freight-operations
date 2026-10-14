@@ -131,11 +131,14 @@ public class PolicyValueSteps {
             .assign(new AssignLoadPositionCommand(cargo.getId(), ULD, "CL", LoadPlannerId.create())));
     }
 
-    /** HJ221 of 9 January 2026 from BRU to ATH, 3 h 15 min. */
-    private static FlightCargo flightWithStd(LocalTime std) {
+    /**
+     * HJ221 of 9 January 2026 from BRU to ATH, 3 h 15 min, announced after the restart: its loading period
+     * closes as the policy of the restarted unit says.
+     */
+    private FlightCargo flightWithStd(LocalTime std) {
         Instant departure = DATE.atTime(std).toInstant(ZoneOffset.UTC);
         return FlightCargo.create(new FlightId(new FlightNumber("HJ221"), DATE, new AirportCode("BRU")),
             FlightInfo.scheduled(new AirportCode("ATH"), Boeing747400FFloorPlan.AIRCRAFT_TYPE, departure,
-                departure.plus(Duration.ofMinutes(195))));
+                departure.plus(Duration.ofMinutes(195))), restarted.getBean(LoadingPolicy.class));
     }
 }

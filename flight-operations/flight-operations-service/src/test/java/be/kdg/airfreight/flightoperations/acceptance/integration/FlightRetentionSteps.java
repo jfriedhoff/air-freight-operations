@@ -8,7 +8,6 @@ import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 
@@ -18,14 +17,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class FlightRetentionSteps {
     private static final String FLIGHT_REMOVED = "flight-operations.flight.removed";
 
-    @Autowired
-    private TestHelper testHelper;
-    @Autowired
-    private TestClock clock;
-    @Autowired
-    private FlightRetentionService retention;
+    private final TestHelper testHelper;
+    private final TestClock clock;
+    private final FlightRetentionService retention;
 
     private FlightId flightId;
+
+    public FlightRetentionSteps(TestHelper testHelper, TestClock clock, FlightRetentionService retention) {
+        this.testHelper = testHelper;
+        this.clock = clock;
+        this.retention = retention;
+    }
 
     @After
     public void resetClock() {

@@ -104,6 +104,7 @@ have no tests yet (2, 38).
 | 7 October 2026 | + story 21, `OffloadingCheckTest` | 163 | 89 (55 %) | 86 % |
 | 7 October 2026 | + story 22 | 163 | 102 (63 %) | 85 % |
 | 7 October 2026 | + story 18 | 163 | 120 (74 %) | 90 % |
+| 14 October 2026 | Loading period stays closed (story 18) | 165 | 128 (78 %) | 92 % |
 
 Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
 through but does not check: `book` and `assign` (stories 15, 18) and the validation of
@@ -127,6 +128,12 @@ finalizing (story 24), `book` (story 15), the validation of `Weight`, `LoadingPo
 `Uld.equals` mutant only behaves differently for two `Uld` objects with the same code, which only
 `hydrate` creates (the same as `Delay.equals` in flight-operations).
 
+The stored closing time of the loading period adds `changeEstimatedDeparture` and
+`getLoadingClosesAt`. The two scenarios "A departure delay does not reopen a loading period that has
+ended" and "Removing a delay closes the loading period" kill the mutant of the `if` in
+`changeEstimatedDeparture`. `getLoadingClosesAt` has no coverage: only the JPA mapping reads it, as with
+`getVersion`.
+
 ### Messaging
 
 | Date | State | Mutants | Killed | Test strength |
@@ -137,3 +144,14 @@ Every mutant in `FlightSeries` and `SchedulePeriod` is killed, including the arr
 departure time (next day) and the last day of the period. The 74 without coverage are in the
 telegram writers and `DateDerivation` (story 30) and in `ReceivedMessage` and `OutgoingMessage`,
 which the integration tests cover.
+
+## References
+
+- [PIT — Basic concepts](https://pitest.org/quickstart/basic_concepts/): mutants, killed, survived,
+  equivalent mutants.
+- [PIT — Mutators](https://pitest.org/quickstart/mutators/): which changes PIT makes.
+- [Gradle plugin for PIT](https://gradle-pitest-plugin.solidsoft.info/): the settings in
+  `build.gradle`.
+- [pitest-junit5-plugin](https://github.com/pitest/pitest-junit5-plugin): lets PIT run JUnit 5
+  tests, and Cucumber through them.
+- Course slides 06 (Spring testing), "Unit tests": unit tests only test the domain.

@@ -30,15 +30,15 @@ Feature: Assign, change or clear a load position from the floor plan
       | 25    | 9 January 06:34 | accepted |
       | 25    | 9 January 06:35 | refused  |
 
-  @unit @to-confirm
-  Scenario: A departure delay reopens a loading period that has ended
+  @unit
+  Scenario: A departure delay does not reopen a loading period that has ended
     Given there is no departure delay and the load has not been finalized
     And it is 9 January 06:15 UTC
     And afterwards a departure delay of 25 minutes is entered
     When I place AKE16689R7 on CL
-    Then that is accepted
+    Then that is refused with an explanation
 
-  @unit @to-confirm
+  @unit
   Scenario: Removing a delay closes the loading period
     Given there is a departure delay of 25 minutes
     And it is 9 January 06:20 UTC
