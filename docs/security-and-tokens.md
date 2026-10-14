@@ -64,6 +64,24 @@ Configured in `SecurityConfig`:
 - No CORS configuration: in development Vite forwards `/api` to the service, and the built frontend is
   served by the service itself.
 
+## One login for both contexts
+
+The start page of Flight Operations is the entry of the application. Each context keeps its own frontend,
+its own public client and its own API; a page only calls the API of its own context, with a token whose
+audience is that context's service. A planner goes from one context to the other through a link. Keycloak
+keeps one session for the realm, so the second frontend gets its tokens without asking the password again
+(single sign-on). No client, audience or CORS setting was needed for this.
+
+Reading is open to both planner roles in both contexts; changing is for the role that owns the data
+(`flight-planner` in Flight Operations, `load-planner` in Load Planning). A user with neither role or with
+both gets no access on any page and from no API. The pages only decide what they offer; each service checks
+the role on every request.
+
+Afmelden ends the Keycloak session. A tab of the other context notices at its next token refresh and goes
+to the login (keycloak-js calls `login()` when the refresh is refused). Until then that tab still holds a
+valid access token, and the services keep no session, so it can still be used for up to the lifetime of the
+access token (5 minutes by default).
+
 ## Secrets
 
 The secrets of the realm and of the HTTP client are not in the repository:

@@ -99,10 +99,13 @@ Voor Load Planning, dat zich als beide planners aanmeldt en ook toont dat een to
 
 | Context | Pagina | Adres na `bootRun` |
 | --- | --- | --- |
+| Flight Operations | Startpagina: de ingang na het aanmelden | http://localhost:8080/ |
 | Flight Operations | Vluchtdetails | http://localhost:8080/html/flight-details.html?flightId=… |
 | Load Planning | Startpagina | http://localhost:8081/ |
 | Load Planning | Te beladen vluchten | http://localhost:8081/html/flights-to-load.html |
 | Load Planning | Cargo-pagina | via een vlucht in de lijst van te beladen vluchten |
+
+Na het aanmelden op de ene context opent de andere zonder opnieuw een wachtwoord te vragen: beide frontends gebruiken dezelfde realm. Het adres van de andere context komt uit een Vite-variabele, `VITE_LOAD_PLANNING_URL` (standaard `http://localhost:8081`) en `VITE_FLIGHT_OPERATIONS_URL` (standaard `http://localhost:8080`). Draai maar één frontend tegelijk met `npm run dev`: beide gebruiken poort 5173, en een andere poort is geen geldige redirect in de realm. `npm run dev -- --strictPort` faalt dan duidelijk in plaats van uit te wijken naar 5174.
 
 Een planner die wijzigt, moet in zijn context geregistreerd zijn. De service registreert bij het opstarten de planners uit haar `application.properties` (`flight-operations.planners`, `load-planning.planners`); de id is die van het Keycloak-account.
 
