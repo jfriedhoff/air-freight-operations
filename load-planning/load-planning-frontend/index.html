@@ -6,6 +6,7 @@
     <!-- no icon of our own: an empty one stops the browser from asking for /favicon.ico (a 404 on every page) -->
     <link rel="icon" href="data:,"/>
     <title>Load Planning</title>
+    <script type="module" src="./src/ts/presenter/startPresenter.ts"></script>
     <script type="module" src="./src/ts/presenter/userPresenter.ts"></script>
     <link rel="stylesheet" href="./src/css/style.css"/>
 </head>
@@ -14,7 +15,13 @@
     <span id="user-name"></span>
     <button id="logout-btn" class="btn btn-sm">Afmelden</button>
 </div>
+<p><a class="link" id="portal-link" href="#">← Air Freight Operations</a></p>
 <h1 class="text-2xl font-bold">Load Planning</h1>
-<p><a class="link" href="html/flights-to-load.html">Te beladen vluchten</a></p>
+
+<div class="alert hidden my-4" id="message-box"></div>
+
+<section id="start" class="hidden">
+    <p><a class="link" href="html/flights-to-load.html">Te beladen vluchten</a></p>
+</section>
 </body>
 </html>

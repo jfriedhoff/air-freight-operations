@@ -1,6 +1,10 @@
 import Keycloak from "keycloak-js";
 
-export const FLIGHT_PLANNER = "flight-planner";
+export type PlannerRole = "flight-planner" | "load-planner";
+
+export const FLIGHT_PLANNER: PlannerRole = "flight-planner";
+
+const PLANNER_ROLES: PlannerRole[] = ["flight-planner", "load-planner"];
 
 /* Authorization code flow with PKCE: an unauthenticated visitor is sent to Keycloak and comes back with a code
    that keycloak-js exchanges for tokens. The tokens stay in memory, never in localStorage. */
@@ -21,10 +25,12 @@ export async function userName(): Promise<string> {
     return keycloak.tokenParsed?.preferred_username ?? "";
 }
 
-/* Only decides what the page offers. The server checks the role again on every request. */
-export async function hasRole(role: string): Promise<boolean> {
+/* The planner role of the user, or null when the account has neither role or both: a user is either a flight
+   planner or a load planner. Only decides what the page offers; the server checks the role on every request. */
+export async function plannerRole(): Promise<PlannerRole | null> {
     await loggedIn;
-    return keycloak.hasRealmRole(role);
+    const roles = PLANNER_ROLES.filter(role => keycloak.hasRealmRole(role));
+    return roles.length === 1 ? roles[0] : null;
 }
 
 export async function logout(): Promise<void> {

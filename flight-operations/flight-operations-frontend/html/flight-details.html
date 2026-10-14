@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="icon" href="data:,"/>
     <title>Vluchtdetails</title>
     <script type="module" src="../src/ts/presenter/flightDetailsPresenter.ts"></script>
     <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
@@ -13,6 +14,7 @@
     <span id="user-name"></span>
     <button id="logout-btn" class="btn btn-sm">Afmelden</button>
 </div>
+<p><a class="link" href="../index.html">← Air Freight Operations</a></p>
 <h1 class="text-2xl font-bold">Vluchtdetails</h1>
 <p class="text-sm opacity-70">Alle tijden in Brusselse tijd.</p>
 
@@ -43,6 +45,8 @@
         </thead>
         <tbody id="delays"></tbody>
     </table>
+
+    <p id="role-note" class="hidden mt-6">Alleen een flight planner kan vertragingen ingeven.</p>
 
     <form id="delay-form" class="hidden mt-6 flex flex-col gap-2 max-w-xl">
         <h2 class="text-xl font-bold">Vertraging toevoegen</h2>
