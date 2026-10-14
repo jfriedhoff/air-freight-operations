@@ -95,6 +95,17 @@ Voor Load Planning, dat zich als beide planners aanmeldt en ook toont dat een to
 }
 ```
 
+### Pagina's
+
+| Context | Pagina | Adres na `bootRun` |
+| --- | --- | --- |
+| Flight Operations | Vluchtdetails | http://localhost:8080/html/flight-details.html?flightId=… |
+| Load Planning | Startpagina | http://localhost:8081/ |
+| Load Planning | Te beladen vluchten | http://localhost:8081/html/flights-to-load.html |
+| Load Planning | Cargo-pagina | via een vlucht in de lijst van te beladen vluchten |
+
+Een planner die wijzigt, moet in zijn context geregistreerd zijn. De service registreert bij het opstarten de planners uit haar `application.properties` (`flight-operations.planners`, `load-planning.planners`); de id is die van het Keycloak-account.
+
 ### Bekende kwetsbaarheden in dependencies
 
 Elke service past de OWASP dependency-check plugin toe. Die vergelijkt de dependencies met de National Vulnerability Database (NVD) en faalt bij een bekende kwetsbaarheid met een CVSS-score van 7 of meer:

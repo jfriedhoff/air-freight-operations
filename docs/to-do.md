@@ -8,6 +8,29 @@ One section per team member. Remove an item when its merge request is merged.
 - Jonas: keep a loading period closed once it has ended (story #18, answer of the coach on
   13/10/2026).
 
+- Romeo: navigation between the two contexts and the flight list endpoint go into the branch of the
+  overview of the flights (#4), not into the branch of #33/#35 (team decision of 14/10/2026).
+
+## Romeo
+
+### Links between the contexts and `GET /api/flights` belong to the overview (#4)
+
+**Decided on 14/10/2026.** The branch of stories #33 and #35 secures both contexts, adds their feature
+files and a start page (portal) after login that links to the start pages of both contexts. It does
+**not** add links between the cargo-pagina and Vluchtdetails, nor a flight list endpoint in Flight
+Operations. Those come with the overview of all flights (#4), where `GET /api/flights` is designed once.
+
+Until #4 a load planner can open Load Planning from the portal, but has no way to reach Vluchtdetails.
+
+**What the #4 branch must add:**
+
+- `GET /api/flights` in Flight Operations, also filtered by flight number, scheduled departure date and
+  departure airport, so a page of the other context can find a flight by its identity.
+- A link "Vluchtdetails" on the cargo-pagina and "Lading van deze vlucht" on Vluchtdetails, built from
+  the flight identity (flight number, scheduled departure date in UTC, departure airport) of the loaded
+  resource; the host from a `VITE_*` variable; no return or redirect address in the URL.
+- The cargo-pagina by identity through `GET /api/flight-cargos?scheduledDepartureDate=…&includeDeparted=true`.
+
 ## Jonas
 
 ### Loading period: once closed, always closed (#18)
