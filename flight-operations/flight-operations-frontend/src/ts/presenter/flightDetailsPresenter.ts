@@ -1,9 +1,10 @@
 import {delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
 import type {Airport, Delay, DelayKind, DelayReason, Flight} from "../domain/Flight.ts";
-import {FLIGHT_PLANNER, hasRole} from "../infrastructure/auth.ts";
+import {FLIGHT_PLANNER} from "../infrastructure/auth.ts";
 import {addDelay, getDelayReasons, getFlight} from "../infrastructure/flightRest.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
 import {createElementWithText} from "./htmlUtil.ts";
+import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
@@ -70,6 +71,8 @@ function renderFlight(flight: Flight): void {
     const kinds = delayKindsToAdd(flight, isFlightPlanner);
     kindField.replaceChildren(...kinds.map(kindOption));
     delayForm.classList.toggle("hidden", kinds.length === 0);
+    // only with a flight on the screen: a load planner reads why there is no form
+    document.getElementById("role-note")!.classList.toggle("hidden", isFlightPlanner);
     details.classList.remove("hidden");
 }
 
@@ -110,8 +113,12 @@ async function init(): Promise<void> {
         addError(messageBox, "Geen vlucht gekozen: open deze pagina met ?flightId=… in het adres.");
         return;
     }
+    const role = await plannerRoleOrNoAccess(messageBox);
+    if (role === null) {
+        return;
+    }
+    isFlightPlanner = role === FLIGHT_PLANNER;
     try {
-        isFlightPlanner = await hasRole(FLIGHT_PLANNER);
         if (isFlightPlanner) {
             renderDelayReasons(await getDelayReasons());
         }
