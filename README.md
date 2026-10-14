@@ -69,7 +69,7 @@ Zonder `.env` weigert Docker Compose te starten en zegt het welke waarde ontbree
 
 Draaide Keycloak al van vóór deze wijziging, dan bestaat de realm nog niet: `docker compose up -d --force-recreate idp_keycloak`. Wijzigt het realmbestand later, verwijder dan de realm `air-freight` in de Keycloak-console en herstart Keycloak; een bestaande realm wordt niet opnieuw geïmporteerd.
 
-De API antwoordt 401 zonder token en 403 met de verkeerde rol. `flight-operations/flight-operations-service/http/flight_api.http` meldt zich aan als `flight_planner` en probeert de API uit.
+De API's antwoorden 401 zonder token en 403 met de verkeerde rol. Twee `.http`-bestanden melden zich aan en proberen een API uit: `flight-operations/flight-operations-service/http/flight_api.http` (als `flight_planner`) en `load-planning/load-planning-service/http/cargo_api.http` (als `load_planner` en als `flight_planner`).
 
 Het clientgeheim en de wachtwoorden staan niet in Git. Maak naast elk `http-client.env.json` één keer een bestand `http-client.private.env.json` aan (het staat in `.gitignore`), met de waarden uit je `.env`:
 
@@ -78,6 +78,19 @@ Het clientgeheim en de wachtwoorden staan niet in Git. Maak naast elk `http-clie
   "dev": {
     "client-secret": "FLIGHT_OPERATIONS_SERVICE_CLIENT_SECRET",
     "password": "FLIGHT_PLANNER_PASSWORD"
+  }
+}
+```
+
+Voor Load Planning, dat zich als beide planners aanmeldt en ook toont dat een token voor een andere service geweigerd wordt (de audience):
+
+```json
+{
+  "dev": {
+    "client-secret": "LOAD_PLANNING_SERVICE_CLIENT_SECRET",
+    "flight-operations-client-secret": "FLIGHT_OPERATIONS_SERVICE_CLIENT_SECRET",
+    "load-planner-password": "LOAD_PLANNER_PASSWORD",
+    "flight-planner-password": "FLIGHT_PLANNER_PASSWORD"
   }
 }
 ```

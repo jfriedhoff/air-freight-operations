@@ -1,0 +1,148 @@
+### The secrets (client-secret and the two passwords) are in http-client.private.env.json, which is not in Git: see the README.
+### Put the id of a flight cargo here: from the list below, or from the table flight_cargos
+@flight-cargo-id = 00000000-0000-0000-0000-000000000000
+### A ULD that is booked on that flight
+@uld-code = AKE16689R7
+
+### Without a token: 401
+GET {{api}}/flight-cargos
+
+> {%
+    client.test("No token, no answer", function () {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
+
+### Log in as the load planner: password grant, the access token goes into access_token
+POST {{keycloak}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id={{client-id}}&client_secret={{client-secret}}&username={{load-planner}}&password={{load-planner-password}}&scope=openid
+
+> {%
+    client.global.set("access_token", response.body.access_token);
+%}
+
+### The flights of today that still have to be loaded
+GET {{api}}/flight-cargos
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The answer names the day and lists its flights", function () {
+        client.assert(response.status === 200 && response.body.scheduledDepartureDate.length === 10
+            && Array.isArray(response.body.flights), "Expected a day and a list of flights");
+    });
+%}
+
+### The flights of another day, the departed ones too
+GET {{api}}/flight-cargos?scheduledDepartureDate=2026-10-12&includeDeparted=true
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The list is for the day that was asked", function () {
+        client.assert(response.status === 200 && response.body.scheduledDepartureDate === "2026-10-12",
+            "Expected the flights of 2026-10-12");
+    });
+%}
+
+### A date that is not a date: 400
+GET {{api}}/flight-cargos?scheduledDepartureDate=tomorrow
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("An invalid date is invalid input", function () {
+        client.assert(response.status === 400 && response.body.code === "invalid-input", "Expected 400 invalid-input");
+    });
+%}
+
+### The cargo of a flight: the flight, its booked ULDs and the 34 load positions of the floor plan
+GET {{api}}/flight-cargos/{{flight-cargo-id}}
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The cargo has the load positions of the main deck", function () {
+        client.assert(response.status === 200 && response.body.loadPositions.length === 34,
+            "Expected 200 with 34 load positions, got " + response.status);
+    });
+%}
+
+### A cargo that does not exist: 404
+GET {{api}}/flight-cargos/11111111-1111-1111-1111-111111111111
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("An unknown cargo is not found", function () {
+        client.assert(response.status === 404 && response.body.code === "not-found", "Expected 404 not-found");
+    });
+%}
+
+### The load planner puts the ULD on CL (200 within the loading period, otherwise 409 with the reason)
+PUT {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/{{uld-code}}/load-position
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "loadPosition": "CL"
+}
+
+> {%
+    client.test("The ULD is on CL, or the refusal says why", function () {
+        client.assert(response.status === 200 || (response.status === 409 && response.body.detail.length > 0),
+            "Expected 200, or 409 with a reason, got " + response.status);
+    });
+%}
+
+### Log in as the flight planner
+POST {{keycloak}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id={{client-id}}&client_secret={{client-secret}}&username={{flight-planner}}&password={{flight-planner-password}}&scope=openid
+
+> {%
+    client.global.set("access_token", response.body.access_token);
+%}
+
+### A flight planner may read the cargo
+GET {{api}}/flight-cargos/{{flight-cargo-id}}
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("A flight planner reads the cargo", function () {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+%}
+
+### A flight planner may not change the load: 403
+PUT {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/{{uld-code}}/load-position
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "loadPosition": "CL"
+}
+
+> {%
+    client.test("Only a load planner changes the load", function () {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+### A token that was issued for another service: log in through the client of Flight Operations
+POST {{keycloak}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=flight-operations-service&client_secret={{flight-operations-client-secret}}&username={{flight-planner}}&password={{flight-planner-password}}&scope=openid
+
+> {%
+    client.global.set("access_token", response.body.access_token);
+%}
+
+### Load Planning refuses that token: its audience is flight-operations-service, not load-planning-service (401)
+GET {{api}}/flight-cargos
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("A token for another service is not accepted", function () {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
