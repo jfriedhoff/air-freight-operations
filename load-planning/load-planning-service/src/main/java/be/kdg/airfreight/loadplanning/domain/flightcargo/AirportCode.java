@@ -3,7 +3,7 @@ package be.kdg.airfreight.loadplanning.domain.flightcargo;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
+import be.kdg.airfreight.loadplanning.domain.InvalidValueException;
 import org.jmolecules.ddd.annotation.ValueObject;
 
 @ValueObject
@@ -13,7 +13,7 @@ public record AirportCode(String value) {
     public AirportCode {
         Objects.requireNonNull(value, "Airport code cannot be null");
         if (!FORMAT.matcher(value).matches()) {
-            throw new DomainRuleViolationException("Airport code '" + value
+            throw new InvalidValueException("Airport code '" + value
                 + "' is invalid: expected three capital letters, such as BRU");
         }
     }

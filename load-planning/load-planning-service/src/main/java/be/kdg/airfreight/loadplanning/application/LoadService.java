@@ -7,7 +7,6 @@ import java.util.List;
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.ClearLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.FinalizeLoadCommand;
-import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
@@ -45,9 +44,7 @@ public class LoadService {
     public FlightCargo assign(AssignLoadPositionCommand command) {
         FlightCargo cargo = find(command.flightCargoId());
         FloorPlan floorPlan = floorPlanOf(cargo);
-        LoadPosition position = floorPlan.positionNamed(command.positionName())
-            .orElseThrow(() -> new DomainRuleViolationException("Load position " + command.positionName()
-                + " is not on the floor plan of aircraft type " + floorPlan.aircraftType().code()));
+        LoadPosition position = floorPlan.position(command.positionName());
         events.publishEvent(cargo.assign(command.uldCode(), position, command.by(), clock.instant(), floorPlan,
             policy));
         cargos.save(cargo);
