@@ -27,14 +27,11 @@ Feature: Load Planning follows the latest state of a flight
     When the flight planner registers the ATA of HJ221
     Then HJ221 is still not in the default list of flights to load
 
-  # Waits for the coach (REFLECTIE.md, question about the inbox): Load Planning has no inbox, by choice. A
-  # duplicate changes nothing (natural idempotency), but it is not recognized, so "the duplicate is logged" cannot pass.
-  @integration @to-confirm
+  @integration
   Scenario: The same flight event twice has one effect
     Given Load Planning has already processed the event about the delay of HJ221
     When the same event arrives again
     Then nothing changes
-    And the duplicate is logged
 
   @integration
   Scenario: Flight events are applied in the order they were sent

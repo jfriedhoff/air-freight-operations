@@ -5,85 +5,77 @@ One section per team member. Remove an item when its merge request is merged.
 
 ## In short
 
-- Jonas: keep a loading period closed once it has ended (story #18, answer of the coach on
-  13/10/2026).
+- Jonas: an airline code needs at least one letter (answer of the coach on 14/10/2026).
+- Jonas: steps for the scenarios that lost `@to-confirm` on 14/10/2026 (#15, #26, #30); the build fails until they exist.
+- Jonas: ask the coach what happens to a load that is not finalized in time (#18).
 
 ## Jonas
 
-### Loading period: once closed, always closed (#18)
+### Flight number: the airline code needs a letter
 
-**The rule.** The coach answered question 8 of the analysis on 13/10/2026:
+**The rule.** The coach answered on 14/10/2026: the airline code (two or three characters) and the
+digits after it are required, and the airline code contains at least one letter. The assignment does
+not say so. `221` is therefore invalid.
 
-- A departure delay does not reopen a loading period that has ended.
-- A departure delay that arrives while the period is still open moves its end.
-- Removing a delay moves the end back, and so can close an open period.
+**How it works now.** All three services have their own `FlightNumber` with the same pattern
+`[A-Z0-9]{2}\d{1,4}`. It accepts `221` (`22` + `1`) and refuses a three-letter code such as `ABC123`.
 
-**How it works now.** Nothing about the loading period is stored. On every action (place, clear,
-finalize) `FlightCargo.requireLoadCanChange` computes the period from the copy of the flight:
-start = STD − 12 h, end = current ETD − 20 min. The code has no memory that the end has passed, so a
-later ETD gives a later end and the period opens again.
-
-**The change.** `FlightCargo` stores the closing time. It only moves while the period is still open.
+**The change.** The same pattern in all three:
 
 ```java
-private Instant loadingClosesAt;          // at creation: STD − 20 min
-
-public void changeEstimatedDeparture(Instant etd, Instant now, LoadingPolicy policy) {
-    if (now.isBefore(loadingClosesAt)) {
-        loadingClosesAt = etd.minus(policy.closesBeforeEstimatedDeparture());
-    }
-    flightInfo = flightInfo.withEstimatedDeparture(etd);
-}
-
-public LoadingPeriod loadingPeriod(LoadingPolicy policy) {
-    return new LoadingPeriod(flightInfo.std().minus(policy.opensBeforeScheduledDeparture()), loadingClosesAt);
-}
+// IATA code (two characters, at least one letter) or ICAO code (three letters), then one to four digits
+private static final Pattern FORMAT = Pattern.compile("(?:[A-Z][A-Z0-9]|[0-9][A-Z]|[A-Z]{3})\\d{1,4}");
 ```
 
-The check on each action stays `loadingPeriod(policy).contains(now)`; it now reads the stored end.
+`HJ221` and `3V11` (used in the #8 scenarios) stay valid, `221` and `22221` become invalid, `ABC123`
+becomes valid. A three-character code is letters only, so a number such as `AB1234` can only be read
+as `AB` + `1234`.
 
-**Files to change** (all in `load-planning/load-planning-service`):
+**Files to change:**
 
 | File | Change |
 | --- | --- |
-| `domain/flightcargo/FlightCargo.java` | Field `loadingClosesAt`, `changeEstimatedDeparture`, `loadingPeriod` reads the field, `create` gets the policy, `hydrate` gets the closing time, a getter |
-| `application/FlightInfoService.java` | Constructor gets `LoadingPolicy` and `Clock`; `flightAnnounced` passes the policy to `create`; `departureEstimateChanged` calls `changeEstimatedDeparture` with `clock.instant()` |
-| `infrastructure/flightcargo/jpa/JpaFlightCargo.java` | Column `loadingClosesAt`, in `fromDomain` and `toDomain` |
-| `features/loadplanning/18-assign-load-position.feature` | Scenario 1 becomes "A departure delay does not reopen a loading period that has ended" with "Then that is refused with an explanation"; both scenarios lose `@to-confirm` |
-| `acceptance/unit/CargoWorld.java` | `delayDepartureBy` calls `changeEstimatedDeparture`; `departsAt` rebuilds the cargo, because the stored closing time does not follow a new STD; every `FlightCargo.create` gets the policy |
-| `acceptance/unit/FlightSteps.java` | Four new steps: "there is no departure delay and the load has not been finalized", "there is a departure delay of {int} minutes", "afterwards a departure delay of {int} minutes is entered", "afterwards that delay is removed" |
-| Other tests that call `FlightCargo.create` | The extra policy parameter |
+| `messaging/.../messaging/domain/FlightNumber.java` | Pattern and the message ("two characters with at least one letter, or three letters, followed by one to four digits") |
+| `flight-operations/.../flightoperations/domain/flight/FlightNumber.java` | Same |
+| `load-planning/.../loadplanning/domain/flightcargo/FlightNumber.java` | Same |
+| `messaging/.../features/messaging/29-invalid-duplicate-messages.feature` | Row "a flight number without a letter (221)" in "An invalid SSM is set aside", with its step |
+| A `FlightNumberTest` per service, or the existing value-object tests (`InvalidValueTest` in flight-operations) | `HJ221`, `3V11`, `ABC123` valid; `221`, `hj221`, `HJ`, `HJ12345` invalid |
 
-**Effects to know and to explain:**
+**After the code:** one line under Zelfreflectie 2 in `REFLECTIE.md` (the old question "Vluchtnummer
+`221`" says the code accepts it).
 
-- Policy values (#37): the 20 minutes is part of the stored closing time. After a new value and a
-  restart, flights that are already stored keep their closing time until their next ETD change. A new
-  value applies to flights that are announced or delayed after the restart.
-- The local `load_planning` database: rows that exist have no closing time. Empty the table once.
-- The moment that counts is the moment Load Planning processes the event, not the moment the flight
-  planner entered the delay. A delay entered just before the end and processed just after it comes too
-  late. Using `occurredOn` of the message would close that gap.
+### Steps for the scenarios that lost `@to-confirm`
 
-**Open question for the coach.** Finalizing is only allowed within the loading period, and Flight
-Operations refuses an ATD without a finalized load. With this rule a load that is not finalized in
-time can never be finalized, so the flight can never depart. Question 8 of the analysis named
-reopening as the only way out.
+The coach answered all five `@to-confirm` questions on 14/10/2026 (`REFLECTIE.md`, Zelfreflectie 2,
+Post coaching). The tags are removed in #15, #18, #26 and #30, and in #26 the step "And the duplicate
+is logged" is gone (no inbox in Load Planning). The runners used to skip these scenarios
+(`"... and not @to-confirm and not @wip"`), so most of their steps do not exist yet and the build
+fails on them until they are written. #4 and #6 keep `@to-confirm`: they wait for question 9 of the
+analysis.
+
+| File | Change |
+| --- | --- |
+| `load-planning/.../features/loadplanning/15-booked-ulds-on-flight.feature` (line 59, `@unit`) | New steps: "the load of {flight} has been finalized, but the flight has not departed yet", "no load position can be assigned to it anymore", "the finalized load remains unchanged" ("... is booked without a load position" exists in `BookingSteps`) |
+| `messaging/.../features/messaging/30-date-derivation.feature` (lines 45 and 51, `@unit`) | "the moment is ... UTC" exists; "the message is invalid, because 31 April does not exist" does not (only "the message is invalid"): shorten the step in the scenario or add one in `DateDerivationSteps` |
+| `load-planning/.../features/loadplanning/26-follow-flight-state.feature` (line 32, `@integration`) | New steps in load-planning: "Load Planning has already processed the event about the delay of {flight}", "the same event arrives again", "nothing changes" |
 
 **After the code:**
 
-- Run `UnitAcceptanceTest` and `pitest` for load-planning; add the PIT numbers to
-  `docs/mutation-testing-pit.md`.
-- Update the Gherkin of issue #18 on GitLab and remove the label `to-confirm` when its last
-  `@to-confirm` scenario is gone.
-- Remove the sentence "De code berekent het einde nog telkens uit de huidige ETD ..." from
-  `REFLECTIE.md` (Zelfreflectie 2, Post coaching).
-- `docs/policy-values.md`: add the effect on stored flights.
+- Run `UnitAcceptanceTest` and `IntegrationAcceptanceTest` in load-planning and messaging.
+- Remove the label `to-confirm` from issues #15, #18, #26 and #30 on GitLab and update their
+  Gherkin.
+- Remove the line "*Scenario's met `@to-confirm`: ...*" in `REFLECTIE.md` (Zelfreflectie 2, Vragen),
+  or turn it into "*Beantwoord op 14/10/2026.*".
+
+### Question for the coach: a load that is not finalized in time (#18)
+
+Since a loading period stays closed once it has ended, a load that is not finalized in time can
+never be finalized, and Flight Operations refuses an ATD without a finalized load. So that flight can
+never depart. Question 8 of the analysis named reopening as the only way out. Add the question to
+`REFLECTIE.md` (Zelfreflectie 2, Vragen) and tag the coach with `@` when asking on GitLab.
 
 ## References
 
-- `architecture/analyse.md` §8, question 8, and §7.2, invariant 6: the rule and the answer of the
-  coach.
-- `REFLECTIE.md`, Zelfreflectie 2, Post coaching: the answer of 13/10/2026.
-- [Issue #18](https://gitlab.com/kdg-ti/software-architecture/teams-26-27/romeo-jonas/air-freight-operations/-/issues/18):
-  the story and its acceptance criteria.
-- `docs/cucumber-acceptance-tests.md`: the tags and the step conventions the new steps follow.
+- `REFLECTIE.md`, Zelfreflectie 2, Post coaching: the answers of 13/10 and 14/10/2026.
+- `architecture/analyse.md` §8, question 8: reopening the loading period.
+- `docs/cucumber-acceptance-tests.md`: the tags and the step conventions.
