@@ -7,8 +7,8 @@ listed at the end.
 
 ## In short
 
-- Only **flight-operations** is secured. Load-planning, messaging and the simulator have no Spring
-  Security yet; the realm already has the clients for load-planning.
+- **Flight-operations** and **load-planning** are secured, each with its own client and audience.
+  Messaging and the simulator have no Spring Security yet.
 - A token is **never written to disk** by our code: not in `localStorage`, not in a cookie, not in a
   database.
 - The login session itself belongs to Keycloak, not to our application.
@@ -104,10 +104,10 @@ resource server with issuer and audience, `KeycloakRealmRoleConverter`, the logi
 | --- | --- | --- |
 | Secrets for the HTTP client | In `http-client.private.env.json`, ignored by git | The same |
 | Realm | Created by hand with `keycloak_setup.md`; no secret in the repository | Imported from `keycloak/air-freight-realm.json`; its secrets are placeholders filled from `.env` |
-| Secured services | All three | Only flight-operations |
+| Secured services | All three | Flight-operations and load-planning |
 | Token between services | The order service gets a client credentials token to call the product service | None: our services only exchange RabbitMQ messages |
-| Roles | `hasAnyRole("customer", "admin")` on `/api/**` | Exactly one planner role to read, `flight-planner` to change |
-| Principal | `preferred_username` | The subject, used as flight planner id |
+| Roles | `hasAnyRole("customer", "admin")` on `/api/**` | Exactly one planner role to read; `flight-planner` to change a flight, `load-planner` to change the load |
+| Principal | `preferred_username` | The subject, used as the id of the flight planner or the load planner |
 | CORS | `.cors(Customizer.withDefaults())` | Not needed, see above |
 
 ## References
