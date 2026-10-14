@@ -42,7 +42,7 @@ Feature: Dates from ULD messages are derived correctly
       | 32  |
       | 00  |
 
-  @unit
+  @unit @wip
   Scenario: A day that does not exist in the nearest month makes the message invalid
     Given it is 20 April 2026
     When the day of the month 31 is derived

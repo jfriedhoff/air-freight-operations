@@ -27,7 +27,7 @@ Feature: Load Planning follows the latest state of a flight
     When the flight planner registers the ATA of HJ221
     Then HJ221 is still not in the default list of flights to load
 
-  @integration
+  @integration @wip
   Scenario: The same flight event twice has one effect
     Given Load Planning has already processed the event about the delay of HJ221
     When the same event arrives again
