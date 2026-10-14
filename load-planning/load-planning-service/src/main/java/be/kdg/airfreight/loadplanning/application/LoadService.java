@@ -2,6 +2,8 @@ package be.kdg.airfreight.loadplanning.application;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
@@ -18,6 +20,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionCleared;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +51,22 @@ public class LoadService {
     public FlightCargoSnapshot get(FlightCargoId id) {
         FlightCargo cargo = find(id);
         return snapshot(cargo, floorPlanOf(cargo), clock.instant());
+    }
+
+    /**
+     * The cargos of the flights of one day, without the departed flights unless they are asked for.
+     * Without a day it is today, and the answer names the day that was used.
+     * Provisional (question 9 of the analysis): today is the scheduled departure date in UTC.
+     */
+    @Transactional(readOnly = true)
+    public FlightsToLoad flightsToLoad(@Nullable LocalDate scheduledDepartureDate, boolean includeDeparted) {
+        LocalDate day = scheduledDepartureDate != null
+            ? scheduledDepartureDate
+            : LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
+        List<FlightCargo> flights = cargos.findByScheduledDepartureDate(day).stream()
+            .filter(cargo -> includeDeparted || cargo.isToBeLoaded())
+            .toList();
+        return new FlightsToLoad(day, flights);
     }
 
     public FlightCargo assign(AssignLoadPositionCommand command) {

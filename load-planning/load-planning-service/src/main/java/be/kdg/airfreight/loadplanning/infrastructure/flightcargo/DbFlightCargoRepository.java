@@ -1,5 +1,7 @@
 package be.kdg.airfreight.loadplanning.infrastructure.flightcargo;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
@@ -34,6 +36,13 @@ class DbFlightCargoRepository implements FlightCargoRepository {
     public Optional<FlightCargo> findByFlightId(FlightId flightId) {
         return jpaFlightCargos.findWithUldsByFlight(flightId.flightNumber().value(),
             flightId.scheduledDepartureDate(), flightId.departureAirport().value()).map(JpaFlightCargo::toDomain);
+    }
+
+    @Override
+    public List<FlightCargo> findByScheduledDepartureDate(LocalDate scheduledDepartureDate) {
+        return jpaFlightCargos.findWithUldsByScheduledDepartureDate(scheduledDepartureDate).stream()
+            .map(JpaFlightCargo::toDomain)
+            .toList();
     }
 
     @Override
