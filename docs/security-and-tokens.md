@@ -12,6 +12,8 @@ listed at the end.
 - A token is **never written to disk** by our code: not in `localStorage`, not in a cookie, not in a
   database.
 - The login session itself belongs to Keycloak, not to our application.
+- Each context has **its own frontend**, served by its own service. One Keycloak login works for
+  both (single sign-on); there is no shared frontend and no extra service in front of the two.
 
 ## Where is a token?
 
@@ -43,6 +45,50 @@ frontend refreshes).
 5. `KeycloakRealmRoleConverter` turns `realm_access.roles` into `ROLE_<role>` authorities.
 
 The body of the page starts invisible and is shown after login, so nothing flashes before the redirect.
+
+## Two frontends, one login
+
+The pages of the web interface split along the bounded contexts, so each context has its own
+frontend module, built into its own service:
+
+| Pages | Frontend | Served by | Changes allowed for |
+| --- | --- | --- | --- |
+| Overzicht vluchten, Vluchtdetails, Gantt chart | `flight-operations-frontend` | `flight-operations-service` (:8080) | `flight-planner` |
+| Te beladen vluchten, Cargo-pagina | `load-planning-frontend` | `load-planning-service` (:8081) | `load-planner` |
+
+- **A frontend only calls its own service.** The load planning pages need flight data (number,
+  times, airports), but Load Planning keeps its own copy of the flight (`FlightInfo`), filled from
+  the flight events. The browser never calls the API of the other context. That keeps the
+  coupling between the contexts in the messages, and the page and its API share one origin, so
+  no CORS is needed.
+- **Moving between the two is a plain link** to the other service's page, for example in the
+  navigation bar.
+- **Single sign-on.** Both frontends are public clients in the same realm. After a login on one
+  of them, Keycloak keeps a session for the realm (its own cookie on `localhost:8180`). When
+  the user opens the other frontend, `login-required` sends the browser to Keycloak, which sees
+  that session and returns at once with a code for the second client. The user does not type the
+  password again.
+- **Each frontend gets its own token.** A token carries the audience of its own service, and
+  flight-operations only accepts its own audience; load-planning will do the same once it is
+  secured. A token from one frontend is then useless against the other service, which is another
+  reason not to call across.
+- **Logout** ends the Keycloak session, so both frontends need a new login. A tab of the other
+  frontend that is still open keeps its access token until it expires; refreshing it then fails.
+- **Reading is open to both roles.** The case says everyone in the operations department may
+  view all information, so a load planner may open the flight pages and a flight planner the cargo
+  page, without the buttons for changes.
+
+**Why not one shared frontend or a backend for frontend?** It would be an extra deployment unit
+that knows the models of both contexts, and it would need its own login and its own calls to
+both services. The case asks for Spring MVC with client-side rendering via fetch, and the course
+builds the Vite frontend into its own service (lesson 03). Two frontends follow the context
+boundaries and need nothing extra.
+
+**Not done yet:** neither `vite.config.ts` fixes the port of the Vite dev server, so both use
+5173. With both dev servers running, the second moves to 5174, which is not in the
+`redirectUris` of its client, and Keycloak refuses the login. To fix: `server.port: 5174` with
+`strictPort` in `load-planning-frontend`, and `http://localhost:5174/*` in the realm file (an
+existing realm has to be removed first, see the README).
 
 ## Who may do what
 
@@ -114,6 +160,12 @@ resource server with issuer and audience, `KeycloakRealmRoleConverter`, the logi
 
 - Reference project `ordering-system`, branch `6-security`: `auth.ts`, `SecurityConfig`,
   `KeycloakRealmRoleConverter`.
+- Course slides 03, Spring REST, project setup: the Vite frontend built into the service's
+  `resources/static`, the Vite proxy in development, and CORS.
+- Project case, "Wat gebruikers moeten kunnen zien en doen", "Wie gebruikt het systeem?" and
+  "Technische specificaties": the pages, who may change what, and the technologies.
+- [Keycloak — Server administration guide](https://www.keycloak.org/docs/latest/server_admin/index.html):
+  realms, clients and the SSO session shared by the clients of a realm.
 - [Keycloak — JavaScript adapter](https://www.keycloak.org/securing-apps/javascript-adapter):
   `keycloak-js`, `login-required`, PKCE and refreshing the token.
 - [Spring Security — OAuth 2.0 Resource Server JWT](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html):

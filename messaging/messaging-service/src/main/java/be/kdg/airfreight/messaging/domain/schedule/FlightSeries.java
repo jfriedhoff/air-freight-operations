@@ -32,6 +32,10 @@ public record FlightSeries(SchedulePeriod period, Set<DayOfWeek> weekdays, Local
         if (weekdays.isEmpty()) {
             throw new DomainRuleViolationException("An SSM names at least one weekday");
         }
+        if (departureAirport.equals(arrivalAirport)) {
+            throw new DomainRuleViolationException("A flight cannot depart from and arrive at the same airport ("
+                + departureAirport.value() + ")");
+        }
         weekdays = Set.copyOf(weekdays);
     }
 

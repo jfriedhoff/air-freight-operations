@@ -53,8 +53,8 @@ public class BookingService {
             received.save(ReceivedMessage.processed(message.id(), MessageType.ULD, message.version(), now, body,
                 booking.flightId(), scheduledDepartureDate));
             events.publishEvent(booking);
-            log.info("ULD message {} processed: {} booked on {} of {}", message.id().id(), message.uldCode(),
-                message.flightNumber().value(), scheduledDepartureDate);
+            log.info("ULD message {} processed: {} booked on {} of {}", message.id().id(),
+                message.uldCode().value(), message.flightNumber().value(), scheduledDepartureDate);
         });
     }
 }
