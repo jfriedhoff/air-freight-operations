@@ -1,6 +1,7 @@
 package be.kdg.airfreight.flightoperations.acceptance.integration;
 
 import be.kdg.airfreight.flightoperations.TestHelper;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayKind;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
 import ch.qos.logback.classic.Level;
@@ -31,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories #5 and #8 through the REST API: who is logged in, what they send and what the API answers.
+ * Stories #5, #8 and #9 through the REST API: who is logged in, what they send and what the API answers.
  * Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
 public class FlightApiSteps {
@@ -70,6 +71,12 @@ public class FlightApiSteps {
         testHelper.depart(flight());
     }
 
+    @Given("flight HJ221 has landed")
+    public void flightHj221HasLanded() {
+        testHelper.depart(flight());
+        testHelper.land(flight());
+    }
+
     @Given("I am logged in as {}")
     public void iAmLoggedInAs(String who) {
         login = switch (who) {
@@ -83,19 +90,19 @@ public class FlightApiSteps {
         };
     }
 
-    @When("I enter a departure delay of {int} minutes through the API")
-    public void iEnterADepartureDelay(int minutes) throws Exception {
-        enterDelay(flight().id(), minutes, "93");
+    @When("I enter a(n) {delayKind} delay of {int} minutes through the API")
+    public void iEnterADelay(DelayKind kind, int minutes) throws Exception {
+        enterDelay(flight().id(), kind, minutes, "93");
     }
 
     @When("I enter a departure delay with delay reason {word} through the API")
     public void iEnterADepartureDelayWithReason(String reason) throws Exception {
-        enterDelay(flight().id(), 25, reason);
+        enterDelay(flight().id(), DelayKind.DEPARTURE, 25, reason);
     }
 
     @When("I enter a departure delay for a flight that does not exist through the API")
     public void iEnterADepartureDelayForAnUnknownFlight() throws Exception {
-        enterDelay(UUID.randomUUID(), 25, "93");
+        enterDelay(UUID.randomUUID(), DelayKind.DEPARTURE, 25, "93");
     }
 
     /** The API names a flight by its id: a flight that does not exist has an id that nobody knows. */
@@ -103,13 +110,13 @@ public class FlightApiSteps {
     public void iEnterADelayForAFlightThatDoesNotExist(String flightNumber, LocalDate date, String departureAirport)
         throws Exception {
         assertThat(testHelper.findFlight(flightNumber, date, departureAirport)).isEmpty();
-        enterDelay(UUID.randomUUID(), 25, "93");
+        enterDelay(UUID.randomUUID(), DelayKind.DEPARTURE, 25, "93");
     }
 
     @When("the flight planner enters a departure delay of {int} minutes")
     public void theFlightPlannerEntersADepartureDelay(int minutes) throws Exception {
         iAmLoggedInAs("a flight planner");
-        iEnterADepartureDelay(minutes);
+        iEnterADelay(DelayKind.DEPARTURE, minutes);
     }
 
     /** Story #5 has no Background: the flight is planned here. Both ways to change a resource are tried. */
@@ -178,6 +185,11 @@ public class FlightApiSteps {
             "flight-operations.flight.arrival-estimate-changed");
     }
 
+    @And("only ArrivalEstimateChanged waits in the outbox")
+    public void onlyTheArrivalEstimateEventWaitsInTheOutbox() {
+        assertThat(testHelper.outboxTypes()).containsExactly("flight-operations.flight.arrival-estimate-changed");
+    }
+
     @And("HJ221 has no delay")
     public void hj221HasNoDelay() {
         assertThat(testHelper.find(flight()).getDelays()).isEmpty();
@@ -189,10 +201,10 @@ public class FlightApiSteps {
         lastAnswer().andExpect(jsonPath("$.detail").value(explanation));
     }
 
-    private void enterDelay(UUID flight, int minutes, String reason) throws Exception {
+    private void enterDelay(UUID flight, DelayKind kind, int minutes, String reason) throws Exception {
         send(post("/api/flights/{id}/delays", flight).contentType(MediaType.APPLICATION_JSON).content("""
-            {"kind": "DEPARTURE", "minutes": %d, "reason": "%s", "description": "Late inbound aircraft"}"""
-            .formatted(minutes, reason)));
+            {"kind": "%s", "minutes": %d, "reason": "%s", "description": "Late inbound aircraft"}"""
+            .formatted(kind, minutes, reason)));
     }
 
     private void send(MockHttpServletRequestBuilder request) throws Exception {
