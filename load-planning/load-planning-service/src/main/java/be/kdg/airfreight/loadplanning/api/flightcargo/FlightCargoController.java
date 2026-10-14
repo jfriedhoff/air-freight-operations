@@ -1,13 +1,16 @@
 package be.kdg.airfreight.loadplanning.api.flightcargo;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import be.kdg.airfreight.loadplanning.application.LoadService;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** The cargo of a flight is the resource of Load Planning. */
@@ -18,6 +21,14 @@ public class FlightCargoController {
 
     public FlightCargoController(LoadService loadService) {
         this.loadService = loadService;
+    }
+
+    @GetMapping
+    public ResponseEntity<FlightsToLoadDto> flightsToLoad(
+        @RequestParam(required = false) @Nullable LocalDate scheduledDepartureDate,
+        @RequestParam(defaultValue = "false") boolean includeDeparted) {
+        return ResponseEntity.ok(FlightsToLoadDto.from(
+            loadService.flightsToLoad(scheduledDepartureDate, includeDeparted)));
     }
 
     @GetMapping("/{id}")

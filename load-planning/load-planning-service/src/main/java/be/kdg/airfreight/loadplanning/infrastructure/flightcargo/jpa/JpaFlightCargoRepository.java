@@ -1,6 +1,7 @@
 package be.kdg.airfreight.loadplanning.infrastructure.flightcargo.jpa;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +12,13 @@ import org.springframework.data.repository.query.Param;
 public interface JpaFlightCargoRepository extends JpaRepository<JpaFlightCargo, UUID> {
     @Query("SELECT c FROM JpaFlightCargo c LEFT JOIN FETCH c.ulds WHERE c.id = :id")
     Optional<JpaFlightCargo> findWithUldsById(@Param("id") UUID id);
+
+    @Query("""
+        SELECT DISTINCT c FROM JpaFlightCargo c LEFT JOIN FETCH c.ulds
+        WHERE c.scheduledDepartureDate = :scheduledDepartureDate
+        ORDER BY c.std, c.flightNumber""")
+    List<JpaFlightCargo> findWithUldsByScheduledDepartureDate(
+        @Param("scheduledDepartureDate") LocalDate scheduledDepartureDate);
 
     @Query("""
         SELECT c FROM JpaFlightCargo c LEFT JOIN FETCH c.ulds
