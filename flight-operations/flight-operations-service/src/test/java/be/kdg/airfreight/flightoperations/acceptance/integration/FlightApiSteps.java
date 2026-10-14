@@ -1,12 +1,23 @@
 package be.kdg.airfreight.flightoperations.acceptance.integration;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import be.kdg.airfreight.flightoperations.TestHelper;
+import be.kdg.airfreight.flightoperations.domain.flight.Delay;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayKind;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
+import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerId;
 import ch.qos.logback.classic.Level;
 import io.cucumber.java.After;
 import io.cucumber.java.en.And;
+import io.cucumber.java.en.But;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -17,22 +28,18 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories #5, #8 and #9 through the REST API: who is logged in, what they send and what the API answers.
+ * Stories #5, #8, #9, #33 and #35 through the REST API: who is logged in, what they send and what the API answers.
  * Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
 public class FlightApiSteps {
@@ -47,6 +54,7 @@ public class FlightApiSteps {
     private RequestPostProcessor login;
     private FlightId flightId;
     private final List<ResultActions> answers = new ArrayList<>();
+    private final Map<String, FlightPlannerId> plannersByName = new HashMap<>();
 
     public FlightApiSteps(MockMvc mockMvc, TestHelper testHelper, LogCapture logs) {
         this.mockMvc = mockMvc;
@@ -77,17 +85,46 @@ public class FlightApiSteps {
         testHelper.land(flight());
     }
 
-    @Given("I am logged in as {}")
-    public void iAmLoggedInAs(String who) {
-        login = switch (who) {
-            case "a flight planner" -> token(testHelper.saveFlightPlanner().id(), "flight-planner");
-            case "a flight planner who is not registered" -> token(UUID.randomUUID(), "flight-planner");
-            case "a load planner" -> token(UUID.randomUUID(), "load-planner");
-            case "a user with both planner roles" ->
-                token(testHelper.saveFlightPlanner().id(), "flight-planner", "load-planner");
-            case "nobody" -> null;
-            default -> throw new IllegalArgumentException("Unknown user: " + who);
-        };
+    @Given("I am logged in as a flight planner")
+    @Given("there is a user with the role flight planner in Keycloak")
+    public void aFlightPlannerIsLoggedIn() {
+        login = token(testHelper.saveFlightPlanner().id(), "flight-planner");
+    }
+
+    @Given("I am logged in as a flight planner who is not registered")
+    public void aFlightPlannerWhoIsNotRegisteredIsLoggedIn() {
+        login = token(UUID.randomUUID(), "flight-planner");
+    }
+
+    @Given("I am logged in as a load planner")
+    @Given("there is a user with the role load planner in Keycloak")
+    public void aLoadPlannerIsLoggedIn() {
+        login = token(UUID.randomUUID(), "load-planner");
+    }
+
+    @Given("I am logged in as a user with both planner roles")
+    @Given("there is a user with both the flight planner and the load planner role in Keycloak")
+    public void aUserWithBothPlannerRolesIsLoggedIn() {
+        login = token(testHelper.saveFlightPlanner().id(), "flight-planner", "load-planner");
+    }
+
+    @Given("there is a user with neither of the two roles in Keycloak")
+    public void aUserWithoutAPlannerRoleIsLoggedIn() {
+        login = token(UUID.randomUUID());
+    }
+
+    @Given("I am logged in as nobody")
+    @Given("I am not logged in")
+    public void nobodyIsLoggedIn() {
+        login = null;
+    }
+
+    /** A registered flight planner with a name, so a step can say who made a change. */
+    @Given("I am logged in as the flight planner {word}")
+    public void theFlightPlannerIsLoggedIn(String name) {
+        FlightPlannerId planner = testHelper.saveFlightPlanner(name);
+        plannersByName.put(name, planner);
+        login = token(planner.id(), "flight-planner");
     }
 
     @When("I enter a(n) {delayKind} delay of {int} minutes through the API")
@@ -115,7 +152,7 @@ public class FlightApiSteps {
 
     @When("the flight planner enters a departure delay of {int} minutes")
     public void theFlightPlannerEntersADepartureDelay(int minutes) throws Exception {
-        iAmLoggedInAs("a flight planner");
+        aFlightPlannerIsLoggedIn();
         iEnterADelay(DelayKind.DEPARTURE, minutes);
     }
 
@@ -199,6 +236,78 @@ public class FlightApiSteps {
     @And("the explanation says {string}")
     public void theExplanationSays(String explanation) throws Exception {
         lastAnswer().andExpect(jsonPath("$.detail").value(explanation));
+    }
+
+    /** Stories 33 and 35 name no flight: HJ221 of TestHelper is planned when the scenario has none yet. */
+    @When("I enter a delay through the API")
+    @When("I try to enter a delay through the API")
+    public void iEnterADelay() throws Exception {
+        enterDelay(hj221().id(), DelayKind.DEPARTURE, 25, "93");
+    }
+
+    /** A field that names a planner is not part of the request: the planner is the one of the token. */
+    @When("I enter a delay through the API with the planner {word} in the request")
+    public void iEnterADelayNamingAnotherPlanner(String name) throws Exception {
+        FlightPlannerId other = testHelper.saveFlightPlanner(name);
+        send(post("/api/flights/{id}/delays", hj221().id()).contentType(MediaType.APPLICATION_JSON).content("""
+            {"kind": "DEPARTURE", "minutes": 25, "reason": "93", "description": "Late inbound aircraft",
+             "planner": "%s", "by": "%s"}""".formatted(other.id(), other.id())));
+    }
+
+    /** Logging in happens at Keycloak; here the user arrives with the token. The first request shows the role. */
+    @When("that user logs in")
+    @When("I request the details and the load of HJ221")
+    public void iRequestTheDetailsOfHj221() throws Exception {
+        send(get("/api/flights/{id}", hj221().id()));
+    }
+
+    @Then("that is accepted")
+    public void thatIsAccepted() throws Exception {
+        lastAnswer().andExpect(status().isOk());
+    }
+
+    @Then("that is refused with 403 Forbidden")
+    @Then("they get no access and see why")
+    public void thatIsForbidden() throws Exception {
+        lastAnswer().andExpect(status().isForbidden());
+    }
+
+    @Then("the API responds with 401 Unauthorized")
+    public void theApiRespondsUnauthorized() throws Exception {
+        lastAnswer().andExpect(status().isUnauthorized());
+    }
+
+    @But("not with a redirect to the login page")
+    public void notWithARedirect() throws Exception {
+        lastAnswer().andExpect(header().doesNotExist("Location"));
+    }
+
+    @Then("I get to see them")
+    public void iGetToSeeThem() throws Exception {
+        lastAnswer().andExpect(status().isOk()).andExpect(jsonPath("$.flightNumber").value("HJ221"));
+    }
+
+    @Then("it is recorded that {word} did that")
+    @Then("it is recorded that {word} entered the delay")
+    public void itIsRecordedWhoEnteredTheDelay(String name) throws Exception {
+        lastAnswer().andExpect(status().isOk());
+        assertThat(testHelper.find(flight()).getDelays()).singleElement()
+            .extracting(Delay::getLastChangedBy).as("the flight planner %s", name).isEqualTo(plannersByName.get(name));
+    }
+
+    /** A flight planner reads and enters a delay; a load planner reads and is refused when entering one. */
+    @Then("the system treats them as a {word} planner")
+    public void theSystemTreatsThemAs(String role) throws Exception {
+        lastAnswer().andExpect(status().isOk());
+        iEnterADelay();
+        lastAnswer().andExpect(role.equals("flight") ? status().isOk() : status().isForbidden());
+    }
+
+    private FlightId hj221() {
+        if (flightId == null) {
+            flightId = testHelper.savePlannedFlight().getId();
+        }
+        return flightId;
     }
 
     private void enterDelay(UUID flight, DelayKind kind, int minutes, String reason) throws Exception {
