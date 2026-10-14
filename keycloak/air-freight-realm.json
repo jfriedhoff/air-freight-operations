@@ -16,7 +16,7 @@
       "firstName": "Fien",
       "lastName": "Flightplanner",
       "email": "flight_planner@airfreight.local",
-      "credentials": [{"type": "password", "value": "password", "temporary": false}],
+      "credentials": [{"type": "password", "value": "${FLIGHT_PLANNER_PASSWORD}", "temporary": false}],
       "realmRoles": ["flight-planner"]
     },
     {
@@ -27,7 +27,7 @@
       "firstName": "Lars",
       "lastName": "Loadplanner",
       "email": "load_planner@airfreight.local",
-      "credentials": [{"type": "password", "value": "password", "temporary": false}],
+      "credentials": [{"type": "password", "value": "${LOAD_PLANNER_PASSWORD}", "temporary": false}],
       "realmRoles": ["load-planner"]
     }
   ],
@@ -56,7 +56,7 @@
       "name": "Flight Operations service",
       "enabled": true,
       "publicClient": false,
-      "secret": "flight-operations-dev-secret",
+      "secret": "${FLIGHT_OPERATIONS_SERVICE_CLIENT_SECRET}",
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "protocolMappers": [
@@ -92,7 +92,7 @@
       "name": "Load Planning service",
       "enabled": true,
       "publicClient": false,
-      "secret": "load-planning-dev-secret",
+      "secret": "${LOAD_PLANNING_SERVICE_CLIENT_SECRET}",
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "protocolMappers": [
