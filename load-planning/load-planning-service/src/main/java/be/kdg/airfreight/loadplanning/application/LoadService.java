@@ -18,6 +18,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckReport;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionAssigned;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionCleared;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
@@ -74,14 +75,17 @@ public class LoadService {
         return new FlightsToLoad(day, flights);
     }
 
-    public FlightCargo assign(AssignLoadPositionCommand command) {
+    public FlightCargoSnapshot assign(AssignLoadPositionCommand command) {
+        requireRegistered(command.by());
         FlightCargo cargo = find(command.flightCargoId());
         FloorPlan floorPlan = floorPlanOf(cargo);
+        Instant now = clock.instant();
         LoadPosition position = floorPlan.position(command.positionName());
-        events.publishEvent(cargo.assign(command.uldCode(), position, command.by(), clock.instant(), floorPlan,
-            policy));
+        LoadPositionAssigned assigned = cargo.assign(command.uldCode(), position, command.by(), now, floorPlan,
+            policy);
         cargos.save(cargo);
-        return cargo;
+        events.publishEvent(assigned);
+        return snapshot(cargo, floorPlan, now);
     }
 
     public FlightCargo clear(ClearLoadPositionCommand command) {

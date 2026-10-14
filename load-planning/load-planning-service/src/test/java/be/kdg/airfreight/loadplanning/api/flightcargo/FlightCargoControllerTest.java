@@ -2,25 +2,38 @@ package be.kdg.airfreight.loadplanning.api.flightcargo;
 
 import java.util.UUID;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import be.kdg.airfreight.loadplanning.TestClock;
 import be.kdg.airfreight.loadplanning.TestHelper;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.Uld;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.WeightUnit;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,8 +41,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestClock.class)
+@ExtendWith(OutputCaptureExtension.class)
 class FlightCargoControllerTest {
     private static final String CARGO = "/api/flight-cargos/{id}";
+    private static final String LOAD_POSITION = "/api/flight-cargos/{id}/ulds/{uldCode}/load-position";
 
     @Autowired
     private MockMvc mockMvc;
@@ -130,6 +145,127 @@ class FlightCargoControllerTest {
         mockMvc.perform(get(CARGO, "abc").with(planner("load-planner")))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("invalid-input"));
+    }
+
+    @Test
+    void aLoadPlannerPlacesAUldAndGetsTheCargoWithItsNewPosition() throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(token(loadPlanner.id().toString())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(id.id().toString()))
+            .andExpect(jsonPath("$.ulds[1].code").value("AKE20417HJ"))
+            .andExpect(jsonPath("$.ulds[1].loadPosition").value("CR"))
+            .andExpect(jsonPath("$.loadCanChange").value(true));
+
+        Uld stored = uld("AKE20417HJ");
+        assertThat(stored.getPosition()).isNotNull();
+        assertThat(stored.getPosition().name()).isEqualTo("CR");
+        assertThat(stored.getPositionChangedBy()).isEqualTo(loadPlanner);
+        assertThat(testHelper.outboxCount()).as("a load position sends nothing to partners").isZero();
+    }
+
+    @Test
+    void thePlannerComesFromTheLoginNotFromTheRequest() throws Exception {
+        LoadPlannerId loggedIn = testHelper.saveLoadPlanner("Bram");
+        LoadPlannerId inTheRequest = testHelper.saveLoadPlanner("Someone else");
+
+        mockMvc.perform(assign("AKE20417HJ",
+                "{\"loadPosition\": \"CR\", \"planner\": \"" + inTheRequest.id() + "\"}")
+                .with(token(loggedIn.id().toString())))
+            .andExpect(status().isOk());
+
+        assertThat(uld("AKE20417HJ").getPositionChangedBy()).isEqualTo(loggedIn);
+    }
+
+    @Test
+    void aLoadPlannerWhoIsNotRegisteredIsRefused() throws Exception {
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(token(UUID.randomUUID().toString())))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("unknown-load-planner"))
+            .andExpect(jsonPath("$.detail").value("You are not registered as a load planner"));
+
+        assertThat(uld("AKE20417HJ").hasPosition()).isFalse();
+    }
+
+    @Test
+    void aTokenWhoseSubjectIsNotAUuidIsNotALoadPlanner() throws Exception {
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(token("user")))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("unknown-load-planner"));
+
+        assertThat(uld("AKE20417HJ").hasPosition()).isFalse();
+    }
+
+    @Test
+    void aFlightPlannerMayReadButNotAssign() throws Exception {
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(planner("flight-planner")))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(get(CARGO, id.id()).with(planner("flight-planner")))
+            .andExpect(status().isOk());
+
+        assertThat(uld("AKE20417HJ").hasPosition()).isFalse();
+    }
+
+    /** One refusal of the domain through the API: it leaves as 409 with its reason, never as 500. */
+    @Test
+    void anOccupiedPositionIsRefusedWithItsReason() throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CL\"}").with(token(loadPlanner.id().toString())))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"))
+            .andExpect(jsonPath("$.detail").value("Load position CL already holds ULD AKE16689R7"));
+
+        assertThat(uld("AKE20417HJ").hasPosition()).isFalse();
+    }
+
+    /**
+     * A line break in the request must not let a logged-in user start a log line of their own. The reason of the
+     * refusal repeats what was sent and is logged at debug level, so the test turns that level on: the text is in
+     * the log, but inside the line of the refusal, never at the start of a line.
+     */
+    @Test
+    void theCallerCannotStartALogLineOfTheirOwn(CapturedOutput output) throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+        Logger apiLog = (Logger) LoggerFactory.getLogger("be.kdg.airfreight.loadplanning.api");
+        Level before = apiLog.getLevel();
+        apiLog.setLevel(Level.DEBUG);
+        try {
+            mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CL\\n2026-01-09 INFO forged log line\"}")
+                    .with(token(loadPlanner.id().toString())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("invalid-input"));
+        } finally {
+            apiLog.setLevel(before);
+        }
+
+        assertThat(output.getAll()).as("the refusal is logged with its reason").contains("forged log line");
+        assertThat(output.getAll().lines()).noneMatch(line -> line.startsWith("2026-01-09 INFO forged"));
+    }
+
+    @Test
+    void aSuccessfulAssignmentIsLoggedWithItsCheckedValues(CapturedOutput output) throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(token(loadPlanner.id().toString())))
+            .andExpect(status().isOk());
+
+        assertThat(output.getAll()).contains("put ULD AKE20417HJ on load position CR");
+    }
+
+    private MockHttpServletRequestBuilder assign(String uldCode, String body) {
+        return put(LOAD_POSITION, id.id(), uldCode).contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
+    private Uld uld(String code) {
+        FlightCargo cargo = testHelper.find(id);
+        return cargo.getUlds().stream().filter(uld -> uld.getCode().value().equals(code)).findFirst().orElseThrow();
+    }
+
+    /** A load planner with this account. */
+    private static RequestPostProcessor token(String subject) {
+        return jwt().jwt(token -> token.subject(subject)).authorities(new SimpleGrantedAuthority("ROLE_load-planner"));
     }
 
     /** A planner who only reads: the account does not matter. */
