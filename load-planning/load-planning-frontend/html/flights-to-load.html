@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- no icon of our own: an empty one stops the browser from asking for /favicon.ico (a 404 on every page) -->
+    <link rel="icon" href="data:,"/>
+    <title>Te beladen vluchten</title>
+    <script type="module" src="../src/ts/presenter/flightsToLoadPresenter.ts"></script>
+    <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
+    <link rel="stylesheet" href="../src/css/style.css"/>
+</head>
+<body class="container m-5 invisible">
+<div class="flex justify-end items-center gap-2">
+    <span id="user-name"></span>
+    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
+</div>
+<h1 class="text-2xl font-bold">Te beladen vluchten</h1>
+<p class="text-sm opacity-70">Alle tijden in Brusselse tijd. De dag van een vlucht is haar scheduled vertrekdatum
+    in UTC.</p>
+
+<div class="alert hidden my-4" id="message-box"></div>
+
+<section id="flights-to-load" class="hidden">
+    <div class="flex flex-wrap items-end gap-4 my-4">
+        <div class="flex flex-col">
+            <label class="label" for="day">Scheduled vertrekdatum (UTC)</label>
+            <input type="date" id="day" class="input"/>
+        </div>
+        <label class="label cursor-pointer gap-2">
+            <input type="checkbox" id="hide-departed" class="checkbox" checked/>
+            Opgestegen vluchten verbergen
+        </label>
+        <button id="refresh-btn" class="btn btn-sm">Vernieuwen</button>
+        <span id="updated-at" class="text-sm opacity-70"></span>
+    </div>
+
+    <p id="no-flights" class="hidden"></p>
+    <table id="flights-table" class="table table-zebra">
+        <thead>
+        <tr>
+            <th>Vlucht</th><th>Scheduled vertrekdatum</th><th>Vertrek</th><th>Aankomst</th>
+            <th>STD</th><th>ETD</th><th>STA</th><th>ETA</th><th>Vlucht</th><th>Lading</th>
+        </tr>
+        </thead>
+        <tbody id="flights"></tbody>
+    </table>
+</section>
+</body>
+</html>

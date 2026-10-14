@@ -23,6 +23,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, "index.html"),
+                flightsToLoad: resolve(__dirname, "html/flights-to-load.html"),
                 cargo: resolve(__dirname, "html/cargo.html"),
             },
         },
