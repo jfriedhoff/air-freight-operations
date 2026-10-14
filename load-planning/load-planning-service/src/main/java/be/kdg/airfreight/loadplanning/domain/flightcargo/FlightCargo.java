@@ -18,35 +18,50 @@ public class FlightCargo {
     private final FlightCargoId id;
     private final FlightId flightId;
     private FlightInfo flightInfo;
+    private Instant loadingClosesAt;
     private final List<Uld> ulds = new ArrayList<>();
     private boolean finalized;
     private @Nullable LoadPlannerId finalizedBy;
     private final @Nullable Long version;
 
-    private FlightCargo(FlightCargoId id, FlightId flightId, FlightInfo flightInfo, @Nullable Long version) {
+    private FlightCargo(FlightCargoId id, FlightId flightId, FlightInfo flightInfo, Instant loadingClosesAt,
+                        @Nullable Long version) {
         this.id = Objects.requireNonNull(id, "Id cannot be null");
         this.flightId = Objects.requireNonNull(flightId, "Flight id cannot be null");
         this.flightInfo = Objects.requireNonNull(flightInfo, "Flight info cannot be null");
+        this.loadingClosesAt = Objects.requireNonNull(loadingClosesAt, "Closing time cannot be null");
         this.version = version;
     }
 
-    public static FlightCargo create(FlightId flightId, FlightInfo flightInfo) {
-        return new FlightCargo(FlightCargoId.create(), flightId, flightInfo, null);
+    public static FlightCargo create(FlightId flightId, FlightInfo flightInfo, LoadingPolicy policy) {
+        return new FlightCargo(FlightCargoId.create(), flightId, flightInfo,
+            flightInfo.etd().minus(policy.closesBeforeEstimatedDeparture()), null);
     }
 
-    public static FlightCargo hydrate(FlightCargoId id, FlightId flightId, FlightInfo flightInfo, List<Uld> ulds,
-                                      boolean finalized, @Nullable LoadPlannerId finalizedBy,
-                                      @Nullable Long version) {
-        FlightCargo cargo = new FlightCargo(id, flightId, flightInfo, version);
+    public static FlightCargo hydrate(FlightCargoId id, FlightId flightId, FlightInfo flightInfo,
+                                      Instant loadingClosesAt, List<Uld> ulds, boolean finalized,
+                                      @Nullable LoadPlannerId finalizedBy, @Nullable Long version) {
+        FlightCargo cargo = new FlightCargo(id, flightId, flightInfo, loadingClosesAt, version);
         cargo.ulds.addAll(ulds);
         cargo.finalized = finalized;
         cargo.finalizedBy = finalizedBy;
         return cargo;
     }
 
-    /** Replaces the copy of the flight. The loading period follows it: it is computed, never stored. */
+    /** Replaces the copy of the flight. A new ETD goes through changeEstimatedDeparture. */
     public void updateFlightInfo(FlightInfo newer) {
         flightInfo = Objects.requireNonNull(newer, "Flight info cannot be null");
+    }
+
+    /**
+     * A new ETD moves the end of the loading period, but only while the period has not ended:
+     * once closed, always closed (analysis question 8). Removing a delay can close it.
+     */
+    public void changeEstimatedDeparture(Instant etd, Instant now, LoadingPolicy policy) {
+        if (now.isBefore(loadingClosesAt)) {
+            loadingClosesAt = etd.minus(policy.closesBeforeEstimatedDeparture());
+        }
+        flightInfo = flightInfo.withEstimatedDeparture(etd);
     }
 
     public boolean hasBooked(UldCode code) {
@@ -116,11 +131,9 @@ public class FlightCargo {
         return new LoadFinalized(id, flightId, load, by, now);
     }
 
-    /** From STD minus the opening time (included) until the current ETD minus the closing time (not included). */
+    /** From STD minus the opening time (included) until the stored closing time (not included). */
     public LoadingPeriod loadingPeriod(LoadingPolicy policy) {
-        return new LoadingPeriod(
-            flightInfo.std().minus(policy.opensBeforeScheduledDeparture()),
-            flightInfo.etd().minus(policy.closesBeforeEstimatedDeparture()));
+        return new LoadingPeriod(flightInfo.std().minus(policy.opensBeforeScheduledDeparture()), loadingClosesAt);
     }
 
     public FlightCargoId getId() {
@@ -133,6 +146,10 @@ public class FlightCargo {
 
     public FlightInfo getFlightInfo() {
         return flightInfo;
+    }
+
+    public Instant getLoadingClosesAt() {
+        return loadingClosesAt;
     }
 
     public List<Uld> getUlds() {

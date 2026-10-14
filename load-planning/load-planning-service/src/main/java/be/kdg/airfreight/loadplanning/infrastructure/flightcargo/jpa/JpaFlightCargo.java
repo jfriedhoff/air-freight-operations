@@ -66,6 +66,9 @@ public class JpaFlightCargo {
     private boolean departed;
 
     @Column(nullable = false)
+    private Instant loadingClosesAt;
+
+    @Column(nullable = false)
     private boolean finalized;
 
     private @Nullable UUID finalizedBy;
@@ -95,6 +98,7 @@ public class JpaFlightCargo {
         jpaCargo.etd = info.etd();
         jpaCargo.eta = info.eta();
         jpaCargo.departed = info.departed();
+        jpaCargo.loadingClosesAt = cargo.getLoadingClosesAt();
         jpaCargo.finalized = cargo.isFinalized();
         LoadPlannerId finalizedBy = cargo.getFinalizedBy();
         jpaCargo.finalizedBy = finalizedBy == null ? null : finalizedBy.id();
@@ -108,6 +112,7 @@ public class JpaFlightCargo {
             new FlightId(new FlightNumber(flightNumber), scheduledDepartureDate, new AirportCode(departureAirport)),
             new FlightInfo(new AirportCode(arrivalAirport), new AircraftType(aircraftType), std, sta, etd, eta,
                 departed),
+            loadingClosesAt,
             ulds.stream().map(JpaUld::toDomain).toList(),
             finalized,
             finalizedBy == null ? null : new LoadPlannerId(finalizedBy),
