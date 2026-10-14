@@ -7,7 +7,6 @@ import java.util.List;
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.ClearLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.FinalizeLoadCommand;
-import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
@@ -15,7 +14,9 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlan;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlanCatalog;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckReport;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionCleared;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -42,12 +43,17 @@ public class LoadService {
         this.clock = clock;
     }
 
+    /** The cargo of a flight as it stands at this moment. */
+    @Transactional(readOnly = true)
+    public FlightCargoSnapshot get(FlightCargoId id) {
+        FlightCargo cargo = find(id);
+        return snapshot(cargo, floorPlanOf(cargo), clock.instant());
+    }
+
     public FlightCargo assign(AssignLoadPositionCommand command) {
         FlightCargo cargo = find(command.flightCargoId());
         FloorPlan floorPlan = floorPlanOf(cargo);
-        LoadPosition position = floorPlan.positionNamed(command.positionName())
-            .orElseThrow(() -> new DomainRuleViolationException("Load position " + command.positionName()
-                + " is not on the floor plan of aircraft type " + floorPlan.aircraftType().code()));
+        LoadPosition position = floorPlan.position(command.positionName());
         events.publishEvent(cargo.assign(command.uldCode(), position, command.by(), clock.instant(), floorPlan,
             policy));
         cargos.save(cargo);
@@ -56,8 +62,9 @@ public class LoadService {
 
     public FlightCargo clear(ClearLoadPositionCommand command) {
         FlightCargo cargo = find(command.flightCargoId());
-        events.publishEvent(cargo.clear(command.uldCode(), command.by(), clock.instant(), policy));
+        LoadPositionCleared cleared = cargo.clear(command.uldCode(), command.by(), clock.instant(), policy);
         cargos.save(cargo);
+        events.publishEvent(cleared);
         return cargo;
     }
 
@@ -77,10 +84,15 @@ public class LoadService {
         Instant now = clock.instant();
         LoadCheckReport report = cargo.checkLoad(checks, floorPlan);
         if (report.hardChecksPassed()) {
-            events.publishEvent(cargo.finalizeLoad(command.by(), now, checks, floorPlan, policy));
+            LoadFinalized finalized = cargo.finalizeLoad(command.by(), now, checks, floorPlan, policy);
             cargos.save(cargo);
+            events.publishEvent(finalized);
         }
         return report;
+    }
+
+    private FlightCargoSnapshot snapshot(FlightCargo cargo, FloorPlan floorPlan, Instant now) {
+        return new FlightCargoSnapshot(cargo, floorPlan, cargo.loadingPeriod(policy), cargo.loadCanChange(now, policy));
     }
 
     private FlightCargo find(FlightCargoId id) {

@@ -3,6 +3,7 @@ plugins {
     id 'jacoco'
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.owasp.dependencycheck' version '12.2.2'
     id "io.freefair.lombok" version '9.7.0'
     id "info.solidsoft.pitest" version "1.19.0"
 }
@@ -48,6 +49,19 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
     finalizedBy 'jacocoTestReport'
+}
+
+// OWASP dependency-check: ./gradlew dependencyCheckAnalyze, report in build/reports
+dependencyCheck {
+    nvd {
+        // without an API key, downloading the vulnerability database takes hours: https://nvd.nist.gov/developers/request-an-api-key
+        def nvdApiKey = System.getenv('NVD_API_KEY')
+        if (nvdApiKey) {
+            apiKey = nvdApiKey
+        }
+    }
+    // a known vulnerability with a CVSS score of 7 (high) or more fails the task
+    failBuildOnCVSS = 7.0f
 }
 
 // Line coverage of the tests. Report: build/reports/jacoco/test/html/index.html

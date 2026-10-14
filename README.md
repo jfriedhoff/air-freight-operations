@@ -56,12 +56,51 @@ Keycloak importeert bij de eerste start de realm `air-freight` uit `keycloak/air
 
 | Gebruiker | Wachtwoord | Rol |
 | --- | --- | --- |
-| `flight_planner` | `password` | flight planner |
-| `load_planner` | `password` | load planner |
+| `flight_planner` | `FLIGHT_PLANNER_PASSWORD` uit `.env` | flight planner |
+| `load_planner` | `LOAD_PLANNER_PASSWORD` uit `.env` | load planner |
+
+De geheimen van de realm staan niet in Git. Het realmbestand bevat alleen plaatshouders (`${LOAD_PLANNER_PASSWORD}`, …); Docker Compose geeft de waarden uit het bestand `.env` door aan Keycloak, dat ze bij het importeren invult. Maak `.env` één keer aan vóór de eerste `docker compose up`:
+
+```bash
+cp .env.example .env    # en kies zelf een waarde voor elke regel
+```
+
+Zonder `.env` weigert Docker Compose te starten en zegt het welke waarde ontbreekt.
 
 Draaide Keycloak al van vóór deze wijziging, dan bestaat de realm nog niet: `docker compose up -d --force-recreate idp_keycloak`. Wijzigt het realmbestand later, verwijder dan de realm `air-freight` in de Keycloak-console en herstart Keycloak; een bestaande realm wordt niet opnieuw geïmporteerd.
 
-De API antwoordt 401 zonder token en 403 met de verkeerde rol. `flight-operations/flight-operations-service/http/flight_api.http` meldt zich aan als `flight_planner` en probeert de API uit. De clientgeheimen in het realmbestand dienen alleen voor die lokale tests.
+De API antwoordt 401 zonder token en 403 met de verkeerde rol. `flight-operations/flight-operations-service/http/flight_api.http` meldt zich aan als `flight_planner` en probeert de API uit.
+
+Het clientgeheim en de wachtwoorden staan niet in Git. Maak naast elk `http-client.env.json` één keer een bestand `http-client.private.env.json` aan (het staat in `.gitignore`), met de waarden uit je `.env`:
+
+```json
+{
+  "dev": {
+    "client-secret": "FLIGHT_OPERATIONS_SERVICE_CLIENT_SECRET",
+    "password": "FLIGHT_PLANNER_PASSWORD"
+  }
+}
+```
+
+### Bekende kwetsbaarheden in dependencies
+
+Elke service past de OWASP dependency-check plugin toe. Die vergelijkt de dependencies met de National Vulnerability Database (NVD) en faalt bij een bekende kwetsbaarheid met een CVSS-score van 7 of meer:
+
+```bash
+export NVD_API_KEY=<je sleutel>     # https://nvd.nist.gov/developers/request-an-api-key
+./gradlew :load-planning:load-planning-service:dependencyCheckAnalyze   # rapport in build/reports van de service
+```
+
+Op Windows zet je de sleutel zo:
+
+```powershell
+$env:NVD_API_KEY = "<je sleutel>"    # PowerShell, alleen dit venster
+set NVD_API_KEY=<je sleutel>         # cmd, alleen dit venster
+setx NVD_API_KEY "<je sleutel>"      # blijvend, geldt pas in nieuwe vensters (ook IntelliJ herstarten)
+gradlew.bat :load-planning:load-planning-service:dependencyCheckAnalyze
+```
+
+De eerste run haalt de hele databank op; zonder sleutel duurt dat uren. De controle hoort niet bij `./gradlew build`, zodat de build snel blijft en zonder netwerk werkt.
 
 ## Berichten tussen de services
 

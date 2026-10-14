@@ -5,6 +5,7 @@ import java.time.Clock;
 import be.kdg.airfreight.loadplanning.application.command.BookUldCommand;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.UldBooked;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -27,15 +28,15 @@ public class BookingService {
     @Transactional
     public void bookUld(BookUldCommand command) {
         FlightCargo cargo = cargos.findByFlightId(command.flightId())
-            .orElseThrow(() -> FlightInfoService.notFound(command.flightId()));
+            .orElseThrow(command.flightId()::cargoNotFound);
         if (cargo.hasBooked(command.uldCode())) {
             log.warn("ULD {} is already booked on flight {} of {}: booking ignored", command.uldCode().value(),
                 command.flightId().flightNumber().value(), command.flightId().scheduledDepartureDate());
             return;
         }
-        events.publishEvent(cargo.book(command.uldCode(), command.weight(), command.destination(),
-            clock.instant()));
+        UldBooked booked = cargo.book(command.uldCode(), command.weight(), command.destination(), clock.instant());
         cargos.save(cargo);
+        events.publishEvent(booked);
         log.info("ULD {} booked on flight {} of {}", command.uldCode().value(),
             command.flightId().flightNumber().value(), command.flightId().scheduledDepartureDate());
     }

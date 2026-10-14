@@ -79,3 +79,6 @@ logs/
 # Claude Code: personal settings stay local
 .claude/settings.local.json
 CLAUDE.md
+
+### IntelliJ HTTP client secrets ###
+http-client.private.env.json
