@@ -23,6 +23,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, "index.html"),
+                cargo: resolve(__dirname, "html/cargo.html"),
             },
         },
         outDir: "../load-planning-service/src/main/resources/static",

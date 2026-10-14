@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- no icon of our own: an empty one stops the browser from asking for /favicon.ico (a 404 on every page) -->
+    <link rel="icon" href="data:,"/>
+    <title>Cargo-pagina</title>
+    <script type="module" src="../src/ts/presenter/cargoPresenter.ts"></script>
+    <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
+    <link rel="stylesheet" href="../src/css/style.css"/>
+</head>
+<body class="container m-5 invisible">
+<div class="flex justify-end items-center gap-2">
+    <span id="user-name"></span>
+    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
+</div>
+<p><a class="link" id="back-to-list" href="flights-to-load.html">← Te beladen vluchten</a></p>
+<h1 class="text-2xl font-bold">Cargo-pagina</h1>
+<p class="text-sm opacity-70">Alle tijden in Brusselse tijd.</p>
+
+<div class="alert hidden my-4" id="message-box"></div>
+
+<section id="cargo" class="hidden">
+    <div class="flex items-center gap-4 my-2">
+        <button id="refresh-btn" class="btn btn-sm">Vernieuwen</button>
+        <span id="updated-at" class="text-sm opacity-70"></span>
+    </div>
+
+    <table class="table w-auto my-4">
+        <tbody>
+        <tr><th>Vlucht</th><td id="flight-number"></td></tr>
+        <tr><th>Scheduled vertrekdatum (UTC)</th><td id="scheduled-departure-date"></td></tr>
+        <tr><th>Vertrek</th><td id="departure-airport"></td></tr>
+        <tr><th>Aankomst</th><td id="arrival-airport"></td></tr>
+        <tr><th>STD</th><td id="std"></td></tr>
+        <tr id="etd-row" class="hidden"><th>ETD</th><td id="etd"></td></tr>
+        <tr><th>STA</th><td id="sta"></td></tr>
+        <tr id="eta-row" class="hidden"><th>ETA</th><td id="eta"></td></tr>
+        <tr><th>Beladingsperiode</th><td id="loading-period"></td></tr>
+        </tbody>
+    </table>
+
+    <p id="load-state" class="font-bold hidden"></p>
+    <p id="role-note" class="hidden">Alleen een load planner kan laadposities wijzigen.</p>
+
+    <h2 class="text-xl font-bold mt-6">Geboekte ULD's</h2>
+    <p id="uld-summary"></p>
+    <p id="no-ulds" class="hidden">Geen geboekte ULD's.</p>
+    <table id="uld-table" class="table">
+        <thead>
+        <tr><th>ULD</th><th>Gewicht</th><th>Bestemming</th><th>Laadpositie</th></tr>
+        </thead>
+        <tbody id="ulds"></tbody>
+    </table>
+
+    <!-- Check Load and Finalize Load come here -->
+    <section id="load-actions"></section>
+    <section id="load-check-report"></section>
+</section>
+</body>
+</html>
