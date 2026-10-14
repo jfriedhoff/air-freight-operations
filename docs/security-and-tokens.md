@@ -110,19 +110,29 @@ Configured in `SecurityConfig`:
 - No CORS configuration: in development Vite forwards `/api` to the service, and the built frontend is
   served by the service itself.
 
-## Secrets in the repository
+## Secrets
 
-These are development values and they are committed:
+The secrets of the realm and of the HTTP client are not in the repository:
 
 | What | Where |
 | --- | --- |
-| Client secrets `flight-operations-dev-secret`, `load-planning-dev-secret` | `keycloak/air-freight-realm.json` |
-| Client secret and the login of `flight_planner` for the HTTP client | `flight-operations-service/http/http-client.env.json` |
-| Passwords of the two test users | `keycloak/air-freight-realm.json` |
+| Client secrets of `flight-operations-service` and `load-planning-service` | `.env` (ignored by git), handed to Keycloak by Docker Compose |
+| Passwords of the two test users | `.env` |
+| Client secret and passwords for the HTTP client | `http/http-client.private.env.json` of each service (ignored by git) |
+
+`keycloak/air-freight-realm.json` holds a placeholder such as `${LOAD_PLANNER_PASSWORD}` for each of them;
+Keycloak fills the placeholders from its environment when it imports the realm. `.env.example` lists the
+names. The values that were committed before are still in the history of the repository and have been
+replaced.
+
+These development values are still committed:
+
+| What | Where |
+| --- | --- |
 | Passwords of PostgreSQL, RabbitMQ, MySQL and the Keycloak admin | `docker-compose.yml`, `init-scripts/sql/init.sql`, `application.properties` |
 
-The client secrets are only used by the password grant in `flight_api.http`. The frontend and the
-service do not need them: the frontend is a public client and the service only validates tokens.
+The client secrets are only used by the password grant in the `.http` files. The frontends and the
+services do not need them: a frontend is a public client and a service only validates tokens.
 
 ## Tests
 
@@ -138,8 +148,8 @@ resource server with issuer and audience, `KeycloakRealmRoleConverter`, the logi
 
 | Topic | Reference project | This project |
 | --- | --- | --- |
-| Secrets for the HTTP client | In `http-client.private.env.json`, ignored by git | In the committed `http-client.env.json` |
-| Realm | Created by hand with `keycloak_setup.md`; no secret in the repository | Imported from `keycloak/air-freight-realm.json`, with the client secrets |
+| Secrets for the HTTP client | In `http-client.private.env.json`, ignored by git | The same |
+| Realm | Created by hand with `keycloak_setup.md`; no secret in the repository | Imported from `keycloak/air-freight-realm.json`; its secrets are placeholders filled from `.env` |
 | Secured services | All three | Only flight-operations |
 | Token between services | The order service gets a client credentials token to call the product service | None: our services only exchange RabbitMQ messages |
 | Roles | `hasAnyRole("customer", "admin")` on `/api/**` | Exactly one planner role to read, `flight-planner` to change |
