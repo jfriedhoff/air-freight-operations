@@ -16,9 +16,11 @@ One section per team member. Remove an item when its merge request is merged.
 ### Links between the contexts and `GET /api/flights` belong to the overview (#4)
 
 **Decided on 14/10/2026.** The branch of stories #33 and #35 secures both contexts, adds their feature
-files and a start page (portal) after login that links to the start pages of both contexts. It does
-**not** add links between the cargo-pagina and Vluchtdetails, nor a flight list endpoint in Flight
-Operations. Those come with the overview of all flights (#4), where `GET /api/flights` is designed once.
+files and a start page (portal) after login. The portal links to te beladen vluchten (Load Planning); the
+overview of the flights is plain text there until #4, and the start page of Load Planning links back to the
+portal. It does **not** add links between the cargo-pagina and Vluchtdetails, nor a flight list endpoint in
+Flight Operations. Those come with the overview of all flights (#4), where `GET /api/flights` is designed
+once.
 
 Until #4 a load planner can open Load Planning from the portal, but has no way to reach Vluchtdetails.
 
@@ -30,6 +32,13 @@ Until #4 a load planner can open Load Planning from the portal, but has no way t
   the flight identity (flight number, scheduled departure date in UTC, departure airport) of the loaded
   resource; the host from a `VITE_*` variable; no return or redirect address in the URL.
 - The cargo-pagina by identity through `GET /api/flight-cargos?scheduledDepartureDate=…&includeDeparted=true`.
+
+### Step "it is recorded that … did that" for #10, #12 and #13
+
+The Flight Operations step behind this sentence of story 33 checks the planner recorded on the only delay
+of the flight. When the `@wip` rows of #33 get their endpoints (change and remove a delay: #10; ATD: #12;
+ATA: #13), the step must look at what each action records: the delay that was changed, the planner of the
+ATD or the ATA. Who removed a delay is a design question for #10, because the delay itself is gone.
 
 ## Jonas
 
