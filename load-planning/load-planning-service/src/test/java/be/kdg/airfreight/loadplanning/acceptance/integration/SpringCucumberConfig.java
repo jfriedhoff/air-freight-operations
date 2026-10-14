@@ -1,11 +1,14 @@
 package be.kdg.airfreight.loadplanning.acceptance.integration;
 
+import be.kdg.airfreight.loadplanning.TestClock;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 
 @CucumberContextConfiguration
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestClock.class)
 public class SpringCucumberConfig {
 }
