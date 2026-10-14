@@ -4,6 +4,7 @@ import java.time.Clock;
 
 import be.kdg.airfreight.flightoperations.application.command.RecordFinalizedLoadCommand;
 import be.kdg.airfreight.flightoperations.domain.NotFoundException;
+import be.kdg.airfreight.flightoperations.domain.flight.FinalizedLoadReceived;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -36,8 +37,9 @@ public class FinalizedLoadService {
                 command.flightNumber().value(), command.scheduledDepartureDate());
             return;
         }
-        events.publishEvent(flight.recordFinalizedLoad(clock.instant()));
+        FinalizedLoadReceived recorded = flight.recordFinalizedLoad(clock.instant());
         flights.save(flight);
+        events.publishEvent(recorded);
         log.info("Finalized load recorded for flight {} of {}", command.flightNumber().value(),
             command.scheduledDepartureDate());
     }
