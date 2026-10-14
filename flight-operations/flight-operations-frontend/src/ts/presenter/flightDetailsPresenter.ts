@@ -71,6 +71,8 @@ function renderFlight(flight: Flight): void {
     const kinds = delayKindsToAdd(flight, isFlightPlanner);
     kindField.replaceChildren(...kinds.map(kindOption));
     delayForm.classList.toggle("hidden", kinds.length === 0);
+    // only with a flight on the screen: a load planner reads why there is no form
+    document.getElementById("role-note")!.classList.toggle("hidden", isFlightPlanner);
     details.classList.remove("hidden");
 }
 
@@ -116,7 +118,6 @@ async function init(): Promise<void> {
         return;
     }
     isFlightPlanner = role === FLIGHT_PLANNER;
-    document.getElementById("role-note")!.classList.toggle("hidden", isFlightPlanner);
     try {
         if (isFlightPlanner) {
             renderDelayReasons(await getDelayReasons());

@@ -118,6 +118,15 @@ export NVD_API_KEY=<je sleutel>     # https://nvd.nist.gov/developers/request-an
 ./gradlew :load-planning:load-planning-service:dependencyCheckAnalyze   # rapport in build/reports van de service
 ```
 
+Op Windows zet je de sleutel zo:
+
+```powershell
+$env:NVD_API_KEY = "<je sleutel>"    # PowerShell, alleen dit venster
+set NVD_API_KEY=<je sleutel>         # cmd, alleen dit venster
+setx NVD_API_KEY "<je sleutel>"      # blijvend, geldt pas in nieuwe vensters (ook IntelliJ herstarten)
+gradlew.bat :load-planning:load-planning-service:dependencyCheckAnalyze
+```
+
 De eerste run haalt de hele databank op; zonder sleutel duurt dat uren. De controle hoort niet bij `./gradlew build`, zodat de build snel blijft en zonder netwerk werkt.
 
 ## Berichten tussen de services
