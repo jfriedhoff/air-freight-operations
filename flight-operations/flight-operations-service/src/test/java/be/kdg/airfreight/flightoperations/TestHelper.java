@@ -128,8 +128,12 @@ public class TestHelper {
     }
 
     public FlightPlannerId saveFlightPlanner() {
+        return saveFlightPlanner("Test flight planner");
+    }
+
+    public FlightPlannerId saveFlightPlanner(String name) {
         FlightPlannerId id = FlightPlannerId.create();
-        flightPlanners.save(new FlightPlanner(id, "Test flight planner"));
+        flightPlanners.save(new FlightPlanner(id, name));
         return id;
     }
 
