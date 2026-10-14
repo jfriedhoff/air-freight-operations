@@ -43,6 +43,13 @@ public class LoadService {
         this.clock = clock;
     }
 
+    /** The cargo of a flight as it stands at this moment. */
+    @Transactional(readOnly = true)
+    public FlightCargoSnapshot get(FlightCargoId id) {
+        FlightCargo cargo = find(id);
+        return snapshot(cargo, floorPlanOf(cargo), clock.instant());
+    }
+
     public FlightCargo assign(AssignLoadPositionCommand command) {
         FlightCargo cargo = find(command.flightCargoId());
         FloorPlan floorPlan = floorPlanOf(cargo);
@@ -82,6 +89,10 @@ public class LoadService {
             events.publishEvent(finalized);
         }
         return report;
+    }
+
+    private FlightCargoSnapshot snapshot(FlightCargo cargo, FloorPlan floorPlan, Instant now) {
+        return new FlightCargoSnapshot(cargo, floorPlan, cargo.loadingPeriod(policy), cargo.loadCanChange(now, policy));
     }
 
     private FlightCargo find(FlightCargoId id) {
