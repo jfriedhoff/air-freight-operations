@@ -6,7 +6,7 @@ One section per team member. Remove an item when its merge request is merged.
 ## In short
 
 - Jonas: an airline code needs at least one letter (answer of the coach on 14/10/2026).
-- Jonas: steps for the scenarios that lost `@to-confirm` on 14/10/2026 (#15, #26, #30); the build fails until they exist.
+- Jonas: steps for the scenarios that lost `@to-confirm` on 14/10/2026 (#15, #26, #30); they are `@wip` until the steps exist.
 - Jonas: ask the coach what happens to a load that is not finalized in time (#18).
 
 ## Jonas
@@ -49,9 +49,9 @@ as `AB` + `1234`.
 The coach answered all five `@to-confirm` questions on 14/10/2026 (`REFLECTIE.md`, Zelfreflectie 2,
 Post coaching). The tags are removed in #15, #18, #26 and #30, and in #26 the step "And the duplicate
 is logged" is gone (no inbox in Load Planning). The runners used to skip these scenarios
-(`"... and not @to-confirm and not @wip"`), so most of their steps do not exist yet and the build
-fails on them until they are written. #4 and #6 keep `@to-confirm`: they wait for question 9 of the
-analysis.
+(`"... and not @to-confirm and not @wip"`), so the steps of the three scenarios below do not exist yet.
+They are tagged `@wip` until they do, so the build stays green; implementing one starts by removing
+`@wip`. #4 and #6 keep `@to-confirm`: they wait for question 9 of the analysis.
 
 | File | Change |
 | --- | --- |
@@ -61,7 +61,8 @@ analysis.
 
 **After the code:**
 
-- Run `UnitAcceptanceTest` and `IntegrationAcceptanceTest` in load-planning and messaging.
+- Remove `@wip` from the three scenarios, then run `UnitAcceptanceTest` and `IntegrationAcceptanceTest`
+  in load-planning and messaging.
 - Remove the label `to-confirm` from issues #15, #18, #26 and #30 on GitLab and update their
   Gherkin.
 - Remove the line "*Scenario's met `@to-confirm`: ...*" in `REFLECTIE.md` (Zelfreflectie 2, Vragen),
