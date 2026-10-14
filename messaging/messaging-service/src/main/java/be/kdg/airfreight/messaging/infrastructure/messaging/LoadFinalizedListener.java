@@ -15,7 +15,7 @@ class LoadFinalizedListener {
         this.loads = loads;
     }
 
-    @RabbitListener(queues = MessagingConfig.LOADS_QUEUE)
+    @RabbitListener(queues = "${messaging.amqp.loads-queue}")
     void on(Message message) {
         loads.receiveLoadFinalized(new String(message.getBody(), StandardCharsets.UTF_8));
     }

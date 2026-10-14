@@ -6,6 +6,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightNumber;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Weight;
+import be.kdg.airfreight.loadplanning.infrastructure.messaging.AmqpProperties;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -31,8 +32,6 @@ import static org.awaitility.Awaitility.await;
  */
 @Component
 public class MessagingEvents {
-    private static final String MESSAGING_EVENTS = "messaging.events";
-    private static final String DEAD_LETTER_QUEUE = "load-planning.dlq";
     /** A refused message is retried three times (1 + 2 + 4 s) before it is set aside. */
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
     private static final LocalTime STD = LocalTime.of(6, 45);
@@ -42,12 +41,15 @@ public class MessagingEvents {
     private final RabbitTemplate rabbit;
     private final JsonMapper mapper;
     private final FlightCargoRepository cargos;
+    private final AmqpProperties amqp;
     private final AtomicInteger followUps = new AtomicInteger();
 
-    public MessagingEvents(RabbitTemplate rabbit, JsonMapper mapper, FlightCargoRepository cargos) {
+    public MessagingEvents(RabbitTemplate rabbit, JsonMapper mapper, FlightCargoRepository cargos,
+                           AmqpProperties amqp) {
         this.rabbit = rabbit;
         this.mapper = mapper;
         this.cargos = cargos;
+        this.amqp = amqp;
     }
 
     public void flightAnnounced(FlightId flight) {
@@ -90,7 +92,7 @@ public class MessagingEvents {
     /** Takes dead letters until the one with this identification; older ones (from earlier runs) are dropped. */
     public void assertSetAside(UUID messageId) {
         await().atMost(TIMEOUT).until(() -> {
-            Message letter = rabbit.receive(DEAD_LETTER_QUEUE, 500);
+            Message letter = rabbit.receive(amqp.deadLetterQueue(), 500);
             return letter != null
                 && new String(letter.getBody(), StandardCharsets.UTF_8).contains(messageId.toString());
         });
@@ -107,7 +109,7 @@ public class MessagingEvents {
         body.put("scheduledDepartureDate", flight.scheduledDepartureDate().toString());
         body.put("departureAirport", flight.departureAirport().value());
         body.putAll(fields);
-        rabbit.send(MESSAGING_EVENTS, type, MessageBuilder
+        rabbit.send(amqp.messagingEventsExchange(), type, MessageBuilder
             .withBody(mapper.writeValueAsString(body).getBytes(StandardCharsets.UTF_8))
             .setContentType("application/json")
             .build());

@@ -1,6 +1,6 @@
 package be.kdg.airfreight.simulator;
 
-import be.kdg.airfreight.simulator.infrastructure.messaging.StreamProperties;
+import be.kdg.airfreight.simulator.infrastructure.messaging.AmqpProperties;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.core.Queue;
@@ -19,11 +19,11 @@ class StreamProbeConfig {
     static final String BOOKINGS_QUEUE = "simulator-test.bookings";
 
     @Bean
-    Declarables probeQueues(StreamProperties streams) {
+    Declarables probeQueues(AmqpProperties amqp) {
         Queue schedule = QueueBuilder.durable(SCHEDULE_QUEUE).build();
         Queue bookings = QueueBuilder.durable(BOOKINGS_QUEUE).build();
         return new Declarables(schedule, bookings,
-            BindingBuilder.bind(schedule).to(new TopicExchange(streams.scheduleExchange())).with("#"),
-            BindingBuilder.bind(bookings).to(new TopicExchange(streams.bookingsExchange())).with("#"));
+            BindingBuilder.bind(schedule).to(new TopicExchange(amqp.networkPlanningMessagesExchange())).with("#"),
+            BindingBuilder.bind(bookings).to(new TopicExchange(amqp.cargoBookingMessagesExchange())).with("#"));
     }
 }

@@ -2,6 +2,7 @@ package be.kdg.airfreight.messaging.acceptance.integration;
 
 import be.kdg.airfreight.messaging.domain.outgoingmessage.OutgoingMessage;
 import be.kdg.airfreight.messaging.domain.receivedmessage.ReceivedMessage;
+import be.kdg.airfreight.messaging.infrastructure.messaging.AmqpProperties;
 import be.kdg.airfreight.messaging.infrastructure.messaging.OutboxEventRepository;
 import be.kdg.airfreight.messaging.infrastructure.persistence.jpa.JpaOutgoingMessage;
 import be.kdg.airfreight.messaging.infrastructure.persistence.jpa.JpaOutgoingMessageRepository;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 import static org.awaitility.Awaitility.await;
 
@@ -34,7 +36,6 @@ import static org.awaitility.Awaitility.await;
 public class MessagingTraffic {
     /** A message with an error is not retried: it is set aside at once. */
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
-    private static final String PARTNERS_QUEUE = "partners.all";
 
     private final RabbitTemplate rabbit;
     private final JsonMapper mapper;
@@ -43,10 +44,11 @@ public class MessagingTraffic {
     private final OutboxEventRepository outbox;
     private final EntityManager entityManager;
     private final TransactionTemplate transaction;
+    private final AmqpProperties amqp;
 
     public MessagingTraffic(RabbitTemplate rabbit, JsonMapper mapper, JpaReceivedMessageRepository received,
                             JpaOutgoingMessageRepository outgoing, OutboxEventRepository outbox,
-                            EntityManager entityManager, TransactionTemplate transaction) {
+                            EntityManager entityManager, TransactionTemplate transaction, AmqpProperties amqp) {
         this.rabbit = rabbit;
         this.mapper = mapper;
         this.received = received;
@@ -54,6 +56,7 @@ public class MessagingTraffic {
         this.outbox = outbox;
         this.entityManager = entityManager;
         this.transaction = transaction;
+        this.amqp = amqp;
     }
 
     /** Publishes the message as JSON, as its sender does; its "type" is the routing key. */
@@ -63,7 +66,7 @@ public class MessagingTraffic {
 
     /** Publishes any body, also one that is not JSON. */
     public void send(Stream stream, String routingKey, String body) {
-        rabbit.send(stream.exchange, routingKey, MessageBuilder.withBody(body.getBytes(StandardCharsets.UTF_8))
+        rabbit.send(stream.exchange.apply(amqp), routingKey, MessageBuilder.withBody(body.getBytes(StandardCharsets.UTF_8))
             .setContentType("application/json")
             .build());
     }
@@ -116,7 +119,7 @@ public class MessagingTraffic {
     public Message nextPartnerMessage(UUID messageId) {
         Message[] found = new Message[1];
         await().atMost(TIMEOUT).until(() -> {
-            Message message = rabbit.receive(PARTNERS_QUEUE, 500);
+            Message message = rabbit.receive(amqp.partnersQueue(), 500);
             if (message != null && messageId.toString().equals(message.getMessageProperties().getMessageId())) {
                 found[0] = message;
             }
@@ -132,15 +135,15 @@ public class MessagingTraffic {
 
     /** The exchange of each sender, and a type its queue accepts for the follow-up of waitUntilHandled. */
     public enum Stream {
-        SCHEDULE("network-planning.messages", "network-planning.ssm"),
-        BOOKINGS("cargo-booking.messages", "cargo-booking.uld"),
-        FLIGHTS("flight-operations.events", "flight-operations.flight.announced"),
-        LOADS("load-planning.events", "load-planning.flight-cargo.load-finalized");
+        SCHEDULE(AmqpProperties::networkPlanningMessagesExchange, "network-planning.ssm"),
+        BOOKINGS(AmqpProperties::cargoBookingMessagesExchange, "cargo-booking.uld"),
+        FLIGHTS(AmqpProperties::flightOperationsEventsExchange, "flight-operations.flight.announced"),
+        LOADS(AmqpProperties::loadPlanningEventsExchange, "load-planning.flight-cargo.load-finalized");
 
-        private final String exchange;
+        private final Function<AmqpProperties, String> exchange;
         private final String followUpType;
 
-        Stream(String exchange, String followUpType) {
+        Stream(Function<AmqpProperties, String> exchange, String followUpType) {
             this.exchange = exchange;
             this.followUpType = followUpType;
         }

@@ -11,11 +11,11 @@ import org.springframework.context.annotation.Configuration;
  * consumer. Messaging declares the same exchanges; declaring is idempotent, so either may start first.
  */
 @Configuration
-@EnableConfigurationProperties(StreamProperties.class)
+@EnableConfigurationProperties(AmqpProperties.class)
 class MessagingConfig {
     @Bean
-    Declarables streams(StreamProperties streams) {
-        return new Declarables(new TopicExchange(streams.scheduleExchange()),
-            new TopicExchange(streams.bookingsExchange()));
+    Declarables streams(AmqpProperties amqp) {
+        return new Declarables(new TopicExchange(amqp.networkPlanningMessagesExchange()),
+            new TopicExchange(amqp.cargoBookingMessagesExchange()));
     }
 }

@@ -15,7 +15,7 @@ class UldMessageListener {
         this.bookings = bookings;
     }
 
-    @RabbitListener(queues = MessagingConfig.BOOKINGS_QUEUE)
+    @RabbitListener(queues = "${messaging.amqp.bookings-queue}")
     void on(Message message) {
         bookings.receiveUldMessage(new String(message.getBody(), StandardCharsets.UTF_8));
     }

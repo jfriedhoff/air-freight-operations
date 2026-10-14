@@ -239,7 +239,7 @@ The other services, after stories 2, 3, 26 to 29, 37 and 38:
 | --- | --- | --- |
 | `MessagingTraffic`, `Messages`, `ScenarioTime` | messaging | Plays the senders on their exchanges and reads what Messaging stored: the inbox, the outbox for the other units, the partner messages. `Messages` builds valid messages that a scenario changes or breaks; `ScenarioTime` gives the mocked `Clock` the time of the stories before every scenario. |
 | Counting before and after | messaging | A queue of the development environment can still hold older messages, which the listeners process first. The steps first let the queue empty (`waitUntilHandled`), then count, so only the message of the scenario can change the count. |
-| An own exchange for the events | messaging | The test profile sets `messaging.events-exchange=messaging-test.events`. The outbox relay really publishes, but no queue of Load Planning or Flight Operations is bound to that exchange. On the real exchange the events of the tests stayed in those queues: the next run of the load-planning tests handled them first, and a service started later treated them as real. |
+| Own exchanges and queues | all four services | Every service reads the names of its exchanges and queues from `AmqpProperties` (`<service>.amqp.*`). Production keeps the names in `main/resources/application.properties`; the test profile gives each one the name `<service>-test.` + the production name, such as `load-planning-test.load-planning.messaging-events`. So a service that runs at the same time never takes a test message (load-planning reads with a single active consumer: a running service would get them all), a test event never reaches another service, and the tests never declare the exchanges and queues of a running service. Before, the events of the messaging tests stayed in the queues of Load Planning: the next run of the load-planning tests handled them first, and a service started later treated them as real. |
 | Calling the use case | flight-operations | The tests of Flight Operations read nothing from RabbitMQ (see its test profile), and `DddArchTest` lets only the listener call a use case from infrastructure. So the steps of story 2 call `FlightSchedulingService`, as `MessagingEventListener` does. |
 | `TestClock` | flight-operations, load-planning | A `@Primary` clock that a scenario can set (story 38: "it is 16 January 2026 00:00 UTC"); otherwise the system time. |
 | `RabbitMqOutageSteps` | flight-operations | Story 28: points the connection factory at a port where nothing listens (`setAddresses`: Spring Boot passes an address list, which wins over the port) and puts it back after the scenario. |
@@ -267,9 +267,9 @@ Implementing a story:
 The `.feature` file is the source of truth for the acceptance criteria. The GitLab issue links to
 it; when a criterion changes, change the file in the same MR.
 
-Stories with only `@ui` or `@e2e` scenarios have no file: Cucumber does not run them. The
-cross-cutting stories (33, 35, 36, 39) are added once security exists. Story 37 is split over
-flight-operations and load-planning: each file keeps only the Examples rows of its own service.
+Stories with only `@ui` or `@e2e` scenarios have a file too, so the issue can link to it; Cucumber
+does not run them. A story that spans several services (7, 34, 36, 37, 39) is split: each service's
+file keeps only the scenarios or Examples rows it answers, and says in a comment where the rest is.
 
 ## Adding a story
 

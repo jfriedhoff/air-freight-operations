@@ -16,7 +16,7 @@ class SsmListener {
         this.schedule = schedule;
     }
 
-    @RabbitListener(queues = MessagingConfig.SCHEDULE_QUEUE)
+    @RabbitListener(queues = "${messaging.amqp.schedule-queue}")
     void on(Message message) {
         schedule.receiveSsm(new String(message.getBody(), StandardCharsets.UTF_8));
     }

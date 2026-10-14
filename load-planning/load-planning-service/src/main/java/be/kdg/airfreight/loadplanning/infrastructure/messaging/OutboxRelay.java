@@ -23,11 +23,13 @@ public class OutboxRelay {
     private final OutboxEventRepository outbox;
     private final RabbitTemplate rabbit;
     private final Clock clock;
+    private final AmqpProperties amqp;
 
-    OutboxRelay(OutboxEventRepository outbox, RabbitTemplate rabbit, Clock clock) {
+    OutboxRelay(OutboxEventRepository outbox, RabbitTemplate rabbit, Clock clock, AmqpProperties amqp) {
         this.outbox = outbox;
         this.rabbit = rabbit;
         this.clock = clock;
+        this.amqp = amqp;
     }
 
     @Scheduled(fixedDelayString = "${load-planning.outbox.delay-ms}")
@@ -39,7 +41,7 @@ public class OutboxRelay {
                 .setMessageId(event.getMessageId().toString())
                 .build();
             try {
-                rabbit.send(MessagingConfig.LOAD_PLANNING_EVENTS, event.getType(), message);
+                rabbit.send(amqp.eventsExchange(), event.getType(), message);
             } catch (RuntimeException e) {
                 log.warn("Event {} ({}) could not be published and stays in the outbox: {}",
                     event.getMessageId(), event.getType(), e.getMessage());
