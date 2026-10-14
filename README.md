@@ -82,6 +82,17 @@ Het clientgeheim en de wachtwoorden staan niet in Git. Maak naast elk `http-clie
 }
 ```
 
+### Bekende kwetsbaarheden in dependencies
+
+Elke service past de OWASP dependency-check plugin toe. Die vergelijkt de dependencies met de National Vulnerability Database (NVD) en faalt bij een bekende kwetsbaarheid met een CVSS-score van 7 of meer:
+
+```bash
+export NVD_API_KEY=<je sleutel>     # https://nvd.nist.gov/developers/request-an-api-key
+./gradlew :load-planning:load-planning-service:dependencyCheckAnalyze   # rapport in build/reports van de service
+```
+
+De eerste run haalt de hele databank op; zonder sleutel duurt dat uren. De controle hoort niet bij `./gradlew build`, zodat de build snel blijft en zonder netwerk werkt.
+
 ## Berichten tussen de services
 
 De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert op haar eigen exchange en leest van één eigen queue.
