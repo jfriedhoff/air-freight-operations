@@ -1,5 +1,6 @@
 package be.kdg.airfreight.loadplanning.acceptance.integration;
 
+import be.kdg.airfreight.loadplanning.TestClock;
 import be.kdg.airfreight.loadplanning.LoadPlanningApplication;
 import be.kdg.airfreight.loadplanning.acceptance.common.Weights;
 import be.kdg.airfreight.loadplanning.application.LoadService;
