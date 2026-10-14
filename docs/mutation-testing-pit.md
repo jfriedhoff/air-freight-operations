@@ -53,8 +53,11 @@ Line coverage (≥ 60 % for the evaluation) counts which lines are executed. A t
 
 Not every survivor is a problem. For each one, ask:
 
-1. **Does this line belong to an acceptance criterion?** Then a scenario is missing a check: add a
-   `Then` step or make an existing one stricter.
+1. **Is the line a domain rule?** Then a scenario is missing a check: add a `Then` step, make an
+   existing one stricter, or add a scenario to the story the rule belongs to, also for an edge case
+   the story does not mention. **Is it a technical contract or a returned value** (`equals`, an
+   event)? Then it gets a plain JUnit test (see "Plain JUnit tests next to the scenarios" in
+   [`cucumber-acceptance-tests.md`](cucumber-acceptance-tests.md)).
 2. **Is the line only used by persistence** (`hydrate`, getters for the mapper)? Then the
    integration tests cover it, not PIT.
 3. **Is the mutant equivalent** (it behaves exactly like the original)? Then we ignore it.
@@ -76,6 +79,7 @@ There is no minimum score (`mutationThreshold`) that fails the build yet.
 | --- | --- | --- | --- | --- |
 | 7 October 2026 | Cucumber `@unit` scenarios up to story 13 | 118 | 74 (63 %) | 84 % |
 | 7 October 2026 | + `FlightTest`, `ActualTimeToleranceTest` | 118 | 88 (75 %) | 99 % |
+| 14 October 2026 | Domain rules from JUnit to scenarios (stories 10, 37) | 126 | 99 (79 %) | 99 % |
 
 The first measurement found these gaps; `FlightTest` and `ActualTimeToleranceTest` close them:
 
@@ -86,6 +90,12 @@ The first measurement found these gaps; `FlightTest` and `ActualTimeToleranceTes
 - `changeDelay` only sends new estimates when the minutes change: not tested.
 - `Delay.equals` could always return `true`: every scenario removed the first of its delays.
 - A negative `ActualTimeTolerance` was not tested.
+
+On 14 October 2026 the domain rules moved from JUnit to scenarios: "Removing one of several delays"
+(story 10) now removes the first and the later delay and checks which one remains, which kills the
+`Delay.equals` mutant that `FlightTest` killed before. Story 37 has a `@unit` outline for a negative
+tolerance and retention period, which replaces `ActualTimeToleranceTest`. The duplicate of story 08
+left `DelayCodeCatalogTest`.
 
 **Still surviving (accepted):** one mutant in `Delay.equals` that negates the `instanceof` check.
 It only behaves differently for two `Delay` objects with the same id, and only `hydrate`
@@ -105,6 +115,7 @@ have no tests yet (2, 38).
 | 7 October 2026 | + story 22 | 163 | 102 (63 %) | 85 % |
 | 7 October 2026 | + story 18 | 163 | 120 (74 %) | 90 % |
 | 14 October 2026 | Loading period stays closed (story 18) | 165 | 128 (78 %) | 92 % |
+| 14 October 2026 | + stories 15, 20, 21, 37 for the rules without a scenario, `FlightCargoTest`, `UldTest` | 165 | 139 (84 %) | 99 % |
 
 Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
 through but does not check: `book` and `assign` (stories 15, 18) and the validation of
@@ -133,6 +144,25 @@ The stored closing time of the loading period adds `changeEstimatedDeparture` an
 ended" and "Removing a delay closes the loading period" kill the mutant of the `if` in
 `changeEstimatedDeparture`. `getLoadingClosesAt` has no coverage: only the JPA mapping reads it, as with
 `getVersion`.
+
+The last survivors were rules without a scenario and returned values without a check. The rules got
+scenarios, and `OffloadingCheckTest` moved into them:
+
+| Survivor | Now killed by |
+| --- | --- |
+| The duplicate check in `book` returning `false` | Story 15, "The same ULD code twice on one flight is refused" (the integration scenario never reaches the domain: `BookingService` stops the duplicate first) |
+| `Weight`: `<= 0` becomes `< 0` | Story 15, "A ULD always weighs something" |
+| The validation of `LoadingPolicy` and `LateralBalanceLimit` | Story 37, "A policy value cannot be negative" |
+| The report with several ULDs (was `OffloadingCheckTest`) | Stories 20 and 21, a scenario each with a table of ULDs and the whole report |
+| `book` returning `null`, `hasBooked` returning `true` | `FlightCargoTest`, which also checks the events of `assign`, `clear` and `finalizeLoad` (the Then steps of stories 18 and 24 now only check the state) |
+| `Uld.equals` | `UldTest` |
+
+**Still surviving (accepted):**
+
+- `Uld.hashCode` returning 0 is equivalent: equal ULDs still get the same hash, a `HashSet` only
+  gets slower. Killing it would need a test of how the hash is computed.
+- The negated `while (foundMore)` in `OffloadingCheck.check` loops forever. PIT reports it as
+  **timed out**, which counts as killed.
 
 ### Messaging
 

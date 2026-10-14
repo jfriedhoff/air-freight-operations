@@ -41,11 +41,17 @@ Feature: Change or remove a delay
     And it is recorded that I removed the delay
 
   @unit
-  Scenario: Removing one of several delays
+  Scenario Outline: Removing one of several delays
     Given HJ221 also has a departure delay of 10 minutes
-    When I remove the delay of 25 minutes
-    Then the ETD is 06:40
-    And the ETA is 09:55
+    When I remove the delay of <removed> minutes
+    Then the ETD is <etd>
+    And the ETA is <eta>
+    And only the delay of <remaining> minutes remains
+
+    Examples:
+      | removed | etd   | eta   | remaining |
+      | 25      | 06:40 | 09:55 | 10        |
+      | 10      | 06:55 | 10:10 | 25        |
 
   @unit
   Scenario Outline: A departure delay is fixed after departure

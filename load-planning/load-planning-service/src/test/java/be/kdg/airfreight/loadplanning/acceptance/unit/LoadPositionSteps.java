@@ -1,8 +1,6 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
-import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionAssigned;
-import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionCleared;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -17,8 +15,8 @@ public class LoadPositionSteps {
     private static final String NOT_ON_THE_FLOOR_PLAN = "is not on the floor plan";
 
     private final CargoWorld world;
-    private LoadPositionAssigned assigned;
-    private LoadPositionCleared cleared;
+    /** The ULD of the last When step. */
+    private UldCode changed;
 
     public LoadPositionSteps(CargoWorld world) {
         this.world = world;
@@ -43,13 +41,15 @@ public class LoadPositionSteps {
             world.expectedRefusal = NOT_ON_THE_FLOOR_PLAN;
         }
         LoadPosition position = onTheFloorPlan.orElse(new LoadPosition(positionName, null));
-        world.attempt(() -> assigned = world.cargo.assign(code, position, world.planner, world.now,
-            world.floorPlan, CargoWorld.POLICY));
+        changed = code;
+        world.attempt(() -> world.cargo.assign(code, position, world.planner, world.now, world.floorPlan,
+            CargoWorld.POLICY));
     }
 
     @When("I clear the load position of {uld}")
     public void iClear(UldCode code) {
-        world.attempt(() -> cleared = world.cargo.clear(code, world.planner, world.now, CargoWorld.POLICY));
+        changed = code;
+        world.attempt(() -> world.cargo.clear(code, world.planner, world.now, CargoWorld.POLICY));
     }
 
     @Then("{word} is free")
@@ -64,15 +64,11 @@ public class LoadPositionSteps {
         assertThat(world.uld(code).hasPosition()).isFalse();
     }
 
+    /** The state of the ULD; the event that the application service publishes is in FlightCargoTest. */
     @Then("it is recorded that I assigned the load position")
-    public void itIsRecordedThatIAssigned() {
-        assertThat(assigned.assignedBy()).isEqualTo(world.planner);
-        assertThat(world.uld(assigned.uldCode()).getPositionChangedBy()).isEqualTo(world.planner);
-    }
-
     @Then("it is recorded that I cleared the load position")
-    public void itIsRecordedThatICleared() {
-        assertThat(cleared.clearedBy()).isEqualTo(world.planner);
-        assertThat(world.uld(cleared.uldCode()).getPositionChangedBy()).isEqualTo(world.planner);
+    public void itIsRecordedThatIChangedTheLoadPosition() {
+        world.assertAccepted();
+        assertThat(world.uld(changed).getPositionChangedBy()).isEqualTo(world.planner);
     }
 }

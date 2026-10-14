@@ -204,6 +204,13 @@ public class FlightDelaySteps {
         assertThat(delay(delayId).getReason()).isEqualTo(new DelayCode(VALID_REASON));
     }
 
+    @And("only the delay of {int} minutes remains")
+    public void onlyTheDelayOfRemains(int minutes) {
+        world.assertAccepted();
+        assertThat(world.flight(HJ221).getDelays()).singleElement()
+            .extracting(delay -> delay.getMinutes().minutes()).isEqualTo(minutes);
+    }
+
     @And("the ETD and the ETA remain unchanged")
     public void theEtdAndTheEtaRemainUnchanged() {
         assertThat(world.flight(HJ221).getEstimated()).isEqualTo(estimatedBefore);

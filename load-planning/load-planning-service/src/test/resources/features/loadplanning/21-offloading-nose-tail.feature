@@ -36,3 +36,18 @@ Feature: Offloading from the nose and the tail
       | ATH on A1, A2 and B1, CL and CR free     | passed |
       | ATH on A2, FRA on B1, CL and CR free     | failed |
       | ATH on A2, FRA on A1, CL and CR free     | passed |
+
+  @unit
+  Scenario: The report names every ULD in the way
+    Given these ULDs are on board:
+      | ULD        | destination | position |
+      | AKE16689R7 | ATH         | B1       |
+      | AKE40222HJ | FRA         | DL       |
+      | AKE20417HJ | FRA         | CL       |
+      | AKE30111HJ | FRA         | CR       |
+    When the offloading is checked
+    Then the check has failed
+    And the report states:
+      """
+      AKE16689R7 on B1 cannot be offloaded because AKE20417HJ on CL, AKE30111HJ on CR and AKE40222HJ on DL are in the way
+      """

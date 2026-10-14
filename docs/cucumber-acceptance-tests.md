@@ -11,6 +11,9 @@ step classes are built and why they share one object per scenario.
 - The steps are spread over small classes per topic (delays, departure, ...).
 - Those classes share the state of one scenario through **`FlightWorld`**. Picocontainer creates a
   new `FlightWorld` for every scenario and passes it to every step class.
+- A domain rule is a scenario, also an edge case the story does not mention. A technical contract or a
+  returned value (an event, `equals`) is a plain JUnit test (see "Plain JUnit tests next to the
+  scenarios").
 
 ## Why a shared object is needed
 
@@ -64,9 +67,10 @@ start. In the integration tests a Spring bean with `@ScenarioScope` plays the sa
 | `FlightWorld` | The state of one scenario: the flights, the planner ("I"), `now`, the caught `error` and the expected refusal reason. `plan` (with or without times: the default schedule is STD 06:30, STA 09:45 on 9 January 2026), `depart`, `land`, `attempt` (runs a When and keeps its refusal), `assertAccepted` and `assertRefusedForTheExpectedReason`. |
 | `ParameterTypes` | `{time}`: "06:45" as a `LocalTime`. `{date}`: "9 January 2026" as a `LocalDate`. `{delayKind}`: "departure" or "arrival" as a `DelayKind`. |
 | `FlightSteps` | The flight before the When step: planned (with its STD, STA, ETD or ETA), departed, landed, and `it is now ... UTC`. |
-| `FlightDelaySteps` | Entering, changing and removing delays, and the ETD and ETA they give. |
+| `FlightDelaySteps` | Entering, changing and removing delays, the ETD and ETA they give, and `only the delay of ... minutes remains`. |
 | `FlightDepartureSteps` | The finalized load (CPM) and registering the ATD. |
 | `FlightArrivalSteps` | Registering the ATA. |
+| `PolicyValueSteps` | Story 37: `the operations manager sets ... to ...` creates the value object (`ActualTimeTolerance`, `RetentionPeriod`), which refuses a negative value. |
 | `OutcomeSteps` | Then steps that several stories share: `it/that is accepted/refused`, `the registration is accepted/refused`, `... refused with an explanation` and `the registration is refused: ...`. |
 
 A plain `refused` still checks the reason: the When step sets `expectedRefusal` to the usual
@@ -86,18 +90,19 @@ The same set-up in `be.kdg.airfreight.loadplanning.acceptance.unit`, with `Cargo
 
 | Class | Contents |
 | --- | --- |
-| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the scenario state: `now`, `checkResult` (the check the Then steps read), `report` (all checks), `error`, `expectedRefusal` and `acted`. Flight helpers: `goesTo`, `departsAt`, `delayDepartureBy`, `assertFlight`, `assertWithinLoadingPeriod`. Cargo helpers: `book`, `place`, `load` (book and place), `loadWeightOn` (a ULD for ATH; "0 kg" loads nothing, because a `Weight` of 0 does not exist) and `nextCode` for a ULD the scenario does not name. `ANY_WEIGHT` for a ULD whose weight the scenario does not name, `CHECKS` for all checks as `PolicyConfig` gives them. Plus `attempt`, `assertAccepted` and `assertRefusedForTheExpectedReason`, as in `FlightWorld`. |
-| `ParameterTypes` | `{uld}`: "AKE16689R7" as a `UldCode`. `{weight}`: "1000 kg", "2646 lb", "1200.2 kg". `{moment}`: "9 January 2026 06:30" or "8 January 18:29" (2026) as an `Instant`. |
-| `FlightSteps` | The flight and the moment of the scenario: STD, destination, departure delays, `it is ... UTC` (a refusal then has to be for the loading period) and `it is ... UTC, within the loading period`. |
-| `BookingSteps` | Cargo that is booked but has no load position, and a flight without cargo. Story 15 uses `... is booked without a load position` as a Then: add the `acted` check of `LoadPositionSteps.isOn` then. |
-| `CargoOnBoardSteps` | Cargo that is already on a load position before the When step: weights per side or position, named ULDs for a destination, `<load>` descriptions and `... is already on ...` (a refusal then has to be for that occupied position). |
+| `CargoWorld` | One `FlightCargo` of HJ221 on a Boeing 747-400F, a loading period that is open at `NOW`, and the scenario state: `now`, `checkResult` (the check the Then steps read), `report` (all checks), `error`, `expectedRefusal` and `acted`. Flight helpers: `goesTo`, `departsAt` (a new cargo: the stored closing time of the loading period does not follow a new STD, so call it before anything is booked), `delayDepartureBy` (through `changeEstimatedDeparture`, entered at `now`), `assertFlight`, `assertWithinLoadingPeriod`. Cargo helpers: `book`, `bookOn` (on one of the flights, the weight read inside the call so that a refused weight is refused there), `place`, `load` (book and place), `loadWeightOn` (a ULD for ATH; "0 kg" loads nothing, because a `Weight` of 0 does not exist) and `nextCode` for a ULD the scenario does not name. `ANY_WEIGHT` for a ULD whose weight the scenario does not name, `CHECKS` for all checks as `PolicyConfig` gives them. Plus `attempt`, `assertAccepted` and `assertRefusedForTheExpectedReason`, as in `FlightWorld`. |
+| `ParameterTypes` | `{uld}`: "AKE16689R7" as a `UldCode`. `{weight}`: "1000 kg", "2646 lb", "1200.2 kg", "-1 kg". `{moment}`: "9 January 2026 06:30" or "8 January 18:29" (2026) as an `Instant`. |
+| `FlightSteps` | The flight and the moment of the scenario: STD, destination, departure delays (`afterwards ...` enters or removes a delay at the moment the scenario named before), `it is ... UTC` (a refusal then has to be for the loading period) and `it is ... UTC, within the loading period`. |
+| `BookingSteps` | Cargo that is booked but has no load position, a flight without cargo, booking with a weight, booking the same code again (a refusal then has to be for the double booking), a ULD of a weight (a refusal then has to be for the weight) and `there is still one booking of ... with ...`. Story 15 uses `... is booked without a load position` as a Then: add the `acted` check of `LoadPositionSteps.isOn` then. |
+| `CargoOnBoardSteps` | Cargo that is already on a load position before the When step: weights per side or position, named ULDs for a destination, `these ULDs are on board:` (a table with ULD, destination and position), `<load>` descriptions and `... is already on ...` (a refusal then has to be for that occupied position). |
 | `LoadDescription` | Plain Java, no Cucumber: reads a `<load>` such as "ATH on RR and UR, FRA on UL" into ULDs. "CL and CR free" stays empty; "ATH on A1, A2 and B1" continues the destination. One regex step uses it, because the rows have different shapes. |
-| `LoadPositionSteps` | Placing a ULD and clearing it. "AKE16689R7 is on CL" is both a Given and a Then: Cucumber ignores the keyword, so one method places the ULD before the When and checks it after the When (`acted`, set by `attempt`). A position that is not on the floor plan has to be refused for that reason. |
-| `FinalizeLoadSteps` | `the load has been finalized` (a refusal then has to be for the finalized load) and `the load can still be finalized if all hard checks pass`. |
+| `LoadPositionSteps` | Placing a ULD and clearing it. "AKE16689R7 is on CL" is both a Given and a Then: Cucumber ignores the keyword, so one method places the ULD before the When and checks it after the When (`acted`, set by `attempt`). A position that is not on the floor plan has to be refused for that reason. `it is recorded that I assigned/cleared ...` checks the ULD, not the event. |
+| `FinalizeLoadSteps` | `the load has been finalized` (a refusal then has to be for the finalized load) and `the load can still be finalized if all hard checks pass`. `it is recorded that I finalized the load` checks the cargo, not the event. |
+| `PolicyValueSteps` | Story 37: `the operations manager sets ... to ...` creates `LoadingPolicy` or `LateralBalanceLimit`. The other time of the loading period keeps its default, so each time is checked on its own. |
 | `OutcomeSteps` | `it/that is accepted/refused` and `it/that is refused with an explanation`, as in flight-operations. |
 | `LoadCheckSteps` | All checks together: `the load is checked` (also `I click Check Load`), `the check has passed/failed`, `the soft check "..." has passed/failed` (which also selects that check in the report) and `I see this report:` (the table compared as a whole, in the order of `CHECKS`, so a missing or extra check fails too). |
 | `LateralBalanceSteps` | The lateral balance check: its When and its report text. |
-| `OffloadingSteps` | The offloading check: its When and its report text. |
+| `OffloadingSteps` | The offloading check: its When and its report text, for one ULD in the way or as a whole (`the report states:` with a doc string). |
 | `AllCargoLoadedSteps` | The soft check "not all cargo loaded": its report text. It only runs with all checks together. |
 
 The When step goes through the aggregate root (`cargo.checkLoad(...)`), as the application service
@@ -164,6 +169,36 @@ service or repository. The latter is an integration test (`@integration`).
 **In one sentence:** every `@unit` scenario tests only one aggregate without Spring, database or
 mocks; `FlightWorld` (or `CargoWorld`) is only the test state of one scenario, like the fields of a
 JUnit test class, but shared because Cucumber spreads the steps over several classes.
+
+## Plain JUnit tests next to the scenarios
+
+Next to the `@unit` scenarios, `src/test/java/.../domain/` has plain JUnit 5 + AssertJ tests, with the
+same limits: no Spring, database or mocks. Which of the two a test is follows one rule:
+
+- **A domain rule is a scenario**, whether or not the story already mentions it. An edge case nobody
+  wrote down (a weight of 0, a negative policy value, the same ULD twice on one flight) is still a rule
+  of the domain, so it gets a scenario in the story it belongs to.
+- **A technical contract or a returned value is a JUnit test**: `equals`, the event an aggregate returns
+  (what the application service publishes and Messaging turns into a message), the exception type that
+  decides the HTTP status, a getter that only the application service reads.
+
+A Then step checks the state of the aggregate, not the event it returned. The one exception is
+"it is recorded that I removed the delay" (story 10): after removing, the delay is gone, so the event
+is the only place that says who removed it.
+
+PIT runs both and shows what neither checks (see [`mutation-testing-pit.md`](mutation-testing-pit.md)).
+
+| Service | Test | What it checks |
+| --- | --- | --- |
+| flight-operations | `FlightTest` | The events of `addDelay`, `changeDelay` (none when only the description changes), `recordFinalizedLoad`, `registerDeparture` and `registerArrival` (the MVT scenarios are `@e2e`), and `isFinalizedLoadReceived`, which `FinalizedLoadService` reads to ignore a second CPM |
+| flight-operations | `InvalidValueTest` | Which exception a refusal is: an invalid value (400) or an action that does not fit the state (409) |
+| flight-operations | `DelayCodeCatalogTest` | What the catalog returns for a known code, and that an entry of the IATA list needs a description |
+| flight-operations | `FlightPlannerIdTest` | The planner id taken from the account, and the message of the refusal for an unregistered planner |
+| load-planning | `FlightCargoTest` | The events of `book`, `assign`, `clear` and `finalizeLoad` (only the ULDs with a position are in the load of the CPM), and `hasBooked` |
+| load-planning | `UldTest` | `equals`: a ULD is identified by its code |
+
+A JUnit test that needs a package-private constructor (`new Uld(...)` in `UldTest`) is in the same
+package as the class.
 
 ## Integration tests
 

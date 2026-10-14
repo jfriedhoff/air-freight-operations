@@ -1,6 +1,5 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
-import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.en.But;
 import io.cucumber.java.en.Given;
@@ -16,7 +15,6 @@ public class FinalizeLoadSteps {
     private static final String FINALIZED = "finalized and can no longer change";
 
     private final CargoWorld world;
-    private LoadFinalized finalized;
 
     public FinalizeLoadSteps(CargoWorld world) {
         this.world = world;
@@ -31,7 +29,7 @@ public class FinalizeLoadSteps {
 
     @When("I click Finalize Load")
     public void iClickFinalizeLoad() {
-        world.attempt(() -> finalized = world.finalizeLoad(CargoWorld.CHECKS));
+        world.attempt(() -> world.finalizeLoad(CargoWorld.CHECKS));
     }
 
     @Then("the load is finalized")
@@ -57,9 +55,9 @@ public class FinalizeLoadSteps {
         world.assertRefusedForTheExpectedReason();
     }
 
+    /** The state of the cargo; the event that becomes the CPM is in FlightCargoTest. */
     @Then("it is recorded that I finalized the load")
     public void itIsRecordedThatIFinalizedTheLoad() {
-        assertThat(finalized.finalizedBy()).isEqualTo(world.planner);
         assertThat(world.cargo.getFinalizedBy()).isEqualTo(world.planner);
     }
 

@@ -97,12 +97,17 @@ public class CargoWorld {
 
     /** Books a ULD for ATH on one of allFlights. */
     void bookOn(String flightNumber, LocalDate date, UldCode code) {
+        bookOn(flightNumber, date, code, ANY_WEIGHT);
+    }
+
+    /** The weight is read here, so a weight that Weight refuses is refused by this call. */
+    void bookOn(String flightNumber, LocalDate date, UldCode code, String weight) {
         FlightCargo flight = allFlights().stream()
             .filter(candidate -> candidate.getFlightId().flightNumber().value().equals(flightNumber)
                 && candidate.getFlightId().scheduledDepartureDate().equals(date))
             .findFirst()
             .orElseThrow(() -> new AssertionError("The scenario has no flight " + flightNumber + " of " + date));
-        flight.book(code, Weights.of(ANY_WEIGHT), ATH, now);
+        flight.book(code, Weights.of(weight), ATH, now);
     }
 
     void assertWithinLoadingPeriod() {

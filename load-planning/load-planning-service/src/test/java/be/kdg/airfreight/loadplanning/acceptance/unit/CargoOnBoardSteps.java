@@ -3,6 +3,9 @@ package be.kdg.airfreight.loadplanning.acceptance.unit;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.en.Given;
 
+import java.util.List;
+import java.util.Map;
+
 import static be.kdg.airfreight.loadplanning.acceptance.unit.CargoWorld.ANY_WEIGHT;
 
 /** Cargo that is already on a load position before the When step. */
@@ -57,6 +60,13 @@ public class CargoOnBoardSteps {
                              UldCode secondCode, String secondDestination, String secondPosition) {
         world.load(firstCode, ANY_WEIGHT, firstDestination, firstPosition);
         world.load(secondCode, ANY_WEIGHT, secondDestination, secondPosition);
+    }
+
+    /** A table with the columns ULD, destination and position, for more ULDs than a sentence can name. */
+    @Given("these ULDs are on board:")
+    public void theseUldsAreOnBoard(List<Map<String, String>> ulds) {
+        ulds.forEach(uld -> world.load(new UldCode(uld.get("ULD")), ANY_WEIGHT, uld.get("destination"),
+            uld.get("position")));
     }
 
     @Given("{uld}, {weight} for {word}, is on {word} and {uld}, {weight} for {word}, is on {word}")

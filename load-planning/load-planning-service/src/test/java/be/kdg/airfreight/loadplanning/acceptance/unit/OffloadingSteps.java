@@ -25,4 +25,10 @@ public class OffloadingSteps {
         assertThat(world.checkResult.reason()).isEqualTo(stuck.value() + " on " + stuckPosition
             + " cannot be offloaded because " + blocking.value() + " on " + blockingPosition + " is in the way");
     }
+
+    /** The whole report as a doc string, for a report that names several ULDs. */
+    @Then("the report states:")
+    public void theReportStatesExactly(String report) {
+        assertThat(world.checkResult.reason()).isEqualTo(report.strip());
+    }
 }
