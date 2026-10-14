@@ -53,10 +53,10 @@ public class CargoWorld {
     private static final AirportCode ATH = new AirportCode("ATH");
 
     final FloorPlan floorPlan = Boeing747400FFloorPlan.build();
-    final FlightCargo cargo = FlightCargo.create(
+    FlightCargo cargo = FlightCargo.create(
         flightId("HJ221", LocalDate.of(2026, Month.JANUARY, 9), "BRU"),
         FlightInfo.scheduled(ATH, Boeing747400FFloorPlan.AIRCRAFT_TYPE,
-            Instant.parse("2026-01-09T06:45:00Z"), Instant.parse("2026-01-09T10:00:00Z")));
+            Instant.parse("2026-01-09T06:45:00Z"), Instant.parse("2026-01-09T10:00:00Z")), POLICY);
     final LoadPlannerId planner = LoadPlannerId.create();
     /** The moment the scenario takes place; the loading period of the flight is open at NOW. */
     Instant now = NOW;
@@ -87,7 +87,7 @@ public class CargoWorld {
         FlightInfo info = cargo.getFlightInfo();
         otherFlights.add(FlightCargo.create(flightId(flightNumber, date, departureAirport),
             FlightInfo.scheduled(info.arrivalAirport(), info.aircraftType(), info.std().plus(later),
-                info.sta().plus(later))));
+                info.sta().plus(later)), POLICY));
     }
 
     /** cargo and the flights the scenario added with alsoExists. */
@@ -116,17 +116,19 @@ public class CargoWorld {
             info.etd(), info.eta(), info.departed()));
     }
 
-    /** The flight with another STD. Without delays the ETD is the STD. */
+    /**
+     * The flight with another STD and no delays. A new cargo, because the stored closing time of the loading
+     * period does not follow a new STD: call it before anything is booked.
+     */
     void departsAt(Instant std) {
         FlightInfo info = cargo.getFlightInfo();
-        cargo.updateFlightInfo(new FlightInfo(info.arrivalAirport(), info.aircraftType(), std, info.sta(), std,
-            info.eta(), info.departed()));
+        cargo = FlightCargo.create(cargo.getFlightId(),
+            FlightInfo.scheduled(info.arrivalAirport(), info.aircraftType(), std, info.sta()), POLICY);
     }
 
-    /** The ETD becomes the STD plus the departure delays. */
+    /** The ETD becomes the STD plus the departure delays, entered at now. */
     void delayDepartureBy(Duration delays) {
-        FlightInfo info = cargo.getFlightInfo();
-        cargo.updateFlightInfo(info.withEstimatedDeparture(info.std().plus(delays)));
+        cargo.changeEstimatedDeparture(cargo.getFlightInfo().std().plus(delays), now, POLICY);
     }
 
     /** Books a ULD for ATH. */

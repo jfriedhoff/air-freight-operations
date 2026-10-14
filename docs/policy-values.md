@@ -33,7 +33,7 @@ Durations take a unit (`5m`, `12h`). The balance limit is a fraction: 20% is `0.
 | --- | --- |
 | `ActualTimeTolerance` | `FlightService` passes it to `Flight` |
 | `RetentionPeriod` | `FlightRetentionService` |
-| `LoadingPolicy` | `LoadService` passes it to `FlightCargo` |
+| `LoadingPolicy` | `LoadService` and `FlightInfoService` pass it to `FlightCargo` |
 | `LateralBalanceLimit` | `LateralBalanceCheck` |
 
 Spring stays in `infrastructure`: the domain only knows its own value objects. They validate the value
@@ -55,6 +55,15 @@ the `application.properties` inside the JAR. From highest to lowest priority:
   `FLIGHT_OPERATIONS_POLICY_RETENTION_DAYS` does not work.
 - The `application.properties` in the repository is packaged in the JAR. Changing that file is a new
   build, so it only sets the defaults.
+
+## Flights that are already stored
+
+`FlightCargo` stores the closing time of the loading period (ETD minus the closing time), so that a
+period that has ended stays closed (story #18). A new `loading-closes-before-departure` therefore does
+not change flights that are already stored: they keep their closing time until their next ETD change
+while the period is still open. The new value applies to flights that are announced or delayed after the
+restart. The opening time is not stored: a new `loading-opens-before-departure` applies to every flight
+at once.
 
 ## A missing or wrong value
 
