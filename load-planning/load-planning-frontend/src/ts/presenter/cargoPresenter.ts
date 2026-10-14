@@ -1,0 +1,188 @@
+import {canChangeLoad, stateOf, withoutLoadPosition} from "../domain/FlightCargo.ts";
+import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
+import {listQuery, showsEta, showsEtd} from "../domain/FlightToLoad.ts";
+import {assignLoadPosition, getFlightCargo} from "../infrastructure/flightCargoRest.ts";
+import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
+import {startAutoRefresh} from "./autoRefresh.ts";
+import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
+import {createElementWithText} from "./htmlUtil.ts";
+import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
+
+const messageBox = document.getElementById("message-box")!;
+const section = document.getElementById("cargo")!;
+const backToList = document.getElementById("back-to-list") as HTMLAnchorElement;
+const loadState = document.getElementById("load-state")!;
+const roleNote = document.getElementById("role-note")!;
+const uldSummary = document.getElementById("uld-summary")!;
+const noUlds = document.getElementById("no-ulds")!;
+const uldTable = document.getElementById("uld-table")!;
+const uldRows = document.getElementById("ulds")!;
+
+const flightCargoId = new URLSearchParams(window.location.search).get("flightCargoId");
+let isLoadPlanner = false;
+/* A request to assign is on its way: the automatic reload waits for it. */
+let assigning = false;
+
+function text(id: string, value: string): void {
+    document.getElementById(id)!.textContent = value;
+}
+
+/* Shows the row of an estimated time only when it differs from the scheduled time. */
+function estimatedTime(rowId: string, valueId: string, instant: string, shown: boolean): void {
+    document.getElementById(rowId)!.classList.toggle("hidden", !shown);
+    text(valueId, brusselsDateTime(instant));
+}
+
+function weight(uld: Uld): string {
+    return `${uld.weight.value} ${uld.weight.unit.toLowerCase()}`;
+}
+
+/* The words for why the load cannot change. The server decided that; see stateOf. */
+function stateLine(cargo: FlightCargo, loadedAt: Date): string {
+    const start = brusselsDateTime(cargo.loadingPeriod.start);
+    const end = brusselsDateTime(cargo.loadingPeriod.end);
+    switch (stateOf(cargo, loadedAt)) {
+        case "FINALIZED":
+            return "De lading is gefinaliseerd: laadposities kunnen niet meer wijzigen.";
+        case "DEPARTED":
+            return "De vlucht is opgestegen.";
+        case "NOT_STARTED":
+            return `De beladingsperiode begint op ${start}.`;
+        case "ENDED":
+            return `De beladingsperiode is afgelopen sinds ${end}.`;
+        case "OUTSIDE_PERIOD":
+            return `Buiten de beladingsperiode (van ${start} tot ${end}).`;
+        case "OPEN":
+            return "";
+    }
+}
+
+/* The selection list holds the load positions of the floor plan, as the server gives them, and a button:
+   a choice is only sent when the load planner says so. */
+function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
+    const cell = document.createElement("td");
+    const choice = document.createElement("select");
+    choice.className = "select select-sm w-auto";
+    choice.dataset.current = uld.loadPosition ?? "";
+    const none = createElementWithText("option", "Kies een laadpositie") as HTMLOptionElement;
+    none.value = "";
+    choice.appendChild(none);
+    for (const position of cargo.loadPositions) {
+        const option = createElementWithText("option", position) as HTMLOptionElement;
+        option.value = position;
+        choice.appendChild(option);
+    }
+    choice.value = uld.loadPosition ?? "";
+    const assignButton = createElementWithText("button", "Toekennen") as HTMLButtonElement;
+    assignButton.className = "btn btn-sm btn-primary ml-2";
+    assignButton.addEventListener("click", () => assign(cargo.id, uld.code, choice.value));
+    cell.append(choice, assignButton);
+    return cell;
+}
+
+function uldRow(cargo: FlightCargo, uld: Uld, changeable: boolean): HTMLTableRowElement {
+    const row = document.createElement("tr");
+    if (uld.loadPosition === null) {
+        row.className = "bg-warning/20";
+    }
+    for (const cell of [uld.code, weight(uld), uld.destination]) {
+        row.appendChild(createElementWithText("td", cell));
+    }
+    row.appendChild(changeable ? positionChoice(cargo, uld) : createElementWithText("td", uld.loadPosition ?? "–"));
+    return row;
+}
+
+function summary(cargo: FlightCargo): string {
+    const total = cargo.ulds.length;
+    const without = withoutLoadPosition(cargo).length;
+    if (total === 0) {
+        return "";
+    }
+    return without === 0
+        ? `Alle ${total} ULD's hebben een laadpositie.`
+        : `${without} van ${total} ULD's zonder laadpositie.`;
+}
+
+function render(cargo: FlightCargo): void {
+    const loadedAt = new Date();
+    text("flight-number", cargo.flightNumber);
+    text("scheduled-departure-date", plainDate(cargo.scheduledDepartureDate));
+    text("departure-airport", cargo.departureAirport);
+    text("arrival-airport", cargo.arrivalAirport);
+    text("std", brusselsDateTime(cargo.std));
+    text("sta", brusselsDateTime(cargo.sta));
+    estimatedTime("etd-row", "etd", cargo.etd, showsEtd(cargo));
+    estimatedTime("eta-row", "eta", cargo.eta, showsEta(cargo));
+    text("loading-period", `van ${brusselsDateTime(cargo.loadingPeriod.start)} tot `
+        + brusselsDateTime(cargo.loadingPeriod.end));
+
+    backToList.href = "flights-to-load.html" + listQuery(cargo.scheduledDepartureDate, cargo.departed);
+    backToList.textContent = `← Te beladen vluchten van ${plainDate(cargo.scheduledDepartureDate)}`;
+
+    const state = stateLine(cargo, loadedAt);
+    loadState.textContent = state;
+    loadState.classList.toggle("hidden", state === "");
+    roleNote.classList.toggle("hidden", isLoadPlanner);
+
+    const changeable = canChangeLoad(cargo, isLoadPlanner);
+    uldRows.replaceChildren(...cargo.ulds.map(uld => uldRow(cargo, uld, changeable)));
+    uldSummary.textContent = summary(cargo);
+    noUlds.classList.toggle("hidden", cargo.ulds.length > 0);
+    uldTable.classList.toggle("hidden", cargo.ulds.length === 0);
+    section.classList.remove("hidden");
+}
+
+/* Asks the cargo again; on failure what is on the screen stays and the reason is shown. A message the user
+   has not acted on yet stays too: a reload never clears the message box when it succeeds. */
+async function reload(): Promise<boolean> {
+    try {
+        render(await getFlightCargo(flightCargoId!));
+        return true;
+    } catch (error) {
+        clearMessages(messageBox);
+        addError(messageBox, (error as Error).message);
+        return false;
+    }
+}
+
+/* A selection list that shows another position than the stored one: a choice in progress. */
+function aChoiceIsInProgress(): boolean {
+    return Array.from(uldRows.querySelectorAll("select")).some(choice => choice.value !== choice.dataset.current);
+}
+
+/* Whether the choice is allowed is the server's answer. After a refusal the cargo is asked again, so the page
+   shows what is stored, and the reason of the refusal stays on the screen. */
+async function assign(cargoId: string, uldCode: string, loadPosition: string): Promise<void> {
+    clearMessages(messageBox);
+    if (loadPosition === "") {
+        addError(messageBox, "Kies eerst een laadpositie.");
+        return;
+    }
+    assigning = true;
+    try {
+        render(await assignLoadPosition(cargoId, uldCode, loadPosition));
+        addInfo(messageBox, `${uldCode} staat op ${loadPosition}.`);
+    } catch (error) {
+        const refusal = (error as Error).message;
+        await reload();
+        clearMessages(messageBox);
+        addError(messageBox, refusal);
+    } finally {
+        assigning = false;
+    }
+}
+
+async function init(): Promise<void> {
+    const role = await plannerRoleOrNoAccess(messageBox);
+    if (role === null) {
+        return;
+    }
+    isLoadPlanner = role === "load-planner";
+    if (!flightCargoId) {
+        addError(messageBox, "Kies een vlucht in de lijst van te beladen vluchten.");
+        return;
+    }
+    startAutoRefresh(reload, () => !assigning && !aChoiceIsInProgress());
+}
+
+init();
