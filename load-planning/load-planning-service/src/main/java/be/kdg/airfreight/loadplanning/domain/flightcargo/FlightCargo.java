@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
@@ -84,8 +85,7 @@ public class FlightCargo {
         requireLoadCanChange(now, policy);
         Uld uld = uldWith(code);
         if (!floorPlan.contains(position)) {
-            throw new DomainRuleViolationException("Load position " + position.name()
-                + " is not on the floor plan of aircraft type " + floorPlan.aircraftType().code());
+            throw floorPlan.notOnTheFloorPlan(position.name());
         }
         ulds.stream()
             .filter(other -> other.isAt(position) && !other.equals(uld))
@@ -131,6 +131,16 @@ public class FlightCargo {
         return new LoadFinalized(id, flightId, load, by, now);
     }
 
+    /** Whether a load planner can still change the load at this moment. A page uses it to offer the actions. */
+    public boolean loadCanChange(Instant now, LoadingPolicy policy) {
+        return whyTheLoadCannotChange(now, policy).isEmpty();
+    }
+
+    /** A flight still has to be loaded until it has departed. */
+    public boolean isToBeLoaded() {
+        return !flightInfo.departed();
+    }
+
     /** From STD minus the opening time (included) until the stored closing time (not included). */
     public LoadingPeriod loadingPeriod(LoadingPolicy policy) {
         return new LoadingPeriod(flightInfo.std().minus(policy.opensBeforeScheduledDeparture()), loadingClosesAt);
@@ -174,15 +184,23 @@ public class FlightCargo {
     }
 
     private void requireLoadCanChange(Instant now, LoadingPolicy policy) {
+        whyTheLoadCannotChange(now, policy).ifPresent(reason -> {
+            throw new DomainRuleViolationException(reason);
+        });
+    }
+
+    /** The one place that says when the load is frozen: the reason, or nothing when it can change. */
+    private Optional<String> whyTheLoadCannotChange(Instant now, LoadingPolicy policy) {
         if (finalized) {
-            throw new DomainRuleViolationException("The load is finalized and can no longer change");
+            return Optional.of("The load is finalized and can no longer change");
         }
         if (flightInfo.departed()) {
-            throw new DomainRuleViolationException("The load can no longer change: the flight has departed");
+            return Optional.of("The load can no longer change: the flight has departed");
         }
         if (!loadingPeriod(policy).contains(now)) {
-            throw new DomainRuleViolationException("The load can only change within the loading period");
+            return Optional.of("The load can only change within the loading period");
         }
+        return Optional.empty();
     }
 
     private Uld uldWith(UldCode code) {

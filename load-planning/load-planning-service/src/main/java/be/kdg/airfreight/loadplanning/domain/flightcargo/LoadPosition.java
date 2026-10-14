@@ -2,7 +2,7 @@ package be.kdg.airfreight.loadplanning.domain.flightcargo;
 
 import java.util.Objects;
 
-import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
+import be.kdg.airfreight.loadplanning.domain.InvalidValueException;
 import org.jmolecules.ddd.annotation.ValueObject;
 import org.jspecify.annotations.Nullable;
 
@@ -12,7 +12,7 @@ public record LoadPosition(String name, @Nullable Side side) {
     public LoadPosition {
         Objects.requireNonNull(name, "Name cannot be null");
         if (name.isBlank()) {
-            throw new DomainRuleViolationException("The name of a load position cannot be blank");
+            throw new InvalidValueException("The name of a load position cannot be blank");
         }
     }
 }
