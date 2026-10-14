@@ -3,6 +3,7 @@ package be.kdg.airfreight.loadplanning.api;
 import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.InvalidValueException;
 import be.kdg.airfreight.loadplanning.domain.NotFoundException;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.UnknownLoadPlannerException;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -18,6 +19,14 @@ class ErrorHandlingTest {
         ProblemDetail problem = errorHandling.invalidValue(new InvalidValueException("ULD code 'AKE1' is invalid"));
 
         assertProblem(problem, 400, "invalid-input", "ULD code 'AKE1' is invalid");
+    }
+
+    @Test
+    void anUnknownLoadPlannerIsForbidden() {
+        ProblemDetail problem = errorHandling.unknownLoadPlanner(
+            new UnknownLoadPlannerException("You are not registered as a load planner"));
+
+        assertProblem(problem, 403, "unknown-load-planner", "You are not registered as a load planner");
     }
 
     @Test

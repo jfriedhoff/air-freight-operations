@@ -15,7 +15,9 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightNumber;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckResult;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlanner;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerRepository;
 import be.kdg.airfreight.loadplanning.infrastructure.floorplan.Boeing747400FFloorPlan;
 import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
@@ -45,14 +47,16 @@ public class PolicyValueSteps {
     private static final String OUTSIDE_LOADING_PERIOD = "only change within the loading period";
 
     private final FlightCargoRepository cargos;
+    private final LoadPlannerRepository loadPlanners;
 
     private String property;
     private ConfigurableApplicationContext restarted;
     private Throwable error;
     private LoadCheckResult lateralBalance;
 
-    public PolicyValueSteps(FlightCargoRepository cargos) {
+    public PolicyValueSteps(FlightCargoRepository cargos, LoadPlannerRepository loadPlanners) {
         this.cargos = cargos;
+        this.loadPlanners = loadPlanners;
     }
 
     @After
@@ -128,8 +132,10 @@ public class PolicyValueSteps {
         cargo.book(ULD, Weights.of("1000 kg"), new AirportCode("ATH"), at);
         cargos.save(cargo);
         restarted.getBean(TestClock.class).set(at);
+        LoadPlannerId loadPlanner = LoadPlannerId.create();
+        loadPlanners.save(new LoadPlanner(loadPlanner, "Test load planner"));
         error = catchThrowable(() -> restarted.getBean(LoadService.class)
-            .assign(new AssignLoadPositionCommand(cargo.getId(), ULD, "CL", LoadPlannerId.create())));
+            .assign(new AssignLoadPositionCommand(cargo.getId(), ULD, "CL", loadPlanner)));
     }
 
     /**

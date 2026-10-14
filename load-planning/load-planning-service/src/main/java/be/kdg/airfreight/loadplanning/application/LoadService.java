@@ -20,6 +20,8 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionCleared;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerRepository;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -30,15 +32,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class LoadService {
     private final FlightCargoRepository cargos;
+    private final LoadPlannerRepository loadPlanners;
     private final FloorPlanCatalog floorPlans;
     private final List<LoadCheck> checks;
     private final LoadingPolicy policy;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
-    public LoadService(FlightCargoRepository cargos, FloorPlanCatalog floorPlans, List<LoadCheck> checks,
+    public LoadService(FlightCargoRepository cargos, LoadPlannerRepository loadPlanners,
+                       FloorPlanCatalog floorPlans, List<LoadCheck> checks,
                        LoadingPolicy policy, ApplicationEventPublisher events, Clock clock) {
         this.cargos = cargos;
+        this.loadPlanners = loadPlanners;
         this.floorPlans = floorPlans;
         this.checks = checks;
         this.policy = policy;
@@ -80,6 +85,7 @@ public class LoadService {
     }
 
     public FlightCargo clear(ClearLoadPositionCommand command) {
+        requireRegistered(command.by());
         FlightCargo cargo = find(command.flightCargoId());
         LoadPositionCleared cleared = cargo.clear(command.uldCode(), command.by(), clock.instant(), policy);
         cargos.save(cargo);
@@ -98,6 +104,7 @@ public class LoadService {
      * shows the same report on success and on failure. The aggregate runs the checks again itself.
      */
     public LoadCheckReport finalizeLoad(FinalizeLoadCommand command) {
+        requireRegistered(command.by());
         FlightCargo cargo = find(command.flightCargoId());
         FloorPlan floorPlan = floorPlanOf(cargo);
         Instant now = clock.instant();
@@ -108,6 +115,13 @@ public class LoadService {
             events.publishEvent(finalized);
         }
         return report;
+    }
+
+    /** A change is recorded with a planner that exists. Reading a second aggregate in the transaction is fine. */
+    private void requireRegistered(LoadPlannerId planner) {
+        if (loadPlanners.findById(planner).isEmpty()) {
+            throw planner.notRegistered();
+        }
     }
 
     private FlightCargoSnapshot snapshot(FlightCargo cargo, FloorPlan floorPlan, Instant now) {

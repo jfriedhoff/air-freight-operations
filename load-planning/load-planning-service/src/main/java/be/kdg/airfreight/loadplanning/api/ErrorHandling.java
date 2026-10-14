@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.InvalidValueException;
 import be.kdg.airfreight.loadplanning.domain.NotFoundException;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.UnknownLoadPlannerException;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.Ordered;
@@ -49,6 +50,12 @@ class ErrorHandling {
     ProblemDetail invalidValue(InvalidValueException e) {
         log.debug("Invalid value: {}", onOneLine(e.getMessage()));
         return problem(HttpStatus.BAD_REQUEST, "invalid-input", e.getMessage());
+    }
+
+    @ExceptionHandler(UnknownLoadPlannerException.class)
+    ProblemDetail unknownLoadPlanner(UnknownLoadPlannerException e) {
+        log.warn("Change refused: {}", onOneLine(e.getMessage()));
+        return problem(HttpStatus.FORBIDDEN, "unknown-load-planner", e.getMessage());
     }
 
     @ExceptionHandler(NotFoundException.class)
