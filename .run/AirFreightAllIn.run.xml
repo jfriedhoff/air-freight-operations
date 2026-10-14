@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="AirFreightAllIn" type="CompoundRunConfigurationType">
+    <toRun name="FlightOperationsApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="LoadPlanningApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="MessagingApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="SimulatorApplication" type="SpringBootApplicationConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>
