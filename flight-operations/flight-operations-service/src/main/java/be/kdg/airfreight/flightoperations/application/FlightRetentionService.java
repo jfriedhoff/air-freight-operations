@@ -3,12 +3,12 @@ package be.kdg.airfreight.flightoperations.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightRepository;
 import be.kdg.airfreight.flightoperations.domain.flight.RetentionPeriod;
+import be.kdg.airfreight.flightoperations.domain.flight.ScheduledTimes;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,7 @@ public class FlightRetentionService {
     @Transactional
     public void removeExpiredFlights() {
         Instant now = clock.instant();
-        LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
+        LocalDate today = ScheduledTimes.utcDateOf(now);
         List<Flight> expired = flights.findScheduledOnOrBefore(retention.lastExpiredDate(today));
         for (Flight flight : expired) {
             flights.delete(flight);

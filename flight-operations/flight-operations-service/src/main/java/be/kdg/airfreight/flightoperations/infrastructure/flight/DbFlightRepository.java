@@ -41,6 +41,13 @@ class DbFlightRepository implements FlightRepository {
     }
 
     @Override
+    public List<Flight> findByScheduledDepartureDate(LocalDate scheduledDepartureDate) {
+        return jpaFlights.findWithDelaysByScheduledDepartureDate(scheduledDepartureDate).stream()
+            .map(JpaFlight::toDomain)
+            .toList();
+    }
+
+    @Override
     public List<Flight> findScheduledOnOrBefore(LocalDate scheduledDepartureDate) {
         return jpaFlights.findWithDelaysScheduledOnOrBefore(scheduledDepartureDate).stream()
             .map(JpaFlight::toDomain)

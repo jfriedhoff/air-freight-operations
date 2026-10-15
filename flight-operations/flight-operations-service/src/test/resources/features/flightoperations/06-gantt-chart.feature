@@ -20,7 +20,7 @@ Feature: See all flights of a chosen day on a Gantt chart
     Then the bar of 3V11 starts at 22:00 Brussels time and runs to the edge of the timeline
     And the bar shows that the flight lands on 10 January at 01:30 Brussels time
 
-  @ui @to-confirm
+  @ui
   Scenario: The day of a flight is its scheduled departure date in UTC
     Given flight 3V13 has STD 9 January 2026 23:30 UTC, in Brussels 10 January 00:30
     When I open the Gantt chart of 9 January

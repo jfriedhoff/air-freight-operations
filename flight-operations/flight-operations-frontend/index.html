@@ -6,7 +6,7 @@
     <!-- no icon of our own: an empty one stops the browser from asking for /favicon.ico (a 404 on every page) -->
     <link rel="icon" href="data:,"/>
     <title>Air Freight Operations</title>
-    <script type="module" src="./src/ts/presenter/portalPresenter.ts"></script>
+    <script type="module" src="./src/ts/presenter/flightOverviewPresenter.ts"></script>
     <script type="module" src="./src/ts/presenter/userPresenter.ts"></script>
     <link rel="stylesheet" href="./src/css/style.css"/>
 </head>
@@ -21,10 +21,32 @@
 
 <section id="portal" class="hidden">
     <p>U bent aangemeld als <span id="role"></span>. U kunt alles bekijken en wijzigen wat bij uw rol hoort.</p>
-    <ul class="list-disc ml-6 my-4">
-        <li>Overzicht van de vluchten: volgt.</li>
-        <li><a class="link" id="flights-to-load-link" href="#">Te beladen vluchten</a> (Load Planning)</li>
-    </ul>
+    <p class="my-2"><a class="link" id="flights-to-load-link" href="#">Te beladen vluchten</a> (Load Planning)</p>
+
+    <h2 class="text-xl font-bold mt-6">Overzicht vluchten</h2>
+    <p class="text-sm opacity-70">Alle tijden in Brusselse tijd. De dag van een vlucht is haar scheduled
+        vertrekdatum in UTC.</p>
+
+    <div class="flex flex-wrap items-end gap-4 my-4">
+        <div class="flex flex-col">
+            <label class="label" for="day">Scheduled vertrekdatum (UTC)</label>
+            <input type="date" id="day" class="input"/>
+        </div>
+        <button id="refresh-btn" class="btn btn-sm">Vernieuwen</button>
+        <span id="updated-at" class="text-sm opacity-70"></span>
+    </div>
+
+    <div id="overview" class="hidden">
+        <p id="no-flights" class="hidden"></p>
+        <table id="flights-table" class="table table-zebra">
+            <thead>
+            <tr>
+                <th>Vlucht</th><th>Scheduled vertrekdatum</th><th>Vertrek</th><th>Aankomst</th><th>STD</th><th>STA</th>
+            </tr>
+            </thead>
+            <tbody id="flights"></tbody>
+        </table>
+    </div>
 </section>
 </body>
 </html>

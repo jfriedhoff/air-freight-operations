@@ -20,6 +20,14 @@ public record ScheduledTimes(Instant departure, Instant arrival) {
 
     /** The scheduled departure date: the UTC date of the STD. It never changes. */
     public LocalDate departureDate() {
-        return LocalDate.ofInstant(departure, ZoneOffset.UTC);
+        return utcDateOf(departure);
+    }
+
+    /**
+     * The day an instant falls on: its UTC date. A day starts at 00:00 UTC, also for the staff in Brussels, so the
+     * overview, the retention period and the telegrams count days the same way.
+     */
+    public static LocalDate utcDateOf(Instant instant) {
+        return LocalDate.ofInstant(instant, ZoneOffset.UTC);
     }
 }
