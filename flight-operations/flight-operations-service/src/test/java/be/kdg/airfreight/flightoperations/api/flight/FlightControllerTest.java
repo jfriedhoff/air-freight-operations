@@ -190,6 +190,8 @@ class FlightControllerTest {
             .andExpect(status().isOk());
 
         assertThat(testHelper.flightPlannerName(fien)).contains("Fien Peeters");
+    }
+
     @Test
     void theFlightsOfADayAreListedInOrderOfStdWithTheirIdentityAndScheduledTimes() throws Exception {
         testHelper.saveFlight("3V11", "BRU", NINE_JANUARY, LocalTime.of(12, 0), "SXBAB");
