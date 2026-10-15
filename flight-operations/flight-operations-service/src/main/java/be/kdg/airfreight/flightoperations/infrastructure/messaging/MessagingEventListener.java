@@ -35,15 +35,17 @@ class MessagingEventListener {
     private final JsonMapper mapper;
     private final FlightSchedulingService scheduling;
     private final FinalizedLoadService finalizedLoads;
+    private final AmqpProperties amqp;
 
     MessagingEventListener(JsonMapper mapper, FlightSchedulingService scheduling,
-                           FinalizedLoadService finalizedLoads) {
+                           FinalizedLoadService finalizedLoads, AmqpProperties amqp) {
         this.mapper = mapper;
         this.scheduling = scheduling;
         this.finalizedLoads = finalizedLoads;
+        this.amqp = amqp;
     }
 
-    @RabbitListener(queues = MessagingConfig.QUEUE)
+    @RabbitListener(queues = "${flight-operations.amqp.queue}")
     void on(Message message) {
         String body = new String(message.getBody(), StandardCharsets.UTF_8);
         UUID messageId = null;
@@ -61,8 +63,7 @@ class MessagingEventListener {
                  | DateTimeException e) {
             String reason = e.getMessage() == null ? "a required field is missing"
                 : e.getMessage().lines().findFirst().orElse("");
-            log.warn("Message {} rejected and set aside on {}: {}", messageId, MessagingConfig.DEAD_LETTER_QUEUE,
-                reason);
+            log.warn("Message {} rejected and set aside on {}: {}", messageId, amqp.deadLetterQueue(), reason);
             throw new AmqpRejectAndDontRequeueException("Message " + messageId + " rejected: " + reason, e);
         }
     }

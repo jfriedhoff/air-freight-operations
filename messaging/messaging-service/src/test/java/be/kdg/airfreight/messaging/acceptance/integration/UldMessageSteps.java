@@ -1,5 +1,6 @@
 package be.kdg.airfreight.messaging.acceptance.integration;
 
+import be.kdg.airfreight.messaging.infrastructure.messaging.AmqpProperties;
 import be.kdg.airfreight.messaging.infrastructure.messaging.OutboxEventRepository;
 import be.kdg.airfreight.messaging.infrastructure.persistence.jpa.JpaReceivedMessageRepository;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -29,7 +30,6 @@ import static org.mockito.BDDMockito.given;
  * checks wait for the result. What Messaging sends on is checked in its outbox.
  */
 public class UldMessageSteps {
-    private static final String CARGO_BOOKING_MESSAGES = "cargo-booking.messages";
     private static final String ULD_ROUTING_KEY = "cargo-booking.uld";
     private static final String ULD_BOOKING_RECEIVED = "messaging.uld-booking.received";
     private static final String ULD_CODE = "AKE16689R7";
@@ -40,6 +40,7 @@ public class UldMessageSteps {
     private final OutboxEventRepository outbox;
     private final JpaReceivedMessageRepository received;
     private final JsonMapper mapper;
+    private final AmqpProperties amqp;
 
     private final UUID messageId = UUID.randomUUID();
     private String flightNumber;
@@ -47,12 +48,13 @@ public class UldMessageSteps {
     private LocalDate firstFlight;
 
     public UldMessageSteps(RabbitTemplate rabbit, Clock clock, OutboxEventRepository outbox,
-                           JpaReceivedMessageRepository received, JsonMapper mapper) {
+                           JpaReceivedMessageRepository received, JsonMapper mapper, AmqpProperties amqp) {
         this.rabbit = rabbit;
         this.clock = clock;
         this.outbox = outbox;
         this.received = received;
         this.mapper = mapper;
+        this.amqp = amqp;
     }
 
     @Given("a ULD message for {word}, day {day}, was processed on {date} and booked the ULD on the flight of {int} {month}")
@@ -103,7 +105,7 @@ public class UldMessageSteps {
             "flightNumber":"%s","dayOfMonth":%d,"departureAirport":"BRU",\
             "uldCode":"%s","weight":1250,"weightUnit":"KG","destination":"ATH"}"""
             .formatted(id, clock.instant(), flightNumber, dayOfMonth, uldCode);
-        rabbit.send(CARGO_BOOKING_MESSAGES, ULD_ROUTING_KEY, MessageBuilder
+        rabbit.send(amqp.cargoBookingMessagesExchange(), ULD_ROUTING_KEY, MessageBuilder
             .withBody(body.getBytes(StandardCharsets.UTF_8))
             .setContentType("application/json")
             .build());

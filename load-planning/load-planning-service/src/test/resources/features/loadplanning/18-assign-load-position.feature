@@ -109,7 +109,7 @@ Feature: Assign, change or clear a load position from the floor plan
     Then exactly one of the two ULDs is on CL
     And the other load planner gets a refusal with an explanation
 
-  @e2e @to-confirm
+  @e2e
   Scenario: Assigning a load position sends no message to the partners
     When I place AKE16689R7 on CL
     Then no message is sent to the partners

@@ -20,9 +20,11 @@ class AmqpPartnerGateway implements PartnerGateway {
     static final String FORMAT_VERSION_HEADER = "formatVersion";
 
     private final RabbitTemplate rabbit;
+    private final AmqpProperties amqp;
 
-    AmqpPartnerGateway(RabbitTemplate rabbit) {
+    AmqpPartnerGateway(RabbitTemplate rabbit, AmqpProperties amqp) {
         this.rabbit = rabbit;
+        this.amqp = amqp;
     }
 
     @Override
@@ -35,7 +37,7 @@ class AmqpPartnerGateway implements PartnerGateway {
             .setTimestamp(Date.from(message.getCreatedAt()))
             .setHeader(FORMAT_VERSION_HEADER, message.getFormatVersion().number())
             .build();
-        rabbit.send(MessagingConfig.PARTNER_MESSAGES, routingKeyOf(message.getType()), amqpMessage);
+        rabbit.send(amqp.partnerMessagesExchange(), routingKeyOf(message.getType()), amqpMessage);
     }
 
     private static String contentTypeOf(MessageType type) {

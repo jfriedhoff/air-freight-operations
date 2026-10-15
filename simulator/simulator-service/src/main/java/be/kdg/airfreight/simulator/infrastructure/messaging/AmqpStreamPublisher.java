@@ -18,22 +18,22 @@ import tools.jackson.databind.json.JsonMapper;
 class AmqpStreamPublisher implements StreamPublisher {
     private final RabbitTemplate rabbit;
     private final JsonMapper mapper;
-    private final StreamProperties streams;
+    private final AmqpProperties amqp;
 
-    AmqpStreamPublisher(RabbitTemplate rabbit, JsonMapper mapper, StreamProperties streams) {
+    AmqpStreamPublisher(RabbitTemplate rabbit, JsonMapper mapper, AmqpProperties amqp) {
         this.rabbit = rabbit;
         this.mapper = mapper;
-        this.streams = streams;
+        this.amqp = amqp;
     }
 
     @Override
     public void send(SsmMessage ssm) {
-        send(streams.scheduleExchange(), ssm.type(), ssm.messageId(), ssm);
+        send(amqp.networkPlanningMessagesExchange(), ssm.type(), ssm.messageId(), ssm);
     }
 
     @Override
     public void send(UldMessage uldMessage) {
-        send(streams.bookingsExchange(), uldMessage.type(), uldMessage.messageId(), uldMessage);
+        send(amqp.cargoBookingMessagesExchange(), uldMessage.type(), uldMessage.messageId(), uldMessage);
     }
 
     private void send(String exchange, String type, UUID messageId, Object body) {

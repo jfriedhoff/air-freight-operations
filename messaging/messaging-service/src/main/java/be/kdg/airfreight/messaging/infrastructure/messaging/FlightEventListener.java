@@ -16,7 +16,7 @@ class FlightEventListener {
         this.flightEvents = flightEvents;
     }
 
-    @RabbitListener(queues = MessagingConfig.FLIGHTS_QUEUE)
+    @RabbitListener(queues = "${messaging.amqp.flights-queue}")
     void on(Message message) {
         flightEvents.receiveFlightEvent(new String(message.getBody(), StandardCharsets.UTF_8));
     }

@@ -31,3 +31,18 @@ Feature: Offloading along the left and right side
     When the offloading is checked
     Then the check has failed
     And the report states that AKE16689R7 on ML cannot be offloaded because AKE20417HJ on PL is in the way
+
+  @unit
+  Scenario: The report names every ULD that cannot be offloaded, in the order of their codes
+    Given these ULDs are on board:
+      | ULD        | destination | position |
+      | AKE20417HJ | ATH         | ML       |
+      | AKE16689R7 | ATH         | MR       |
+      | AKE30111HJ | FRA         | PL       |
+      | AKE40222HJ | FRA         | PR       |
+    When the offloading is checked
+    Then the check has failed
+    And the report states:
+      """
+      AKE16689R7 on MR cannot be offloaded because AKE40222HJ on PR is in the way; AKE20417HJ on ML cannot be offloaded because AKE30111HJ on PL is in the way
+      """

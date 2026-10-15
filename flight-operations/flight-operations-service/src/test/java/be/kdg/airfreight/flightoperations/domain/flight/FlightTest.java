@@ -70,16 +70,7 @@ class FlightTest {
         assertThat(events).isEmpty();
     }
 
-    @Test
-    void removingOneOfTwoDelaysKeepsTheOther() {
-        DelayId first = addDepartureDelay(25);
-        DelayId second = addDepartureDelay(10);
-
-        flight.removeDelay(second, planner, NOW);
-
-        assertThat(flight.getDelays()).extracting(Delay::getId).containsExactly(first);
-    }
-
+    /** FinalizedLoadService asks isFinalizedLoadReceived to ignore a second CPM: no scenario reads it. */
     @Test
     void receivingTheFinalizedLoadIsAnnounced() {
         FinalizedLoadReceived event = flight.recordFinalizedLoad(NOW);

@@ -8,6 +8,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/** What the catalog returns and what an entry needs. Refusing an unknown reason is story 08. */
 class DelayCodeCatalogTest {
     private static final DelayReason ROTATION = new DelayReason(new DelayCode("93"), "Aircraft rotation");
     /** The catalog has one method without a body, so a lambda is a catalog. */
@@ -18,15 +19,9 @@ class DelayCodeCatalogTest {
         assertThat(catalog.requireKnown(new DelayCode("93"))).isEqualTo(ROTATION);
     }
 
+    /** The entry of the list itself; the description a planner gives a delay is story 08. */
     @Test
-    void aDelayReasonOutsideTheIataListIsRefusedWithAnExplanation() {
-        assertThatThrownBy(() -> catalog.requireKnown(new DelayCode("50")))
-            .isInstanceOf(InvalidValueException.class)
-            .hasMessage("Delay reason '50' is not in the IATA list");
-    }
-
-    @Test
-    void aDelayReasonNeedsADescription() {
+    void anEntryOfTheIataListNeedsADescription() {
         assertThatThrownBy(() -> new DelayReason(new DelayCode("93"), " "))
             .isInstanceOf(InvalidValueException.class);
     }

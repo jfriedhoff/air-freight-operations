@@ -12,3 +12,15 @@ Feature: Change the policy values without a new release
       | value                                     | new     | action                                                                                         | result                                  |
       | the tolerance for actual times            | 10 min  | the flight planner registers 06:54 as the ATD with an ETD of 06:45 UTC                         | the registration is accepted            |
       | the retention period                      | 10 days | it becomes 16 January 2026                                                                     | the flight of 9 January 2026 still exists |
+
+  @unit
+  Scenario Outline: A policy value cannot be negative
+    When the operations manager sets <value> to <new>
+    Then that is <result>
+
+    Examples:
+      | value                          | new     | result   |
+      | the tolerance for actual times | 0 min   | accepted |
+      | the tolerance for actual times | -1 min  | refused  |
+      | the retention period           | 0 days  | accepted |
+      | the retention period           | -1 days | refused  |

@@ -22,8 +22,8 @@ public class ParameterTypes {
         return new UldCode(code);
     }
 
-    /** A weight as the stories write it: "1000 kg", "2646 lb", "1200.2 kg". */
-    @ParameterType("\\d+(?:\\.\\d+)? (?:kg|lb)")
+    /** A weight as the stories write it: "1000 kg", "2646 lb", "1200.2 kg", and "-1 kg" for a refusal. */
+    @ParameterType("-?\\d+(?:\\.\\d+)? (?:kg|lb)")
     public String weight(String weight) {
         return weight;
     }

@@ -19,6 +19,25 @@ Feature: Booked ULDs appear on the right flight automatically
     And the second booking is logged
 
   @unit
+  Scenario: The same ULD code twice on one flight is refused
+    Given AKE16689R7 is booked with 1250 kg on HJ221 of 9 January
+    When AKE16689R7 is booked again with 1400 kg on HJ221 of 9 January
+    Then that is refused with an explanation
+    And there is still one booking of AKE16689R7 with 1250 kg
+
+  @unit
+  Scenario Outline: A ULD always weighs something
+    When AKE16689R7 of <weight> is booked on HJ221 of 9 January
+    Then that is <result>
+
+    Examples:
+      | weight   | result   |
+      | 0.001 kg | accepted |
+      | 0 kg     | refused  |
+      | 0 lb     | refused  |
+      | -1 kg    | refused  |
+
+  @unit
   Scenario: The same ULD code is allowed on another flight
     Given flight HJ221 of 16 January 2026 from BRU also exists
     And AKE16689R7 is booked on HJ221 of 9 January
@@ -37,7 +56,7 @@ Feature: Booked ULDs appear on the right flight automatically
     Then the booking is not applied
     And the message is set aside and logged
 
-  @unit @to-confirm
+  @unit @wip
   Scenario: A booking after finalizing stays behind
     Given the load of HJ221 has been finalized, but the flight has not departed yet
     When AKE20417HJ is booked on HJ221
