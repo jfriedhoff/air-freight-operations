@@ -9,37 +9,7 @@ One section per team member. Remove an item when its merge request is merged.
 - Jonas: steps for the scenario that lost `@to-confirm` on 14/10/2026 (#15); it is `@wip` until the steps exist.
 - Jonas: ask the coach what happens to a load that is not finalized in time (#18).
 
-- Romeo: navigation between the two contexts and the flight list endpoint go into the branch of the
-  overview of the flights (#4), not into the branch of #33/#35 (team decision of 14/10/2026).
-
 ## Romeo
-
-### Links between the contexts and `GET /api/flights` belong to the overview (#4)
-
-**Decided on 14/10/2026.** The branch of stories #33 and #35 secures both contexts, adds their feature
-files and a start page (portal) after login. The portal links to te beladen vluchten (Load Planning); the
-overview of the flights is plain text there until #4, and the start page of Load Planning links back to the
-portal. It does **not** add links between the cargo-pagina and Vluchtdetails, nor a flight list endpoint in
-Flight Operations. Those come with the overview of all flights (#4), where `GET /api/flights` is designed
-once.
-
-Until #4 a load planner can open Load Planning from the portal, but has no way to reach Vluchtdetails.
-
-**What the #4 branches add (decided on 15/10/2026):**
-
-- One collection per context with the same optional filters, matched on the server:
-  `GET /api/flights?scheduledDepartureDate=…&flightNumber=…&departureAirport=…` in Flight Operations (new) and
-  the same `flightNumber` and `departureAirport` on `GET /api/flight-cargos` in Load Planning. Flight number
-  and departure airport come both or neither (400 otherwise); an unknown identity is an empty list.
-  Matching an identity in the browser was dropped: that is a business rule, not a screen rule.
-- The day is the scheduled departure date in UTC (coach, question 9, 15/10/2026); without a day the server
-  takes today in UTC and names it in its answer.
-- A link "Vluchtdetails" on the cargo-pagina and "Lading van deze vlucht" on Vluchtdetails, built from
-  the flight identity (flight number, scheduled departure date in UTC, departure airport) of the loaded
-  resource; the host from a `VITE_*` variable; no return or redirect address in the URL. A page opened by
-  identity asks its own list endpoint with the identity filter.
-- Four stacked branches: `stack/4-01-flight-list-api`, `stack/4-02-overview-page`,
-  `stack/4-03-links-between-contexts`, `stack/4-04-docs-and-reflection`.
 
 ### Step "it is recorded that … did that" for #10, #12 and #13
 
@@ -90,7 +60,7 @@ Post coaching). The tags are removed in #15, #18, #26 and #30, and in #26 the st
 is logged" is gone (no inbox in Load Planning). The runners used to skip these scenarios
 (`"... and not @to-confirm and not @wip"`), so the steps of the scenario below do not exist yet.
 It is tagged `@wip` until they do, so the build stays green; implementing one starts by removing
-`@wip`. #4 and #6 keep `@to-confirm`: they wait for question 9 of the analysis.
+`@wip`. The `@to-confirm` tags of #4 and #6 are gone too: the coach answered question 9 on 15/10/2026.
 
 | File | Change |
 | --- | --- |
