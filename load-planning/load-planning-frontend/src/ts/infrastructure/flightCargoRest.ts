@@ -1,5 +1,6 @@
 import type {FlightCargo} from "../domain/FlightCargo.ts";
-import type {FlightsToLoad} from "../domain/FlightToLoad.ts";
+import type {FlightIdentity} from "../domain/FlightIdentity.ts";
+import type {FlightsToLoad, FlightToLoad} from "../domain/FlightToLoad.ts";
 import type {FinalizeOutcome} from "../domain/LoadCheckReport.ts";
 import {authorizedFetch} from "./auth.ts";
 import {SERVER_URL, throwResponseError} from "./restUtils.ts";
@@ -20,6 +21,23 @@ export async function getFlightsToLoad(day: string | null, includeDeparted: bool
         return response.json();
     }
     return throwResponseError("De te beladen vluchten konden niet opgehaald worden", response);
+}
+
+/* The cargo of the flight with this identity, departed or not; null when Load Planning does not know the flight
+   (yet). The server matches the identity. */
+export async function findFlightCargo(identity: FlightIdentity): Promise<FlightToLoad | null> {
+    const parameters = new URLSearchParams({
+        scheduledDepartureDate: identity.scheduledDepartureDate,
+        flightNumber: identity.flightNumber,
+        departureAirport: identity.departureAirport,
+        includeDeparted: "true",
+    });
+    const response = await authorizedFetch(`${FLIGHT_CARGOS_URL}?${parameters}`);
+    if (response.ok) {
+        const flightsToLoad: FlightsToLoad = await response.json();
+        return flightsToLoad.flights[0] ?? null;
+    }
+    return throwResponseError("De lading van de vlucht kon niet gevonden worden", response);
 }
 
 export async function getFlightCargo(flightCargoId: string): Promise<FlightCargo> {

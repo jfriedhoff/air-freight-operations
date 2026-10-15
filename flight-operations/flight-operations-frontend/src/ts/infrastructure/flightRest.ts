@@ -1,5 +1,6 @@
 import type {DelayReason, Flight, NewDelay} from "../domain/Flight.ts";
-import type {FlightsOfDay} from "../domain/FlightOverview.ts";
+import type {FlightIdentity} from "../domain/FlightIdentity.ts";
+import type {FlightRow, FlightsOfDay} from "../domain/FlightOverview.ts";
 import {authorizedFetch} from "./auth.ts";
 import {SERVER_URL, throwResponseError} from "./restUtils.ts";
 
@@ -16,6 +17,22 @@ export async function getFlights(day: string | null): Promise<FlightsOfDay> {
         return response.json();
     }
     return throwResponseError("De vluchten konden niet opgehaald worden", response);
+}
+
+/* The flight with this identity, as a page of Load Planning knows it; null when Flight Operations has no such
+   flight (anymore). The server matches the identity. */
+export async function findFlight(identity: FlightIdentity): Promise<FlightRow | null> {
+    const parameters = new URLSearchParams({
+        scheduledDepartureDate: identity.scheduledDepartureDate,
+        flightNumber: identity.flightNumber,
+        departureAirport: identity.departureAirport,
+    });
+    const response = await authorizedFetch(`${FLIGHTS_URL}?${parameters}`);
+    if (response.ok) {
+        const flightsOfDay: FlightsOfDay = await response.json();
+        return flightsOfDay.flights[0] ?? null;
+    }
+    return throwResponseError("De vlucht kon niet gevonden worden", response);
 }
 
 export async function getFlight(flightId: string): Promise<Flight> {

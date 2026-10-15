@@ -61,10 +61,16 @@ public class TestHelper {
 
     /** A flight from BRU to ATH that takes 3 h 15 min, like the flights of the stories. */
     public FlightCargo saveCargo(String flightNumber, LocalDate date, LocalTime std) {
+        return saveCargo(flightNumber, "BRU", date, std);
+    }
+
+    /** A flight between BRU and ATH from this departure airport, 3 h 15 min like the flights of the stories. */
+    public FlightCargo saveCargo(String flightNumber, String departureAirport, LocalDate date, LocalTime std) {
         Instant departure = date.atTime(std).toInstant(ZoneOffset.UTC);
+        String arrivalAirport = departureAirport.equals("ATH") ? "BRU" : "ATH";
         FlightCargo cargo = FlightCargo.create(
-            new FlightId(new FlightNumber(flightNumber), date, new AirportCode("BRU")),
-            FlightInfo.scheduled(new AirportCode("ATH"), aircraftType, departure,
+            new FlightId(new FlightNumber(flightNumber), date, new AirportCode(departureAirport)),
+            FlightInfo.scheduled(new AirportCode(arrivalAirport), aircraftType, departure,
                 departure.plus(Duration.between(STD, STA))), policy);
         cargos.save(cargo);
         return find(cargo.getId());
