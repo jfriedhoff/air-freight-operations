@@ -25,14 +25,21 @@ once.
 
 Until #4 a load planner can open Load Planning from the portal, but has no way to reach Vluchtdetails.
 
-**What the #4 branch must add:**
+**What the #4 branches add (decided on 15/10/2026):**
 
-- `GET /api/flights` in Flight Operations, also filtered by flight number, scheduled departure date and
-  departure airport, so a page of the other context can find a flight by its identity.
+- One collection per context with the same optional filters, matched on the server:
+  `GET /api/flights?scheduledDepartureDate=…&flightNumber=…&departureAirport=…` in Flight Operations (new) and
+  the same `flightNumber` and `departureAirport` on `GET /api/flight-cargos` in Load Planning. Flight number
+  and departure airport come both or neither (400 otherwise); an unknown identity is an empty list.
+  Matching an identity in the browser was dropped: that is a business rule, not a screen rule.
+- The day is the scheduled departure date in UTC (coach, question 9, 15/10/2026); without a day the server
+  takes today in UTC and names it in its answer.
 - A link "Vluchtdetails" on the cargo-pagina and "Lading van deze vlucht" on Vluchtdetails, built from
   the flight identity (flight number, scheduled departure date in UTC, departure airport) of the loaded
-  resource; the host from a `VITE_*` variable; no return or redirect address in the URL.
-- The cargo-pagina by identity through `GET /api/flight-cargos?scheduledDepartureDate=…&includeDeparted=true`.
+  resource; the host from a `VITE_*` variable; no return or redirect address in the URL. A page opened by
+  identity asks its own list endpoint with the identity filter.
+- Four stacked branches: `stack/4-01-flight-list-api`, `stack/4-02-overview-page`,
+  `stack/4-03-links-between-contexts`, `stack/4-04-docs-and-reflection`.
 
 ### Step "it is recorded that … did that" for #10, #12 and #13
 
