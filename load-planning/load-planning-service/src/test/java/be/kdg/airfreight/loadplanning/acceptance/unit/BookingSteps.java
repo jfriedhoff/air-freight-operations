@@ -18,6 +18,8 @@ public class BookingSteps {
     private static final String NO_WEIGHT = "A weight must be greater than 0";
 
     private final CargoWorld world;
+    /** The ULD that the When step booked. */
+    private UldCode arrived;
 
     public BookingSteps(CargoWorld world) {
         this.world = world;
@@ -70,11 +72,31 @@ public class BookingSteps {
         world.book(code, ANY_WEIGHT);
     }
 
-    /** Story 15 uses "is booked without a load position" as a Then: add the acted check of isOn then. */
+    /** A separate When step, because "{uld} is booked on {word}" is already a Given in story 18. */
+    @When("a booking of {uld} on {word} arrives")
+    public void aBookingArrives(UldCode code, String flightNumber) {
+        world.assertFlight(flightNumber);
+        arrived = code;
+        world.attempt(() -> world.book(code, ANY_WEIGHT));
+    }
+
+    /** Stories 22 and 23 use this step to book a ULD. Story 15 uses it to check that the booking worked. */
     @Given("{uld} is booked but has no load position")
     @Given("{uld} is booked without a load position")
     public void isBookedWithoutALoadPosition(UldCode code) {
-        world.book(code, ANY_WEIGHT);
+        if (world.acted) {
+            world.assertAccepted();
+            assertThat(world.uld(code).hasPosition()).isFalse();
+        } else {
+            world.book(code, ANY_WEIGHT);
+        }
+    }
+
+    /** The step that finalized the load has set the expected refusal. */
+    @Then("no load position can be assigned to it anymore")
+    public void noLoadPositionCanBeAssignedToItAnymore() {
+        world.attempt(() -> world.place(arrived, world.freePosition()));
+        world.assertRefusedForTheExpectedReason();
     }
 
     @Given("{uld} of {weight} is booked without a load position")
