@@ -20,4 +20,12 @@ final class Logins {
             .toArray(SimpleGrantedAuthority[]::new);
         return jwt().jwt(token -> token.subject(subject.toString())).authorities(authorities);
     }
+
+    /** A token that also carries the name Keycloak gives the account, as a real token does. */
+    static RequestPostProcessor namedToken(UUID subject, String name, String... roles) {
+        SimpleGrantedAuthority[] authorities = Arrays.stream(roles)
+            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+            .toArray(SimpleGrantedAuthority[]::new);
+        return jwt().jwt(token -> token.subject(subject.toString()).claim("name", name)).authorities(authorities);
+    }
 }

@@ -1,5 +1,9 @@
 package be.kdg.airfreight.flightoperations.application;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 
 import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlanner;
@@ -28,5 +32,15 @@ public class FlightPlannerService {
         if (known.isEmpty() || !known.get().getName().equals(name)) {
             flightPlanners.save(new FlightPlanner(id, name));
         }
+    }
+
+    /** The names of these planners, so the details page can show who changed the flight. */
+    @Transactional(readOnly = true)
+    public Map<FlightPlannerId, String> namesOf(Collection<FlightPlannerId> ids) {
+        Map<FlightPlannerId, String> names = new HashMap<>();
+        for (FlightPlannerId id : new HashSet<>(ids)) {
+            flightPlanners.findById(id).ifPresent(planner -> names.put(id, planner.getName()));
+        }
+        return names;
     }
 }

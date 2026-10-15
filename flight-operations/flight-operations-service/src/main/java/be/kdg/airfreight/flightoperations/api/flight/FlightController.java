@@ -60,7 +60,8 @@ public class FlightController {
     }
 
     private FlightDto toDto(Flight flight) {
-        return FlightDto.from(flight, airports, delayCodes);
+        return FlightDto.from(flight, airports, delayCodes,
+            flightPlannerService.namesOf(FlightDto.plannersOf(flight)));
     }
 
     /** The name Keycloak gives the account. A token without one falls back to the user name, then to the id. */

@@ -53,7 +53,7 @@ public class FlightCargoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<FlightCargoDto> get(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(FlightCargoDto.from(loadService.get(new FlightCargoId(id))));
+        return ResponseEntity.ok(toDto(loadService.get(new FlightCargoId(id))));
     }
 
     @PutMapping("/{id}/ulds/{uldCode}/load-position")
@@ -70,7 +70,7 @@ public class FlightCargoController {
         // so nothing a caller typed reaches the log unchecked. A refusal is logged by ErrorHandling.
         log.info("Load planner {} put ULD {} on load position {} for flight cargo {}", loadPlanner.id(), uld.value(),
             dto.loadPosition(), id);
-        return ResponseEntity.ok(FlightCargoDto.from(cargo));
+        return ResponseEntity.ok(toDto(cargo));
     }
 
     /** Check Load: every check on the load as it stands. It changes nothing; only a load planner may ask it. */
@@ -97,6 +97,11 @@ public class FlightCargoController {
         }
         log.info("Load planner {} finalized the load of flight cargo {}", loadPlanner.id(), id);
         return ResponseEntity.ok(dto);
+    }
+
+    private FlightCargoDto toDto(FlightCargoSnapshot snapshot) {
+        return FlightCargoDto.from(snapshot,
+            loadPlannerService.namesOf(FlightCargoDto.plannersOf(snapshot.cargo())));
     }
 
     /** The name Keycloak gives the account. A token without one falls back to the user name, then to the id. */
