@@ -6,7 +6,7 @@ One section per team member. Remove an item when its merge request is merged.
 ## In short
 
 - Jonas: an airline code needs at least one letter (answer of the coach on 14/10/2026).
-- Jonas: steps for the scenarios that lost `@to-confirm` on 14/10/2026 (#15, #26); they are `@wip` until the steps exist.
+- Jonas: steps for the scenario that lost `@to-confirm` on 14/10/2026 (#15); it is `@wip` until the steps exist.
 - Jonas: ask the coach what happens to a load that is not finalized in time (#18).
 
 - Romeo: navigation between the two contexts and the flight list endpoint go into the branch of the
@@ -81,18 +81,17 @@ as `AB` + `1234`.
 The coach answered all five `@to-confirm` questions on 14/10/2026 (`REFLECTIE.md`, Zelfreflectie 2,
 Post coaching). The tags are removed in #15, #18, #26 and #30, and in #26 the step "And the duplicate
 is logged" is gone (no inbox in Load Planning). The runners used to skip these scenarios
-(`"... and not @to-confirm and not @wip"`), so the steps of the two scenarios below do not exist yet.
-They are tagged `@wip` until they do, so the build stays green; implementing one starts by removing
+(`"... and not @to-confirm and not @wip"`), so the steps of the scenario below do not exist yet.
+It is tagged `@wip` until they do, so the build stays green; implementing one starts by removing
 `@wip`. #4 and #6 keep `@to-confirm`: they wait for question 9 of the analysis.
 
 | File | Change |
 | --- | --- |
 | `load-planning/.../features/loadplanning/15-booked-ulds-on-flight.feature` (line 59, `@unit`) | New steps: "the load of {flight} has been finalized, but the flight has not departed yet", "no load position can be assigned to it anymore", "the finalized load remains unchanged" ("... is booked without a load position" exists in `BookingSteps`) |
-| `load-planning/.../features/loadplanning/26-follow-flight-state.feature` (line 32, `@integration`) | New steps in load-planning: "Load Planning has already processed the event about the delay of {flight}", "the same event arrives again", "nothing changes" |
 
 **After the code:**
 
-- Remove `@wip` from the two scenarios, then run `UnitAcceptanceTest` and `IntegrationAcceptanceTest`
+- Remove `@wip` from the scenario, then run `UnitAcceptanceTest` and `IntegrationAcceptanceTest`
   in load-planning.
 - Remove the label `to-confirm` from issues #15, #18, #26 and #30 on GitLab and update their
   Gherkin.
