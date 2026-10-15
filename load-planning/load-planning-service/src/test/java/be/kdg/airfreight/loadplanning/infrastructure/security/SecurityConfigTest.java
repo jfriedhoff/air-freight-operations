@@ -1,6 +1,7 @@
 package be.kdg.airfreight.loadplanning.infrastructure.security;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import be.kdg.airfreight.loadplanning.TestClock;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestClock.class)
 class SecurityConfigTest {
     private static final String NOTHING_HERE = "/api/nothing-here";
+    private static final String LOAD_CHECK = "/api/flight-cargos/" + UUID.randomUUID() + "/load-check";
 
     @Autowired
     private MockMvc mockMvc;
@@ -55,6 +57,13 @@ class SecurityConfigTest {
         mockMvc.perform(delete(NOTHING_HERE).with(roles("load-planner"))).andExpect(status().isNotFound());
         mockMvc.perform(put(NOTHING_HERE).with(roles("flight-planner"))).andExpect(status().isForbidden());
         mockMvc.perform(delete(NOTHING_HERE).with(roles("flight-planner"))).andExpect(status().isForbidden());
+    }
+
+    /** Check Load only reads, but it is an action of the load planner: a flight planner may not ask it. */
+    @Test
+    void onlyALoadPlannerMayCheckTheLoad() throws Exception {
+        mockMvc.perform(get(LOAD_CHECK).with(roles("load-planner"))).andExpect(status().isNotFound());
+        mockMvc.perform(get(LOAD_CHECK).with(roles("flight-planner"))).andExpect(status().isForbidden());
     }
 
     @Test

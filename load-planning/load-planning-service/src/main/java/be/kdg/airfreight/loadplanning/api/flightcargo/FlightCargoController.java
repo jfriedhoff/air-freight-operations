@@ -3,9 +3,11 @@ package be.kdg.airfreight.loadplanning.api.flightcargo;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import be.kdg.airfreight.loadplanning.application.FinalizeOutcome;
 import be.kdg.airfreight.loadplanning.application.FlightCargoSnapshot;
 import be.kdg.airfreight.loadplanning.application.LoadService;
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
+import be.kdg.airfreight.loadplanning.application.command.FinalizeLoadCommand;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
@@ -17,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,5 +67,30 @@ public class FlightCargoController {
         log.info("Load planner {} put ULD {} on load position {} for flight cargo {}", loadPlanner.id(), uld.value(),
             dto.loadPosition(), id);
         return ResponseEntity.ok(FlightCargoDto.from(cargo));
+    }
+
+    /** Check Load: every check on the load as it stands. It changes nothing; only a load planner may ask it. */
+    @GetMapping("/{id}/load-check")
+    public ResponseEntity<LoadCheckReportDto> checkLoad(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(LoadCheckReportDto.from(loadService.checkLoad(new FlightCargoId(id))));
+    }
+
+    /**
+     * Finalize Load. The use case runs the checks again, because the load may have changed since the last Check
+     * Load, and answers with that report: 200 with the report when the load is finalized, 409 with the same report
+     * when a hard check fails (see ErrorHandling).
+     */
+    @PostMapping("/{id}/finalize")
+    public ResponseEntity<LoadCheckReportDto> finalizeLoad(@PathVariable("id") UUID id,
+                                                           @AuthenticationPrincipal Jwt jwt) {
+        LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
+        FinalizeOutcome outcome = loadService.finalizeLoad(
+            new FinalizeLoadCommand(new FlightCargoId(id), loadPlanner));
+        LoadCheckReportDto dto = LoadCheckReportDto.from(outcome.report());
+        if (!outcome.finalized()) {
+            throw new HardCheckFailedException(dto);
+        }
+        log.info("Load planner {} finalized the load of flight cargo {}", loadPlanner.id(), id);
+        return ResponseEntity.ok(dto);
     }
 }

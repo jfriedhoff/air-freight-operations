@@ -1,11 +1,12 @@
 import {canChangeLoad, stateOf, withoutLoadPosition} from "../domain/FlightCargo.ts";
 import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
 import {listQuery, showsEta, showsEtd} from "../domain/FlightToLoad.ts";
-import {assignLoadPosition, getFlightCargo} from "../infrastructure/flightCargoRest.ts";
+import {assignLoadPosition, finalizeLoad, getFlightCargo} from "../infrastructure/flightCargoRest.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
 import {createElementWithText} from "./htmlUtil.ts";
+import {showReport} from "./loadCheckReportPresenter.ts";
 import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
@@ -17,11 +18,15 @@ const uldSummary = document.getElementById("uld-summary")!;
 const noUlds = document.getElementById("no-ulds")!;
 const uldTable = document.getElementById("uld-table")!;
 const uldRows = document.getElementById("ulds")!;
+const loadActions = document.getElementById("load-actions")!;
+const finalizeButton = document.getElementById("finalize-btn") as HTMLButtonElement;
 
 const flightCargoId = new URLSearchParams(window.location.search).get("flightCargoId");
 let isLoadPlanner = false;
 /* A request to assign is on its way: the automatic reload waits for it. */
 let assigning = false;
+/* A request to finalize is on its way: the automatic reload waits for it too. */
+let finalizing = false;
 
 function text(id: string, value: string): void {
     document.getElementById(id)!.textContent = value;
@@ -126,6 +131,7 @@ function render(cargo: FlightCargo): void {
 
     const changeable = canChangeLoad(cargo, isLoadPlanner);
     uldRows.replaceChildren(...cargo.ulds.map(uld => uldRow(cargo, uld, changeable)));
+    loadActions.classList.toggle("hidden", !changeable);
     uldSummary.textContent = summary(cargo);
     noUlds.classList.toggle("hidden", cargo.ulds.length > 0);
     uldTable.classList.toggle("hidden", cargo.ulds.length === 0);
@@ -172,6 +178,37 @@ async function assign(cargoId: string, uldCode: string, loadPosition: string): P
     }
 }
 
+/* The server runs the checks again and finalizes only when every hard check passes; either way it sends the
+   report, which the page shows. A refusal for another reason, such as the loading period, is shown as an error. */
+async function finalize(): Promise<void> {
+    // Finalizing cannot be undone: the CPM leaves for the partners and the load positions are frozen.
+    if (!window.confirm("Na het finaliseren kunnen de laadposities niet meer wijzigen en wordt de CPM verstuurd. "
+        + "Lading finaliseren?")) {
+        return;
+    }
+    clearMessages(messageBox);
+    finalizing = true;
+    finalizeButton.disabled = true;
+    try {
+        const outcome = await finalizeLoad(flightCargoId!);
+        showReport(outcome.report);
+        await reload();
+        if (outcome.finalized) {
+            addInfo(messageBox, "De lading is gefinaliseerd.");
+        } else {
+            addError(messageBox, "De lading is niet gefinaliseerd: een hard check faalt.");
+        }
+    } catch (error) {
+        const refusal = (error as Error).message;
+        await reload();
+        clearMessages(messageBox);
+        addError(messageBox, refusal);
+    } finally {
+        finalizing = false;
+        finalizeButton.disabled = false;
+    }
+}
+
 async function init(): Promise<void> {
     const role = await plannerRoleOrNoAccess(messageBox);
     if (role === null) {
@@ -182,7 +219,8 @@ async function init(): Promise<void> {
         addError(messageBox, "Kies een vlucht in de lijst van te beladen vluchten.");
         return;
     }
-    startAutoRefresh(reload, () => !assigning && !aChoiceIsInProgress());
+    finalizeButton.addEventListener("click", finalize);
+    startAutoRefresh(reload, () => !assigning && !finalizing && !aChoiceIsInProgress());
 }
 
 init();

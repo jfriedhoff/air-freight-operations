@@ -1,5 +1,6 @@
 import type {FlightCargo} from "../domain/FlightCargo.ts";
 import type {FlightsToLoad} from "../domain/FlightToLoad.ts";
+import type {FinalizeOutcome} from "../domain/LoadCheckReport.ts";
 import {authorizedFetch} from "./auth.ts";
 import {SERVER_URL, throwResponseError} from "./restUtils.ts";
 
@@ -43,4 +44,22 @@ export async function assignLoadPosition(flightCargoId: string, uldCode: string,
         return response.json();
     }
     return throwResponseError("De laadpositie is geweigerd", response);
+}
+
+/* The server answers with the report both ways: 200 when the load is finalized, 409 with the code
+   hard-check-failed and the report when a hard check fails. Any other refusal, such as outside the loading
+   period, is an error with its reason. */
+export async function finalizeLoad(flightCargoId: string): Promise<FinalizeOutcome> {
+    const response = await authorizedFetch(`${FLIGHT_CARGOS_URL}/${encodeURIComponent(flightCargoId)}/finalize`, {
+        method: "POST",
+    });
+    if (response.ok) {
+        return {finalized: true, report: await response.json()};
+    }
+    // a copy, because throwResponseError reads the body again
+    const problem = await response.clone().json().catch(() => null);
+    if (problem?.code === "hard-check-failed") {
+        return {finalized: false, report: problem.report};
+    }
+    return throwResponseError("De lading is niet gefinaliseerd", response);
 }
