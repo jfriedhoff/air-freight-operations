@@ -12,6 +12,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class FlightControllerTest {
     private static final String VALID_DELAY = """
         {"kind": "DEPARTURE", "minutes": 25, "reason": "93", "description": "Late inbound aircraft"}""";
+    private static final String FLIGHTS = "/api/flights";
+    private static final LocalDate NINE_JANUARY = LocalDate.of(2026, 1, 9);
 
     @Autowired
     private MockMvc mockMvc;
@@ -148,6 +152,116 @@ class FlightControllerTest {
                 .contentType(MediaType.APPLICATION_JSON).content(VALID_DELAY))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.code").value("unknown-flight-planner"));
+    }
+
+    @Test
+    void theFlightsOfADayAreListedInOrderOfStdWithTheirIdentityAndScheduledTimes() throws Exception {
+        testHelper.saveFlight("3V11", "BRU", NINE_JANUARY, LocalTime.of(12, 0), "SXBAB");
+        Flight hj221 = testHelper.savePlannedFlight();
+        testHelper.saveFlight("HJ300", "BRU", NINE_JANUARY.plusDays(1), LocalTime.of(6, 30), "SXBAC");
+
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.scheduledDepartureDate").value("2026-01-09"))
+            .andExpect(jsonPath("$.flights.length()").value(2))
+            .andExpect(jsonPath("$.flights[0].id").value(hj221.getId().id().toString()))
+            .andExpect(jsonPath("$.flights[0].flightNumber").value("HJ221"))
+            .andExpect(jsonPath("$.flights[0].scheduledDepartureDate").value("2026-01-09"))
+            .andExpect(jsonPath("$.flights[0].departureAirport").value("BRU"))
+            .andExpect(jsonPath("$.flights[0].arrivalAirport").value("ATH"))
+            .andExpect(jsonPath("$.flights[0].std").value("2026-01-09T06:30:00Z"))
+            .andExpect(jsonPath("$.flights[0].sta").value("2026-01-09T09:45:00Z"))
+            .andExpect(jsonPath("$.flights[1].flightNumber").value("3V11"));
+    }
+
+    @Test
+    void flightsWithTheSameStdAreListedByFlightNumber() throws Exception {
+        testHelper.saveFlight("HJ500", "BRU", NINE_JANUARY, LocalTime.of(9, 0), "SXBAB");
+        testHelper.saveFlight("3V20", "BRU", NINE_JANUARY, LocalTime.of(9, 0), "SXBAC");
+
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09").with(planner("flight-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights[0].flightNumber").value("3V20"))
+            .andExpect(jsonPath("$.flights[1].flightNumber").value("HJ500"));
+    }
+
+    /** The day list loads every flight with its delays; a flight with two delays is still one flight. */
+    @Test
+    void aFlightWithSeveralDelaysIsListedOnce() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+        testHelper.addDepartureDelay(flight.getId());
+        testHelper.addDepartureDelay(flight.getId());
+
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09").with(planner("flight-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1));
+    }
+
+    @Test
+    void aDayWithoutFlightsGivesAnEmptyList() throws Exception {
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-02-01").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.scheduledDepartureDate").value("2026-02-01"))
+            .andExpect(jsonPath("$.flights.length()").value(0));
+    }
+
+    @Test
+    void aFlightIsFoundByItsIdentityAndNotByTheSameNumberFromAnotherAirport() throws Exception {
+        Flight hj221 = testHelper.savePlannedFlight();
+        testHelper.saveFlight("HJ221", "ATH", NINE_JANUARY, LocalTime.of(12, 0), "SXBAB");
+
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "HJ221").param("departureAirport", "BRU").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].id").value(hj221.getId().id().toString()))
+            .andExpect(jsonPath("$.flights[0].departureAirport").value("BRU"));
+    }
+
+    @Test
+    void anIdentityOnAnotherDayFindsNothing() throws Exception {
+        testHelper.savePlannedFlight();
+
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-10")
+                .param("flightNumber", "HJ221").param("departureAirport", "BRU").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.scheduledDepartureDate").value("2026-01-10"))
+            .andExpect(jsonPath("$.flights.length()").value(0));
+    }
+
+    @Test
+    void halfAnIdentityIsABadRequestWithItsReason() throws Exception {
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09").param("flightNumber", "HJ221")
+                .with(planner("load-planner")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value(containsString("both or neither")));
+    }
+
+    @Test
+    void aMalformedDateFlightNumberOrAirportIsABadRequest() throws Exception {
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "tomorrow").with(planner("load-planner")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"));
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "hj221").param("departureAirport", "bru").with(planner("load-planner")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value(containsString("hj221")));
+    }
+
+    @Test
+    void withoutATokenTheListIsNotGiven() throws Exception {
+        mockMvc.perform(get(FLIGHTS)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aUserWithNeitherOrBothPlannerRolesGetsNoList() throws Exception {
+        mockMvc.perform(get(FLIGHTS).with(jwt().authorities(new SimpleGrantedAuthority("ROLE_other"))))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(get(FLIGHTS).with(jwt().authorities(new SimpleGrantedAuthority("ROLE_flight-planner"),
+                new SimpleGrantedAuthority("ROLE_load-planner"))))
+            .andExpect(status().isForbidden());
     }
 
     private RequestPostProcessor registeredFlightPlanner() {

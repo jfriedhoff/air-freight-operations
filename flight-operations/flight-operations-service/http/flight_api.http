@@ -1,6 +1,3 @@
-### Put the id of a flight here: from the table flights, or from a flight the simulator announced
-@flight-id = 00000000-0000-0000-0000-000000000000
-
 ### Log in first: password grant, the access token goes into access_token for the requests below
 POST {{keycloak}}/protocol/openid-connect/token
 Content-Type: application/x-www-form-urlencoded
@@ -11,8 +8,57 @@ grant_type=password&client_id={{client-id}}&client_secret={{client-secret}}&user
     client.global.set("access_token", response.body.access_token);
 %}
 
+### The flights of today (UTC). The first one is the flight of the requests below
+GET {{api}}/flights
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The answer names the day and lists its flights", function () {
+        client.assert(response.status === 200 && response.body.scheduledDepartureDate !== undefined,
+            "Expected 200 with the day, got " + response.status);
+    });
+    if (response.body.flights.length > 0) {
+        client.global.set("flight_id", response.body.flights[0].id);
+    }
+%}
+
+### The flights of another day: change the date to a day with flights when today has none
+GET {{api}}/flights?scheduledDepartureDate=2026-01-09
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The flights of the asked day", function () {
+        client.assert(response.status === 200 && response.body.scheduledDepartureDate === "2026-01-09",
+            "Expected 200 for 2026-01-09, got " + response.status);
+    });
+    if (response.body.flights.length > 0) {
+        client.global.set("flight_id", response.body.flights[0].id);
+    }
+%}
+
+### One flight by its identity, as a page of Load Planning asks for it
+GET {{api}}/flights?scheduledDepartureDate=2026-01-09&flightNumber=HJ221&departureAirport=BRU
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("At most one flight", function () {
+        client.assert(response.status === 200 && response.body.flights.length <= 1,
+            "Expected 200 with zero or one flight, got " + response.status);
+    });
+%}
+
+### Half an identity: 400 with the reason
+GET {{api}}/flights?flightNumber=HJ221
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("Both or neither", function () {
+        client.assert(response.status === 400, "Expected 400, got " + response.status);
+    });
+%}
+
 ### Without a token: 401
-GET {{api}}/flights/{{flight-id}}
+GET {{api}}/flights
 
 > {%
     client.test("No token, no answer", function () {
@@ -32,7 +78,7 @@ Authorization: Bearer {{access_token}}
 %}
 
 ### The details of a flight
-GET {{api}}/flights/{{flight-id}}
+GET {{api}}/flights/{{flight_id}}
 Authorization: Bearer {{access_token}}
 
 > {%
@@ -43,7 +89,7 @@ Authorization: Bearer {{access_token}}
 %}
 
 ### Enter a departure delay
-POST {{api}}/flights/{{flight-id}}/delays
+POST {{api}}/flights/{{flight_id}}/delays
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 
@@ -62,7 +108,7 @@ Content-Type: application/json
 %}
 
 ### A delay reason outside the IATA list: 400 with the reason
-POST {{api}}/flights/{{flight-id}}/delays
+POST {{api}}/flights/{{flight_id}}/delays
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 
@@ -81,7 +127,7 @@ Content-Type: application/json
 %}
 
 ### Nobody changes the STD: 405
-PATCH {{api}}/flights/{{flight-id}}
+PATCH {{api}}/flights/{{flight_id}}
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 

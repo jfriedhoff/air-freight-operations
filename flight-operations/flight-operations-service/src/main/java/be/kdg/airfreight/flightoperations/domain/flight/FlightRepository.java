@@ -11,6 +11,9 @@ public interface FlightRepository {
     Optional<Flight> findByFlight(FlightNumber flightNumber, LocalDate scheduledDepartureDate,
                                   AirportCode departureAirport);
 
+    /** The flights with this scheduled departure date, in order of STD and then flight number. */
+    List<Flight> findByScheduledDepartureDate(LocalDate scheduledDepartureDate);
+
     List<Flight> findScheduledOnOrBefore(LocalDate scheduledDepartureDate);
 
     void save(Flight flight);
