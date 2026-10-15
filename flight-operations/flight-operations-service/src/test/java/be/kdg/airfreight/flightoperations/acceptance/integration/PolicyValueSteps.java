@@ -1,6 +1,7 @@
 package be.kdg.airfreight.flightoperations.acceptance.integration;
 
 import be.kdg.airfreight.flightoperations.FlightOperationsApplication;
+import be.kdg.airfreight.flightoperations.TestClock;
 import be.kdg.airfreight.flightoperations.TestHelper;
 import be.kdg.airfreight.flightoperations.application.FlightRetentionService;
 import be.kdg.airfreight.flightoperations.application.FlightService;

@@ -23,6 +23,13 @@ public interface JpaFlightRepository extends JpaRepository<JpaFlight, UUID> {
 
     @Query("""
         SELECT DISTINCT f FROM JpaFlight f LEFT JOIN FETCH f.delays
+        WHERE f.scheduledDepartureDate = :scheduledDepartureDate
+        ORDER BY f.std, f.flightNumber""")
+    List<JpaFlight> findWithDelaysByScheduledDepartureDate(
+        @Param("scheduledDepartureDate") LocalDate scheduledDepartureDate);
+
+    @Query("""
+        SELECT DISTINCT f FROM JpaFlight f LEFT JOIN FETCH f.delays
         WHERE f.scheduledDepartureDate <= :scheduledDepartureDate""")
     List<JpaFlight> findWithDelaysScheduledOnOrBefore(@Param("scheduledDepartureDate") LocalDate scheduledDepartureDate);
 }

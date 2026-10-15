@@ -19,6 +19,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -158,6 +159,93 @@ class FlightsToLoadControllerTest {
         mockMvc.perform(get(FLIGHTS_TO_LOAD).with(planner("flight-planner")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.flights.length()").value(1));
+    }
+
+    @Test
+    void aFlightIsFoundByItsIdentity() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3V11").param("departureAirport", "BRU").with(planner("flight-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].id").value(stillPlanned.id().toString()));
+    }
+
+    @Test
+    void aDepartedFlightIsFoundByItsIdentityOnlyWhenDepartedFlightsAreAskedFor() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "HJ221").param("departureAirport", "BRU").with(planner("flight-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(0));
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "HJ221").param("departureAirport", "BRU").param("includeDeparted", "true")
+                .with(planner("flight-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].flightNumber").value("HJ221"))
+            .andExpect(jsonPath("$.flights[0].departed").value(true));
+    }
+
+    /** Flight events reach Load Planning through Messaging: a flight just created may not be known here yet. */
+    @Test
+    void anIdentityThatLoadPlanningDoesNotKnowGivesAnEmptyList() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "HJ999").param("departureAirport", "BRU").param("includeDeparted", "true")
+                .with(planner("flight-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(0));
+    }
+
+    @Test
+    void anIdentityFromAnotherAirportGivesAnEmptyList() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3V11").param("departureAirport", "ATH").param("includeDeparted", "true")
+                .with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(0));
+    }
+
+    @Test
+    void theSameFlightNumberFromAnotherAirportIsAnotherFlight() throws Exception {
+        FlightCargoId fromAthens = testHelper.saveCargo("3V11", "ATH", TODAY, LocalTime.of(13, 0)).getId();
+
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3V11").param("departureAirport", "BRU").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].id").value(stillPlanned.id().toString()));
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3V11").param("departureAirport", "ATH").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].id").value(fromAthens.id().toString()))
+            .andExpect(jsonPath("$.flights[0].departureAirport").value("ATH"));
+    }
+
+    @Test
+    void anIdentityOnAnotherDayFindsNothing() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-10")
+                .param("flightNumber", "3V11").param("departureAirport", "BRU").param("includeDeparted", "true")
+                .with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.scheduledDepartureDate").value("2026-01-10"))
+            .andExpect(jsonPath("$.flights.length()").value(0));
+    }
+
+    @Test
+    void aLowerCaseIdentityIsABadRequestWithItsReason() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3v11").param("departureAirport", "bru").with(planner("load-planner")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value(containsString("3v11")));
+    }
+
+    @Test
+    void halfAnIdentityIsABadRequestWithItsReason() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("flightNumber", "3V11").with(planner("load-planner")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value(containsString("both or neither")));
     }
 
     @Test

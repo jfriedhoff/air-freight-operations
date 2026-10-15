@@ -99,7 +99,7 @@ Voor Load Planning, dat zich als beide planners aanmeldt en ook toont dat een to
 
 | Context | Pagina | Adres na `bootRun` |
 | --- | --- | --- |
-| Flight Operations | Startpagina: de ingang na het aanmelden | http://localhost:8080/ |
+| Flight Operations | Startpagina: de ingang na het aanmelden, met het overzicht van de vluchten van vandaag (UTC) | http://localhost:8080/ |
 | Flight Operations | Vluchtdetails | http://localhost:8080/html/flight-details.html?flightId=… |
 | Load Planning | Startpagina | http://localhost:8081/ |
 | Load Planning | Te beladen vluchten | http://localhost:8081/html/flights-to-load.html |
