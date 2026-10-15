@@ -205,6 +205,42 @@ class FlightsToLoadControllerTest {
     }
 
     @Test
+    void theSameFlightNumberFromAnotherAirportIsAnotherFlight() throws Exception {
+        FlightCargoId fromAthens = testHelper.saveCargo("3V11", "ATH", TODAY, LocalTime.of(13, 0)).getId();
+
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3V11").param("departureAirport", "BRU").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].id").value(stillPlanned.id().toString()));
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3V11").param("departureAirport", "ATH").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].id").value(fromAthens.id().toString()))
+            .andExpect(jsonPath("$.flights[0].departureAirport").value("ATH"));
+    }
+
+    @Test
+    void anIdentityOnAnotherDayFindsNothing() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-10")
+                .param("flightNumber", "3V11").param("departureAirport", "BRU").param("includeDeparted", "true")
+                .with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.scheduledDepartureDate").value("2026-01-10"))
+            .andExpect(jsonPath("$.flights.length()").value(0));
+    }
+
+    @Test
+    void aLowerCaseIdentityIsABadRequestWithItsReason() throws Exception {
+        mockMvc.perform(get(FLIGHTS_TO_LOAD).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "3v11").param("departureAirport", "bru").with(planner("load-planner")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value(containsString("3v11")));
+    }
+
+    @Test
     void halfAnIdentityIsABadRequestWithItsReason() throws Exception {
         mockMvc.perform(get(FLIGHTS_TO_LOAD).param("flightNumber", "3V11").with(planner("load-planner")))
             .andExpect(status().isBadRequest())
