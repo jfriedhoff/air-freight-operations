@@ -22,13 +22,15 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.awaitility.Awaitility.await;
 
 /**
  * Plays Messaging: sends its events on its exchange, as JSON in its envelope, so they reach Load Planning
- * through RabbitMQ and MessagingEventListener as in production. Every message gets a new identification.
+ * through RabbitMQ and MessagingEventListener as in production. Every message gets a new identification,
+ * except one that is sent again with sendAgain.
  */
 @Component
 public class MessagingEvents {
@@ -43,6 +45,8 @@ public class MessagingEvents {
     private final FlightCargoRepository cargos;
     private final AmqpProperties amqp;
     private final AtomicInteger followUps = new AtomicInteger();
+    /** Every message sent so far, by its identification, so that a scenario can send one of them again. */
+    private final Map<UUID, Sent> sent = new ConcurrentHashMap<>();
 
     public MessagingEvents(RabbitTemplate rabbit, JsonMapper mapper, FlightCargoRepository cargos,
                            AmqpProperties amqp) {
@@ -64,8 +68,8 @@ public class MessagingEvents {
         send("messaging.flight.departed", flight, Map.of());
     }
 
-    public void departureEstimateChanged(FlightId flight, Instant etd) {
-        send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", etd.toString()));
+    public UUID departureEstimateChanged(FlightId flight, Instant etd) {
+        return send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", etd.toString()));
     }
 
     /** Messaging has already turned the day of the month into a date: Load Planning gets that date. */
@@ -76,6 +80,15 @@ public class MessagingEvents {
         fields.put("weightUnit", weight.unit().name());
         fields.put("destination", "ATH");
         return send("messaging.uld-booking.received", flight, fields);
+    }
+
+    /**
+     * Sends a message again with the same identification and the same content, as RabbitMQ does when it
+     * delivers a message twice, or as an outbox does when it publishes a row again after a crash.
+     */
+    public void sendAgain(UUID messageId) {
+        Sent message = sent.get(messageId);
+        rabbit.send(amqp.messagingEventsExchange(), message.type(), message.message());
     }
 
     /**
@@ -109,11 +122,17 @@ public class MessagingEvents {
         body.put("scheduledDepartureDate", flight.scheduledDepartureDate().toString());
         body.put("departureAirport", flight.departureAirport().value());
         body.putAll(fields);
-        rabbit.send(amqp.messagingEventsExchange(), type, MessageBuilder
+        Message message = MessageBuilder
             .withBody(mapper.writeValueAsString(body).getBytes(StandardCharsets.UTF_8))
             .setContentType("application/json")
-            .build());
+            .build();
+        sent.put(messageId, new Sent(type, message));
+        rabbit.send(amqp.messagingEventsExchange(), type, message);
         return messageId;
+    }
+
+    /** A message as it was sent, with its type, which is also its routing key. */
+    private record Sent(String type, Message message) {
     }
 
     private static String utc(LocalDate date, LocalTime time) {

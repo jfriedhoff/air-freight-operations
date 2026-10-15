@@ -15,7 +15,7 @@ import java.time.ZoneOffset;
  */
 @Primary
 public class TestClock extends Clock {
-    private @Nullable Instant fixed;
+    private volatile @Nullable Instant fixed;
 
     public void set(Instant now) {
         fixed = now;
