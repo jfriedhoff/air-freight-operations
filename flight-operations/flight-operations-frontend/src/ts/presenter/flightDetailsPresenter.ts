@@ -1,5 +1,6 @@
 import {delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
 import type {Airport, Delay, DelayKind, DelayReason, Flight} from "../domain/Flight.ts";
+import {overviewQuery} from "../domain/FlightOverview.ts";
 import {FLIGHT_PLANNER} from "../infrastructure/auth.ts";
 import {addDelay, getDelayReasons, getFlight} from "../infrastructure/flightRest.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
@@ -8,6 +9,7 @@ import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
+const backToOverview = document.getElementById("back-to-overview") as HTMLAnchorElement;
 const details = document.getElementById("flight-details")!;
 const delayRows = document.getElementById("delays")!;
 const noDelays = document.getElementById("no-delays")!;
@@ -54,6 +56,8 @@ function kindOption(kind: DelayKind): HTMLElement {
 }
 
 function renderFlight(flight: Flight): void {
+    backToOverview.href = "../index.html" + overviewQuery(flight.scheduledDepartureDate);
+    backToOverview.textContent = `← Overzicht vluchten van ${plainDate(flight.scheduledDepartureDate)}`;
     text("flight-number", flight.flightNumber);
     text("scheduled-departure-date", plainDate(flight.scheduledDepartureDate));
     text("status", STATUS[flight.status]);
