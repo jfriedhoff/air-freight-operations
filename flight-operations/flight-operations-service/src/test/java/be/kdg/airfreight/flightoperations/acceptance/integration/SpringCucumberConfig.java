@@ -1,5 +1,6 @@
 package be.kdg.airfreight.flightoperations.acceptance.integration;
 
+import be.kdg.airfreight.flightoperations.TestClock;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;

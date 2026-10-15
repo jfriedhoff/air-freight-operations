@@ -1,6 +1,7 @@
 package be.kdg.airfreight.flightoperations.application;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 
 import be.kdg.airfreight.flightoperations.application.command.AddDelayCommand;
@@ -14,6 +15,7 @@ import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightEvent;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightRepository;
+import be.kdg.airfreight.flightoperations.domain.flight.ScheduledTimes;
 import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerId;
 import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerRepository;
 import org.springframework.context.ApplicationEventPublisher;
@@ -45,6 +47,21 @@ public class FlightService {
     @Transactional(readOnly = true)
     public Flight get(FlightId id) {
         return find(id);
+    }
+
+    /**
+     * The flights of one UTC day, or the one flight of that day with this identity. Without a day it is today: the
+     * day that began at 00:00 UTC. The answer names the day that was used.
+     */
+    @Transactional(readOnly = true)
+    public FlightsOfDay flightsOf(FlightsQuery query) {
+        LocalDate day = query.scheduledDepartureDate() != null
+            ? query.scheduledDepartureDate()
+            : ScheduledTimes.utcDateOf(clock.instant());
+        List<Flight> found = query.byIdentity()
+            ? flights.findByFlight(query.flightNumber(), day, query.departureAirport()).stream().toList()
+            : flights.findByScheduledDepartureDate(day);
+        return new FlightsOfDay(day, found);
     }
 
     public Flight addDelay(AddDelayCommand command) {
