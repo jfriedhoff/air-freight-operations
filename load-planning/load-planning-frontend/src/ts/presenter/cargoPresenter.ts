@@ -1,7 +1,10 @@
 import {canChangeLoad, stateOf, withoutLoadPosition} from "../domain/FlightCargo.ts";
 import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
+import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
+import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import {listQuery, showsEta, showsEtd} from "../domain/FlightToLoad.ts";
-import {assignLoadPosition, finalizeLoad, getFlightCargo} from "../infrastructure/flightCargoRest.ts";
+import {flightOperationsAddress} from "../infrastructure/contexts.ts";
+import {assignLoadPosition, finalizeLoad, findFlightCargo, getFlightCargo} from "../infrastructure/flightCargoRest.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
@@ -12,6 +15,7 @@ import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
 const messageBox = document.getElementById("message-box")!;
 const section = document.getElementById("cargo")!;
 const backToList = document.getElementById("back-to-list") as HTMLAnchorElement;
+const flightDetailsLink = document.getElementById("flight-details-link") as HTMLAnchorElement;
 const loadState = document.getElementById("load-state")!;
 const roleNote = document.getElementById("role-note")!;
 const uldSummary = document.getElementById("uld-summary")!;
@@ -21,7 +25,10 @@ const uldRows = document.getElementById("ulds")!;
 const loadActions = document.getElementById("load-actions")!;
 const finalizeButton = document.getElementById("finalize-btn") as HTMLButtonElement;
 
-const flightCargoId = new URLSearchParams(window.location.search).get("flightCargoId");
+/* The page opens with the id of the cargo, or with the identity of the flight when Vluchtdetails links to it. */
+const address = new URLSearchParams(window.location.search);
+let flightCargoId: string | null = address.get("flightCargoId");
+const identity: FlightIdentity | null = identityIn(address);
 let isLoadPlanner = false;
 /* A request to assign is on its way: the automatic reload waits for it. */
 let assigning = false;
@@ -123,6 +130,11 @@ function render(cargo: FlightCargo): void {
 
     backToList.href = "flights-to-load.html" + listQuery(cargo.scheduledDepartureDate, cargo.departed);
     backToList.textContent = `← Te beladen vluchten van ${plainDate(cargo.scheduledDepartureDate)}`;
+    flightDetailsLink.href = flightOperationsAddress("html/flight-details.html" + identityQuery({
+        flightNumber: cargo.flightNumber,
+        scheduledDepartureDate: cargo.scheduledDepartureDate,
+        departureAirport: cargo.departureAirport,
+    }));
 
     const state = stateLine(cargo, loadedAt);
     loadState.textContent = state;
@@ -209,15 +221,40 @@ async function finalize(): Promise<void> {
     }
 }
 
+/* The id of the cargo of the flight with this identity. Flight events reach Load Planning through Messaging, so a
+   flight that Flight Operations just created may not be known here for a moment. */
+async function flightCargoIdOf(flight: FlightIdentity): Promise<string | null> {
+    try {
+        const found = await findFlightCargo(flight);
+        if (found === null) {
+            addError(messageBox, `Load Planning kent vlucht ${flight.flightNumber} van `
+                + `${plainDate(flight.scheduledDepartureDate)} uit ${flight.departureAirport} nog niet. `
+                + "Probeer het zo meteen opnieuw.");
+            return null;
+        }
+        window.history.replaceState(null, "", `?flightCargoId=${encodeURIComponent(found.id)}`);
+        return found.id;
+    } catch (error) {
+        addError(messageBox, (error as Error).message);
+        return null;
+    }
+}
+
 async function init(): Promise<void> {
     const role = await plannerRoleOrNoAccess(messageBox);
     if (role === null) {
         return;
     }
     isLoadPlanner = role === "load-planner";
-    if (!flightCargoId) {
+    if (!flightCargoId && !identity) {
         addError(messageBox, "Kies een vlucht in de lijst van te beladen vluchten.");
         return;
+    }
+    if (!flightCargoId) {
+        flightCargoId = await flightCargoIdOf(identity!);
+        if (!flightCargoId) {
+            return;
+        }
     }
     finalizeButton.addEventListener("click", finalize);
     startAutoRefresh(reload, () => !assigning && !finalizing && !aChoiceIsInProgress());

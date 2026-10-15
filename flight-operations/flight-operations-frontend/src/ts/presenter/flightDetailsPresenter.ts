@@ -1,8 +1,11 @@
 import {delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
 import type {Airport, Delay, DelayKind, DelayReason, Flight} from "../domain/Flight.ts";
+import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
+import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import {overviewQuery} from "../domain/FlightOverview.ts";
 import {FLIGHT_PLANNER} from "../infrastructure/auth.ts";
-import {addDelay, getDelayReasons, getFlight} from "../infrastructure/flightRest.ts";
+import {loadPlanningAddress} from "../infrastructure/contexts.ts";
+import {addDelay, findFlight, getDelayReasons, getFlight} from "../infrastructure/flightRest.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
@@ -10,6 +13,7 @@ import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
 const backToOverview = document.getElementById("back-to-overview") as HTMLAnchorElement;
+const cargoLink = document.getElementById("cargo-link") as HTMLAnchorElement;
 const details = document.getElementById("flight-details")!;
 const delayRows = document.getElementById("delays")!;
 const noDelays = document.getElementById("no-delays")!;
@@ -23,7 +27,10 @@ const DELAY_KIND = {DEPARTURE: "Vertrek", ARRIVAL: "Aankomst"};
 const DELAY_ADDED = {DEPARTURE: "De vertrekvertraging is geregistreerd.", ARRIVAL: "De aankomstvertraging is geregistreerd."};
 const STATUS = {PLANNED: "Gepland", DEPARTED: "Opgestegen", LANDED: "Geland"};
 
-const flightId = new URLSearchParams(window.location.search).get("flightId");
+/* The page opens with the id of the flight, or with its identity when Load Planning links to it. */
+const address = new URLSearchParams(window.location.search);
+let flightId: string | null = address.get("flightId");
+const identity: FlightIdentity | null = identityIn(address);
 let isFlightPlanner = false;
 
 function text(id: string, value: string): void {
@@ -58,6 +65,11 @@ function kindOption(kind: DelayKind): HTMLElement {
 function renderFlight(flight: Flight): void {
     backToOverview.href = "../index.html" + overviewQuery(flight.scheduledDepartureDate);
     backToOverview.textContent = `← Overzicht vluchten van ${plainDate(flight.scheduledDepartureDate)}`;
+    cargoLink.href = loadPlanningAddress("html/cargo.html" + identityQuery({
+        flightNumber: flight.flightNumber,
+        scheduledDepartureDate: flight.scheduledDepartureDate,
+        departureAirport: flight.departureAirport.code,
+    }));
     text("flight-number", flight.flightNumber);
     text("scheduled-departure-date", plainDate(flight.scheduledDepartureDate));
     text("status", STATUS[flight.status]);
@@ -111,10 +123,22 @@ async function enterDelay(event: Event): Promise<void> {
     }
 }
 
+/* The id of the flight with this identity. The address then holds the id, so a reload asks the flight directly. */
+async function flightIdOf(flight: FlightIdentity): Promise<string | null> {
+    const found = await findFlight(flight);
+    if (found === null) {
+        addError(messageBox, `Vlucht ${flight.flightNumber} van ${plainDate(flight.scheduledDepartureDate)} uit `
+            + `${flight.departureAirport} bestaat niet (meer).`);
+        return null;
+    }
+    window.history.replaceState(null, "", `?flightId=${encodeURIComponent(found.id)}`);
+    return found.id;
+}
+
 async function init(): Promise<void> {
     delayForm.addEventListener("submit", enterDelay);
-    if (!flightId) {
-        addError(messageBox, "Geen vlucht gekozen: open deze pagina met ?flightId=… in het adres.");
+    if (!flightId && !identity) {
+        addError(messageBox, "Geen vlucht gekozen: kies een vlucht in het overzicht van de vluchten.");
         return;
     }
     const role = await plannerRoleOrNoAccess(messageBox);
@@ -123,6 +147,12 @@ async function init(): Promise<void> {
     }
     isFlightPlanner = role === FLIGHT_PLANNER;
     try {
+        if (!flightId) {
+            flightId = await flightIdOf(identity!);
+            if (!flightId) {
+                return;
+            }
+        }
         if (isFlightPlanner) {
             renderDelayReasons(await getDelayReasons());
         }
