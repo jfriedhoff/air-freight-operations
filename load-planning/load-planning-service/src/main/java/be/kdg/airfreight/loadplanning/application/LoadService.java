@@ -12,6 +12,7 @@ import be.kdg.airfreight.loadplanning.application.command.FinalizeLoadCommand;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlan;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlanCatalog;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
@@ -23,7 +24,6 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPositionCleared;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerRepository;
-import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,17 +60,20 @@ public class LoadService {
     }
 
     /**
-     * The cargos of the flights of one day, without the departed flights unless they are asked for.
-     * Without a day it is today, and the answer names the day that was used.
-     * Provisional (question 9 of the analysis): today is the scheduled departure date in UTC.
+     * The cargos of the flights of one day, or the cargo of the one flight of that day with this identity, without
+     * the departed flights unless they are asked for. Without a day it is today, and the answer names the day that
+     * was used. Today is the scheduled departure date in UTC (analysis, question 9).
      */
     @Transactional(readOnly = true)
-    public FlightsToLoad flightsToLoad(@Nullable LocalDate scheduledDepartureDate, boolean includeDeparted) {
-        LocalDate day = scheduledDepartureDate != null
-            ? scheduledDepartureDate
+    public FlightsToLoad flightsToLoad(FlightsToLoadQuery query) {
+        LocalDate day = query.scheduledDepartureDate() != null
+            ? query.scheduledDepartureDate()
             : LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
-        List<FlightCargo> flights = cargos.findByScheduledDepartureDate(day).stream()
-            .filter(cargo -> includeDeparted || cargo.isToBeLoaded())
+        List<FlightCargo> found = query.byIdentity()
+            ? cargos.findByFlightId(new FlightId(query.flightNumber(), day, query.departureAirport())).stream().toList()
+            : cargos.findByScheduledDepartureDate(day);
+        List<FlightCargo> flights = found.stream()
+            .filter(cargo -> query.includeDeparted() || cargo.isToBeLoaded())
             .toList();
         return new FlightsToLoad(day, flights);
     }

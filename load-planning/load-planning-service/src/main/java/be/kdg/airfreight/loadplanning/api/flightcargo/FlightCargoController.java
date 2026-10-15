@@ -5,10 +5,13 @@ import java.util.UUID;
 
 import be.kdg.airfreight.loadplanning.application.FinalizeOutcome;
 import be.kdg.airfreight.loadplanning.application.FlightCargoSnapshot;
+import be.kdg.airfreight.loadplanning.application.FlightsToLoadQuery;
 import be.kdg.airfreight.loadplanning.application.LoadService;
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.FinalizeLoadCommand;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.AirportCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightNumber;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import jakarta.validation.Valid;
@@ -40,12 +43,21 @@ public class FlightCargoController {
         this.loadService = loadService;
     }
 
+    /**
+     * The flights to load of one UTC day; without a day, today. With a flight number and a departure airport, the
+     * cargo of the one flight of that day with that identity, as Vluchtdetails links to it. An empty list is a valid
+     * answer.
+     */
     @GetMapping
     public ResponseEntity<FlightsToLoadDto> flightsToLoad(
         @RequestParam(required = false) @Nullable LocalDate scheduledDepartureDate,
+        @RequestParam(required = false) @Nullable String flightNumber,
+        @RequestParam(required = false) @Nullable String departureAirport,
         @RequestParam(defaultValue = "false") boolean includeDeparted) {
-        return ResponseEntity.ok(FlightsToLoadDto.from(
-            loadService.flightsToLoad(scheduledDepartureDate, includeDeparted)));
+        FlightsToLoadQuery query = new FlightsToLoadQuery(scheduledDepartureDate,
+            flightNumber == null ? null : new FlightNumber(flightNumber),
+            departureAirport == null ? null : new AirportCode(departureAirport), includeDeparted);
+        return ResponseEntity.ok(FlightsToLoadDto.from(loadService.flightsToLoad(query)));
     }
 
     @GetMapping("/{id}")
