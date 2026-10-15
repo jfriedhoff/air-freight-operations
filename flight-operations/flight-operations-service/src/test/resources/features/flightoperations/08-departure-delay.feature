@@ -74,18 +74,17 @@ Feature: Enter a departure delay with a delay reason and a description
     And DepartureEstimateChanged and ArrivalEstimateChanged wait in the outbox
 
   @integration
-  Scenario Outline: Only a registered flight planner enters a delay through the API
+  Scenario Outline: Only a flight planner enters a delay through the API
     Given I am logged in as <who>
     When I enter a departure delay of 25 minutes through the API
     Then the API answers <status>
     And HJ221 has no delay
 
     Examples:
-      | who                                    | status |
-      | a load planner                         | 403    |
-      | a user with both planner roles         | 403    |
-      | a flight planner who is not registered | 403    |
-      | nobody                                 | 401    |
+      | who                            | status |
+      | a load planner                 | 403    |
+      | a user with both planner roles | 403    |
+      | nobody                         | 401    |
 
   @integration
   Scenario: A delay reason outside the IATA list is refused through the API

@@ -2,6 +2,7 @@ package be.kdg.airfreight.flightoperations.api.flight;
 
 import be.kdg.airfreight.flightoperations.TestHelper;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
+import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -148,6 +149,21 @@ class FlightControllerTest {
                 .contentType(MediaType.APPLICATION_JSON).content(VALID_DELAY))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.code").value("unknown-flight-planner"));
+    }
+
+    /** Keycloak decides who is a flight planner: a new colleague works at once, without a restart. */
+    @Test
+    void aFlightPlannerWhoIsNewInKeycloakIsRegisteredOnTheirFirstChange() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+        UUID newPlanner = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/flights/{id}/delays", flight.getId().id())
+                .with(jwt().jwt(token -> token.subject(newPlanner.toString()).claim("name", "Jan Janssens"))
+                    .authorities(new SimpleGrantedAuthority("ROLE_flight-planner")))
+                .contentType(MediaType.APPLICATION_JSON).content(VALID_DELAY))
+            .andExpect(status().isOk());
+
+        assertThat(testHelper.flightPlannerName(new FlightPlannerId(newPlanner))).contains("Jan Janssens");
     }
 
     private RequestPostProcessor registeredFlightPlanner() {

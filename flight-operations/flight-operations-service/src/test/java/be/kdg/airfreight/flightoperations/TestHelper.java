@@ -137,6 +137,10 @@ public class TestHelper {
         return id;
     }
 
+    public Optional<String> flightPlannerName(FlightPlannerId id) {
+        return flightPlanners.findById(id).map(FlightPlanner::getName);
+    }
+
     public List<String> outboxTypes() {
         return outbox.findAll().stream().map(OutboxEvent::getType).toList();
     }
@@ -145,7 +149,7 @@ public class TestHelper {
         return outbox.findAll().stream().filter(event -> event.getSentAt() == null).map(OutboxEvent::getType).toList();
     }
 
-    /** Planners stay: their ids are random, and the seeded one must survive. */
+    /** Planners stay: their ids are random, so one test never finds the planner of another. */
     public void cleanUp() {
         outbox.deleteAll();
         jpaFlights.deleteAll();
