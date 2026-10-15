@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Month;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 
@@ -95,5 +96,12 @@ public class DateDerivationSteps {
     @Then("the message is invalid")
     public void theMessageIsInvalid() {
         assertThat(error).isInstanceOf(DomainRuleViolationException.class).hasMessageContaining("is invalid");
+    }
+
+    @Then("the message is invalid, because {int} {month} does not exist")
+    public void theMessageIsInvalidBecause(int dayOfMonth, Month month) {
+        YearMonth nearest = YearMonth.of(LocalDate.ofInstant(now, ZoneOffset.UTC).getYear(), month);
+        assertThat(error).isInstanceOf(DomainRuleViolationException.class)
+            .hasMessage("Day " + dayOfMonth + " does not exist in " + nearest);
     }
 }
