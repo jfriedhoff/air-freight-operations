@@ -175,6 +175,7 @@ class FlightControllerTest {
             .andExpect(status().isOk());
 
         assertThat(testHelper.flightPlannerName(new FlightPlannerId(newPlanner))).contains("Jan Janssens");
+    }
 
     @Test
     void theFlightsOfADayAreListedInOrderOfStdWithTheirIdentityAndScheduledTimes() throws Exception {
