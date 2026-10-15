@@ -1,5 +1,6 @@
 package be.kdg.airfreight.flightoperations.api.flight;
 
+import be.kdg.airfreight.flightoperations.TestClock;
 import be.kdg.airfreight.flightoperations.TestHelper;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import org.junit.jupiter.api.AfterEach;
@@ -7,11 +8,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
@@ -26,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestClock.class)
 class FlightControllerTest {
     private static final String VALID_DELAY = """
         {"kind": "DEPARTURE", "minutes": 25, "reason": "93", "description": "Late inbound aircraft"}""";
@@ -36,10 +40,13 @@ class FlightControllerTest {
     private MockMvc mockMvc;
     @Autowired
     private TestHelper testHelper;
+    @Autowired
+    private TestClock clock;
 
     @AfterEach
     void cleanUp() {
         testHelper.cleanUp();
+        clock.reset();
     }
 
     @Test
@@ -172,6 +179,20 @@ class FlightControllerTest {
             .andExpect(jsonPath("$.flights[0].std").value("2026-01-09T06:30:00Z"))
             .andExpect(jsonPath("$.flights[0].sta").value("2026-01-09T09:45:00Z"))
             .andExpect(jsonPath("$.flights[1].flightNumber").value("3V11"));
+    }
+
+    /** At 23:30 UTC on 9 January it is already 10 January in Brussels; today is still 9 January (question 9). */
+    @Test
+    void todayIsTheUtcDateEvenWhenBrusselsIsAlreadyOnTheNextDay() throws Exception {
+        clock.set(Instant.parse("2026-01-09T23:30:00Z"));
+        Flight hj221 = testHelper.savePlannedFlight();
+        testHelper.saveFlight("HJ300", "BRU", NINE_JANUARY.plusDays(1), LocalTime.of(6, 30), "SXBAC");
+
+        mockMvc.perform(get(FLIGHTS).with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.scheduledDepartureDate").value("2026-01-09"))
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].id").value(hj221.getId().id().toString()));
     }
 
     @Test
