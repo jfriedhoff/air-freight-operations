@@ -56,10 +56,10 @@ Feature: Booked ULDs appear on the right flight automatically
     Then the booking is not applied
     And the message is set aside and logged
 
-  @unit @wip
+  @unit
   Scenario: A booking after finalizing stays behind
     Given the load of HJ221 has been finalized, but the flight has not departed yet
-    When AKE20417HJ is booked on HJ221
+    When a booking of AKE20417HJ on HJ221 arrives
     Then AKE20417HJ is booked without a load position
     And no load position can be assigned to it anymore
     And the finalized load remains unchanged

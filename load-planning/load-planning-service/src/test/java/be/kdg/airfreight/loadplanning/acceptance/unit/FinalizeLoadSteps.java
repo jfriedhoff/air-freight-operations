@@ -1,5 +1,7 @@
 package be.kdg.airfreight.loadplanning.acceptance.unit;
 
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadFinalized;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.Uld;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.en.But;
 import io.cucumber.java.en.Given;
@@ -9,12 +11,15 @@ import io.cucumber.java.en.When;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 /** Finalizing the load. */
 public class FinalizeLoadSteps {
     private static final String FINALIZED = "finalized and can no longer change";
 
     private final CargoWorld world;
+    /** The finalized load, to check later that it has not changed. */
+    private LoadFinalized finalized;
 
     public FinalizeLoadSteps(CargoWorld world) {
         this.world = world;
@@ -25,6 +30,16 @@ public class FinalizeLoadSteps {
     public void theLoadHasBeenFinalized() {
         world.finalizeLoad(List.of());
         world.expectedRefusal = FINALIZED;
+    }
+
+    /** Puts one ULD on board first, so the finalized load is not empty. */
+    @Given("the load of {word} has been finalized, but the flight has not departed yet")
+    public void theLoadOfHasBeenFinalizedButTheFlightHasNotDeparted(String flightNumber) {
+        world.assertFlight(flightNumber);
+        world.load(world.nextCode(), CargoWorld.ANY_WEIGHT, "ATH", world.freePosition());
+        finalized = world.finalizeLoad(List.of());
+        world.expectedRefusal = FINALIZED;
+        assertThat(world.cargo.getFlightInfo().departed()).as("departed").isFalse();
     }
 
     @When("I click Finalize Load")
@@ -59,6 +74,16 @@ public class FinalizeLoadSteps {
     @Then("it is recorded that I finalized the load")
     public void itIsRecordedThatIFinalizedTheLoad() {
         assertThat(world.cargo.getFinalizedBy()).isEqualTo(world.planner);
+    }
+
+    @Then("the finalized load remains unchanged")
+    public void theFinalizedLoadRemainsUnchanged() {
+        assertThat(world.cargo.isFinalized()).isTrue();
+        assertThat(world.cargo.getLoad())
+            .extracting(Uld::getCode, Uld::getPosition)
+            .containsExactlyElementsOf(finalized.load().stream()
+                .map(uld -> tuple(uld.code(), uld.position()))
+                .toList());
     }
 
     @But("the load can still be finalized if all hard checks pass")
