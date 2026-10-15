@@ -54,9 +54,18 @@
         <tbody id="ulds"></tbody>
     </table>
 
-    <!-- Check Load and Finalize Load come here -->
-    <section id="load-actions"></section>
-    <section id="load-check-report"></section>
+    <section id="load-actions" class="my-4 hidden">
+        <button id="finalize-btn" class="btn btn-primary">Finalize Load</button>
+    </section>
+    <section id="load-check-report" class="hidden">
+        <h2 class="text-xl font-bold mt-6">Rapport</h2>
+        <table class="table">
+            <thead>
+            <tr><th>Controle</th><th>Resultaat</th><th>Reden</th><th>Soort</th></tr>
+            </thead>
+            <tbody id="load-check-results"></tbody>
+        </table>
+    </section>
 </section>
 </body>
 </html>

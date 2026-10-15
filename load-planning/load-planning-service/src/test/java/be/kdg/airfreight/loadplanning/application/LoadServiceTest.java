@@ -66,8 +66,9 @@ class LoadServiceTest {
     void aRegisteredLoadPlannerFinalizesTheLoad() {
         LoadPlannerId registered = testHelper.saveLoadPlanner("Test load planner");
 
-        loadService.finalizeLoad(new FinalizeLoadCommand(id, registered));
+        FinalizeOutcome outcome = loadService.finalizeLoad(new FinalizeLoadCommand(id, registered));
 
+        assertThat(outcome.finalized()).isTrue();
         assertThat(testHelper.find(id).isFinalized()).isTrue();
         assertThat(testHelper.find(id).getFinalizedBy()).isEqualTo(registered);
     }

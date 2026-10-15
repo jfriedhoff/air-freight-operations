@@ -17,16 +17,16 @@ Feature: Finalize the load
     When I click Finalize Load
     Then the load is not finalized
 
-  # The report comes from LoadService.finalizeLoad, not from the aggregate: needs the REST endpoint.
-  @ui @integration @wip
+  # The report comes from LoadService.finalizeLoad, not from the aggregate: checked through the REST API.
+  @ui @integration
   Scenario: Finalizing shows the same report as Check Load
     Given it is within the loading period
     And the lateral balance fails
     When I click Finalize Load
     Then I see the same report as with Check Load
 
-  # Needs the REST endpoint (two load planners).
-  @integration @wip
+  # Two load planners: checked through the REST API.
+  @integration
   Scenario: Finalizing checks again
     Given Check Load showed that all hard checks pass
     And another load planner then moved a ULD, so the lateral balance fails

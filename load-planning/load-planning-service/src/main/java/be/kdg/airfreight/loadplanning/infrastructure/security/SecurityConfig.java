@@ -32,6 +32,8 @@ class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
             .authorizeHttpRequests(requests -> requests
+                // Check Load only reads, but it is an action of the load planner (story 33)
+                .requestMatchers(HttpMethod.GET, "/api/flight-cargos/*/load-check").access(onlyLoadPlanner())
                 .requestMatchers(HttpMethod.GET, "/api/**").access(onePlannerRole())
                 .requestMatchers("/api/**").access(onlyLoadPlanner())
                 .anyRequest().permitAll())

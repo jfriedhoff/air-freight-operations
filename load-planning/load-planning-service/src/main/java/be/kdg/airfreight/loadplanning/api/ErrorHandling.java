@@ -2,6 +2,7 @@ package be.kdg.airfreight.loadplanning.api;
 
 import java.util.stream.Collectors;
 
+import be.kdg.airfreight.loadplanning.api.flightcargo.HardCheckFailedException;
 import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
 import be.kdg.airfreight.loadplanning.domain.InvalidValueException;
 import be.kdg.airfreight.loadplanning.domain.NotFoundException;
@@ -68,6 +69,15 @@ class ErrorHandling {
     ProblemDetail ruleRefused(DomainRuleViolationException e) {
         log.info("Action refused: {}", onOneLine(e.getMessage()));
         return problem(HttpStatus.CONFLICT, "rule-refused", e.getMessage());
+    }
+
+    /** The report goes along with this refusal: the page shows which hard check fails. */
+    @ExceptionHandler(HardCheckFailedException.class)
+    ProblemDetail hardCheckFailed(HardCheckFailedException e) {
+        log.info("Action refused: {}", e.getMessage());
+        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "hard-check-failed", e.getMessage());
+        problemDetail.setProperty("report", e.getReport());
+        return problemDetail;
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)

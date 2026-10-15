@@ -107,18 +107,19 @@ public class LoadService {
      * Finalizes the load when every hard check passes. Either way the report comes back, so the screen
      * shows the same report on success and on failure. The aggregate runs the checks again itself.
      */
-    public LoadCheckReport finalizeLoad(FinalizeLoadCommand command) {
+    public FinalizeOutcome finalizeLoad(FinalizeLoadCommand command) {
         requireRegistered(command.by());
         FlightCargo cargo = find(command.flightCargoId());
         FloorPlan floorPlan = floorPlanOf(cargo);
         Instant now = clock.instant();
         LoadCheckReport report = cargo.checkLoad(checks, floorPlan);
-        if (report.hardChecksPassed()) {
-            LoadFinalized finalized = cargo.finalizeLoad(command.by(), now, checks, floorPlan, policy);
-            cargos.save(cargo);
-            events.publishEvent(finalized);
+        if (!report.hardChecksPassed()) {
+            return new FinalizeOutcome(false, report);
         }
-        return report;
+        LoadFinalized finalized = cargo.finalizeLoad(command.by(), now, checks, floorPlan, policy);
+        cargos.save(cargo);
+        events.publishEvent(finalized);
+        return new FinalizeOutcome(true, report);
     }
 
     /** A change is recorded with a planner that exists. Reading a second aggregate in the transaction is fine. */

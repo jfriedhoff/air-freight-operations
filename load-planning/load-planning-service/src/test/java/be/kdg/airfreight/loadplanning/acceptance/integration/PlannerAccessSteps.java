@@ -1,7 +1,7 @@
 package be.kdg.airfreight.loadplanning.acceptance.integration;
 
-import java.util.Arrays;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import be.kdg.airfreight.loadplanning.TestClock;
 import be.kdg.airfreight.loadplanning.TestHelper;
@@ -14,15 +14,15 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.token;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,6 +43,8 @@ public class PlannerAccessSteps {
     private LoadPlannerId loggedInLoadPlanner;
     private FlightCargoId cargoId;
     private ResultActions answer;
+    /** Who the action of the When step recorded: a load position records its planner, finalizing the load too. */
+    private Supplier<LoadPlannerId> recorded;
 
     public PlannerAccessSteps(MockMvc mockMvc, TestHelper testHelper, TestClock clock) {
         this.mockMvc = mockMvc;
@@ -94,6 +96,19 @@ public class PlannerAccessSteps {
     @When("I assign a load position through the API")
     public void assignALoadPosition() throws Exception {
         answer = mockMvc.perform(assignToCl().with(login));
+        recorded = () -> bookedUld().getPositionChangedBy();
+    }
+
+    @When("I check the load through the API")
+    public void checkTheLoad() throws Exception {
+        answer = mockMvc.perform(get("/api/flight-cargos/{id}/load-check", cargoOfHj221().id()).with(login));
+    }
+
+    /** The ULD has no load position: a soft check fails, which does not stop finalizing. */
+    @When("I finalize the load through the API")
+    public void finalizeTheLoad() throws Exception {
+        answer = mockMvc.perform(post("/api/flight-cargos/{id}/finalize", cargoOfHj221().id()).with(login));
+        recorded = () -> testHelper.find(cargoOfHj221()).getFinalizedBy();
     }
 
     @Then("that is accepted")
@@ -117,7 +132,7 @@ public class PlannerAccessSteps {
     @Then("it is recorded that {word} did that")
     public void itIsRecordedWhoDidThat(String name) throws Exception {
         answer.andExpect(status().isOk());
-        assertThat(bookedUld().getPositionChangedBy()).as("the load planner %s", name).isEqualTo(loggedInLoadPlanner);
+        assertThat(recorded.get()).as("the load planner %s", name).isEqualTo(loggedInLoadPlanner);
     }
 
     /** A load planner reads and changes the load; a flight planner reads it and is refused when changing it. */
@@ -144,12 +159,5 @@ public class PlannerAccessSteps {
 
     private Uld bookedUld() {
         return testHelper.find(cargoOfHj221()).getUlds().getFirst();
-    }
-
-    private static RequestPostProcessor token(UUID subject, String... roles) {
-        SimpleGrantedAuthority[] authorities = Arrays.stream(roles)
-            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-            .toArray(SimpleGrantedAuthority[]::new);
-        return jwt().jwt(token -> token.subject(subject.toString())).authorities(authorities);
     }
 }

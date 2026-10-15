@@ -30,9 +30,11 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.Instant;
 
+import static org.hamcrest.Matchers.contains;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -45,6 +47,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class FlightCargoControllerTest {
     private static final String CARGO = "/api/flight-cargos/{id}";
     private static final String LOAD_POSITION = "/api/flight-cargos/{id}/ulds/{uldCode}/load-position";
+    private static final String LOAD_CHECK = "/api/flight-cargos/{id}/load-check";
+    private static final String FINALIZE = "/api/flight-cargos/{id}/finalize";
+    private static final String LATERAL_BALANCE = "$.results[?(@.checkName == 'Lateral balance')]";
+    private static final String REPORT_LATERAL_BALANCE = "$.report.results[?(@.checkName == 'Lateral balance')]";
 
     @Autowired
     private MockMvc mockMvc;
@@ -254,6 +260,62 @@ class FlightCargoControllerTest {
         assertThat(output.getAll()).contains("put ULD AKE20417HJ on load position CR");
     }
 
+    @Test
+    void checkLoadGivesOneResultPerCheckAndChangesNothing() throws Exception {
+        mockMvc.perform(get(LOAD_CHECK, id.id()).with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.hardChecksPassed").value(false))
+            .andExpect(jsonPath("$.results.length()").value(3))
+            .andExpect(jsonPath(LATERAL_BALANCE + ".severity", contains("HARD")))
+            .andExpect(jsonPath(LATERAL_BALANCE + ".passed", contains(false)))
+            .andExpect(jsonPath(LATERAL_BALANCE + ".reason", contains(
+                "Left carries 1250 kg and right 0 kg; the heaviest side may carry at most 0 kg")));
+
+        assertThat(testHelper.find(id).isFinalized()).isFalse();
+        assertThat(testHelper.outboxCount()).isZero();
+    }
+
+    @Test
+    void aLoadPlannerFinalizesWhenEveryHardCheckPassesAndGetsTheReport() throws Exception {
+        testHelper.place(id, "AKE20417HJ", "CR");
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(post(FINALIZE, id.id()).with(token(loadPlanner)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.hardChecksPassed").value(true))
+            .andExpect(jsonPath("$.results.length()").value(3));
+
+        FlightCargo stored = testHelper.find(id);
+        assertThat(stored.isFinalized()).isTrue();
+        assertThat(stored.getFinalizedBy()).isEqualTo(loadPlanner);
+        assertThat(testHelper.outboxCount()).as("the finalized load leaves for the CPM").isOne();
+    }
+
+    @Test
+    void aFailingHardCheckIsRefusedWithTheReportAndChangesNothing() throws Exception {
+        mockMvc.perform(post(FINALIZE, id.id()).with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("hard-check-failed"))
+            .andExpect(jsonPath("$.detail").value("The load cannot be finalized: a hard load check fails"))
+            .andExpect(jsonPath("$.report.hardChecksPassed").value(false))
+            .andExpect(jsonPath(REPORT_LATERAL_BALANCE + ".passed", contains(false)));
+
+        assertThat(testHelper.find(id).isFinalized()).isFalse();
+        assertThat(testHelper.outboxCount()).isZero();
+    }
+
+    @Test
+    void outsideTheLoadingPeriodFinalizingIsRefusedWithItsReason() throws Exception {
+        testHelper.place(id, "AKE20417HJ", "CR");
+        clock.set(Instant.parse("2026-01-09T06:10:00Z"));
+
+        mockMvc.perform(post(FINALIZE, id.id()).with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"));
+
+        assertThat(testHelper.find(id).isFinalized()).isFalse();
+    }
+
     private MockHttpServletRequestBuilder assign(String uldCode, String body) {
         return put(LOAD_POSITION, id.id(), uldCode).contentType(MediaType.APPLICATION_JSON).content(body);
     }
@@ -261,6 +323,11 @@ class FlightCargoControllerTest {
     private Uld uld(String code) {
         FlightCargo cargo = testHelper.find(id);
         return cargo.getUlds().stream().filter(uld -> uld.getCode().value().equals(code)).findFirst().orElseThrow();
+    }
+
+    /** A registered load planner. */
+    private static RequestPostProcessor token(LoadPlannerId loadPlanner) {
+        return token(loadPlanner.id().toString());
     }
 
     /** A load planner with this account. */
