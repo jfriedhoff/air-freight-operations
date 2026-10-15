@@ -60,7 +60,7 @@ Post coaching). The tags are removed in #15, #18, #26 and #30, and in #26 the st
 is logged" is gone (no inbox in Load Planning). The runners used to skip these scenarios
 (`"... and not @to-confirm and not @wip"`), so the steps of the scenario below do not exist yet.
 It is tagged `@wip` until they do, so the build stays green; implementing one starts by removing
-`@wip`. #4 and #6 keep `@to-confirm`: they wait for question 9 of the analysis.
+`@wip`. The `@to-confirm` tags of #4 and #6 are gone too: the coach answered question 9 on 15/10/2026.
 
 | File | Change |
 | --- | --- |
