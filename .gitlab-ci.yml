@@ -60,14 +60,14 @@ load-planning:
   extends: .service-tests
   variables:
     MODULE: "load-planning:load-planning-service"
-    POSTGRES_DB: "load_planning"
+    POSTGRES_DB: "load_planning_test"
     POSTGRES_USER: "load_planning"
 
 messaging:
   extends: .service-tests
   variables:
     MODULE: "messaging:messaging-service"
-    POSTGRES_DB: "messaging"
+    POSTGRES_DB: "messaging_test"
     POSTGRES_USER: "messaging"
 
 simulator:
