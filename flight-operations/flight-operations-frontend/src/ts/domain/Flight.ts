@@ -17,6 +17,7 @@ export interface Delay {
     minutes: number;
     reason: DelayReason;
     description: string;
+    lastChangedBy: string | null;
 }
 
 /* All times are UTC instants in ISO-8601, as the API gives them. */
@@ -33,7 +34,9 @@ export interface Flight {
     etd: string;
     eta: string;
     atd: string | null;
+    atdRegisteredBy: string | null;
     ata: string | null;
+    ataRegisteredBy: string | null;
     delays: Delay[];
 }
 

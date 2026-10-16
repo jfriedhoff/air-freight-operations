@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.namedToken;
 import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.token;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -28,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories 33 and 35 through the REST API of Load Planning: who is logged in, what they ask and what the API
+ * Stories 33, 35 and 44 through the REST API of Load Planning: who is logged in, what they ask and what the API
  * answers. The cargo is that of HJ221 of 9 January 2026 with one booked ULD, at 05:00 UTC, inside its loading
  * period. Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
@@ -69,7 +70,14 @@ public class PlannerAccessSteps {
     @Given("I am logged in as the load planner {word}")
     public void theLoadPlannerIsLoggedIn(String name) {
         loggedInLoadPlanner = testHelper.saveLoadPlanner(name);
-        login = token(loggedInLoadPlanner.id(), "load-planner");
+        login = namedToken(loggedInLoadPlanner.id(), name, "load-planner");
+    }
+
+    /** Only Keycloak knows this planner: Load Planning registers them on their first change. */
+    @Given("I am logged in as {word}, a load planner who is new in Keycloak")
+    public void aNewLoadPlannerIsLoggedIn(String name) {
+        loggedInLoadPlanner = new LoadPlannerId(UUID.randomUUID());
+        login = namedToken(loggedInLoadPlanner.id(), name, "load-planner");
     }
 
     @Given("there is a user with neither of the two roles in Keycloak")
@@ -133,6 +141,24 @@ public class PlannerAccessSteps {
     public void itIsRecordedWhoDidThat(String name) throws Exception {
         answer.andExpect(status().isOk());
         assertThat(recorded.get()).as("the load planner %s", name).isEqualTo(loggedInLoadPlanner);
+    }
+
+    @Then("the cargo shows that {word} put the ULD on its load position")
+    public void theCargoShowsWhoPutTheUld(String name) throws Exception {
+        answer.andExpect(status().isOk());
+        requestTheLoad();
+        answer.andExpect(status().isOk())
+            .andExpect(jsonPath("$.ulds[0].loadPosition").value("CL"))
+            .andExpect(jsonPath("$.ulds[0].positionChangedBy").value(name));
+    }
+
+    @Then("the cargo shows that {word} finalized the load")
+    public void theCargoShowsWhoFinalized(String name) throws Exception {
+        answer.andExpect(status().isOk());
+        requestTheLoad();
+        answer.andExpect(status().isOk())
+            .andExpect(jsonPath("$.finalized").value(true))
+            .andExpect(jsonPath("$.finalizedBy").value(name));
     }
 
     /** A load planner reads and changes the load; a flight planner reads it and is refused when changing it. */

@@ -47,10 +47,19 @@ function optionalTime(rowId: string, valueId: string, instant: string | null, sh
     text(valueId, instant === null ? "" : brusselsDateTime(instant));
 }
 
+/* A registered actual time also shows who registered it. */
+function actualTime(rowId: string, valueId: string, instant: string | null, registeredBy: string | null): void {
+    optionalTime(rowId, valueId, instant, true);
+    if (instant !== null && registeredBy !== null) {
+        text(valueId, `${brusselsDateTime(instant)} (door ${registeredBy})`);
+    }
+}
+
 function delayRow(delay: Delay): HTMLTableRowElement {
     const row = document.createElement("tr");
     const reason = delay.reason.description ? `${delay.reason.code} – ${delay.reason.description}` : delay.reason.code;
-    for (const cell of [DELAY_KIND[delay.kind], `${delay.minutes} min`, reason, delay.description]) {
+    for (const cell of [DELAY_KIND[delay.kind], `${delay.minutes} min`, reason, delay.description,
+        delay.lastChangedBy ?? "–"]) {
         row.appendChild(createElementWithText("td", cell));
     }
     return row;
@@ -79,8 +88,8 @@ function renderFlight(flight: Flight): void {
     text("sta", brusselsDateTime(flight.sta));
     optionalTime("etd-row", "etd", flight.etd, showsEtd(flight));
     optionalTime("eta-row", "eta", flight.eta, showsEta(flight));
-    optionalTime("atd-row", "atd", flight.atd, true);
-    optionalTime("ata-row", "ata", flight.ata, true);
+    actualTime("atd-row", "atd", flight.atd, flight.atdRegisteredBy);
+    actualTime("ata-row", "ata", flight.ata, flight.ataRegisteredBy);
 
     delayRows.replaceChildren(...flight.delays.map(delayRow));
     noDelays.classList.toggle("hidden", flight.delays.length > 0);

@@ -55,7 +55,9 @@ function stateLine(cargo: FlightCargo, loadedAt: Date): string {
     const end = brusselsDateTime(cargo.loadingPeriod.end);
     switch (stateOf(cargo, loadedAt)) {
         case "FINALIZED":
-            return "De lading is gefinaliseerd: laadposities kunnen niet meer wijzigen.";
+            return cargo.finalizedBy === null
+                ? "De lading is gefinaliseerd: laadposities kunnen niet meer wijzigen."
+                : `De lading is gefinaliseerd door ${cargo.finalizedBy}: laadposities kunnen niet meer wijzigen.`;
         case "DEPARTED":
             return "De vlucht is opgestegen.";
         case "NOT_STARTED":
@@ -101,6 +103,8 @@ function uldRow(cargo: FlightCargo, uld: Uld, changeable: boolean): HTMLTableRow
         row.appendChild(createElementWithText("td", cell));
     }
     row.appendChild(changeable ? positionChoice(cargo, uld) : createElementWithText("td", uld.loadPosition ?? "–"));
+    // only next to a load position: after a ULD is taken off, the name would say who took it off
+    row.appendChild(createElementWithText("td", uld.loadPosition === null ? "–" : uld.positionChangedBy ?? "–"));
     return row;
 }
 

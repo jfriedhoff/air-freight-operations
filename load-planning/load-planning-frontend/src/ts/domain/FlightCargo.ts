@@ -10,6 +10,7 @@ export interface Uld {
     weight: Weight;
     destination: string;
     loadPosition: string | null;
+    positionChangedBy: string | null;
 }
 
 export interface LoadingPeriod {
@@ -31,6 +32,7 @@ export interface FlightCargo {
     eta: string;
     departed: boolean;
     finalized: boolean;
+    finalizedBy: string | null;
     loadingPeriod: LoadingPeriod;
     loadCanChange: boolean;
     ulds: Uld[];

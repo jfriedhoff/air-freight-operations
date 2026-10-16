@@ -1,5 +1,9 @@
 package be.kdg.airfreight.loadplanning.application;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlanner;
@@ -28,5 +32,15 @@ public class LoadPlannerService {
         if (known.isEmpty() || !known.get().getName().equals(name)) {
             loadPlanners.save(new LoadPlanner(id, name));
         }
+    }
+
+    /** The names of these planners, so the cargo page can show who changed the load. */
+    @Transactional(readOnly = true)
+    public Map<LoadPlannerId, String> namesOf(Collection<LoadPlannerId> ids) {
+        Map<LoadPlannerId, String> names = new HashMap<>();
+        for (LoadPlannerId id : new HashSet<>(ids)) {
+            loadPlanners.findById(id).ifPresent(planner -> names.put(id, planner.getName()));
+        }
+        return names;
     }
 }

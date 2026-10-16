@@ -177,6 +177,21 @@ class FlightControllerTest {
         assertThat(testHelper.flightPlannerName(new FlightPlannerId(newPlanner))).contains("Jan Janssens");
     }
 
+    /** The details page shows the name Keycloak has now, not the one from the planner's first change. */
+    @Test
+    void aNameChangedInKeycloakIsStoredOnTheNextChange() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+        FlightPlannerId fien = testHelper.saveFlightPlanner("Fien");
+
+        mockMvc.perform(post("/api/flights/{id}/delays", flight.getId().id())
+                .with(jwt().jwt(token -> token.subject(fien.id().toString()).claim("name", "Fien Peeters"))
+                    .authorities(new SimpleGrantedAuthority("ROLE_flight-planner")))
+                .contentType(MediaType.APPLICATION_JSON).content(VALID_DELAY))
+            .andExpect(status().isOk());
+
+        assertThat(testHelper.flightPlannerName(fien)).contains("Fien Peeters");
+    }
+
     @Test
     void theFlightsOfADayAreListedInOrderOfStdWithTheirIdentityAndScheduledTimes() throws Exception {
         testHelper.saveFlight("3V11", "BRU", NINE_JANUARY, LocalTime.of(12, 0), "SXBAB");

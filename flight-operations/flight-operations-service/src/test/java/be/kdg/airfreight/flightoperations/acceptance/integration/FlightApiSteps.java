@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories #5, #8, #9, #33 and #35 through the REST API: who is logged in, what they send and what the API answers.
+ * Stories #5, #8, #9, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
  * Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
 public class FlightApiSteps {
@@ -119,7 +119,13 @@ public class FlightApiSteps {
     public void theFlightPlannerIsLoggedIn(String name) {
         FlightPlannerId planner = testHelper.saveFlightPlanner(name);
         plannersByName.put(name, planner);
-        login = token(planner.id(), "flight-planner");
+        login = namedToken(planner.id(), name, "flight-planner");
+    }
+
+    /** Only Keycloak knows this planner: Flight Operations registers them on their first change. */
+    @Given("I am logged in as {word}, a flight planner who is new in Keycloak")
+    public void aNewFlightPlannerIsLoggedIn(String name) {
+        login = namedToken(UUID.randomUUID(), name, "flight-planner");
     }
 
     @When("I enter a(n) {delayKind} delay of {int} minutes through the API")
@@ -290,6 +296,13 @@ public class FlightApiSteps {
             .extracting(Delay::getLastChangedBy).as("the flight planner %s", name).isEqualTo(plannersByName.get(name));
     }
 
+    @Then("the flight shows that {word} last changed the delay")
+    public void theFlightShowsWhoLastChangedTheDelay(String name) throws Exception {
+        lastAnswer().andExpect(status().isOk());
+        send(get("/api/flights/{id}", flight().id()));
+        lastAnswer().andExpect(status().isOk()).andExpect(jsonPath("$.delays[0].lastChangedBy").value(name));
+    }
+
     /** A flight planner reads and enters a delay; a load planner reads and is refused when entering one. */
     @Then("the system treats them as a {word} planner")
     public void theSystemTreatsThemAs(String role) throws Exception {
@@ -329,5 +342,13 @@ public class FlightApiSteps {
             .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
             .toArray(SimpleGrantedAuthority[]::new);
         return jwt().jwt(token -> token.subject(subject.toString())).authorities(authorities);
+    }
+
+    /** A token that also carries the name Keycloak gives the account, as a real token does. */
+    private static RequestPostProcessor namedToken(UUID subject, String name, String... roles) {
+        SimpleGrantedAuthority[] authorities = Arrays.stream(roles)
+            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+            .toArray(SimpleGrantedAuthority[]::new);
+        return jwt().jwt(token -> token.subject(subject.toString()).claim("name", name)).authorities(authorities);
     }
 }

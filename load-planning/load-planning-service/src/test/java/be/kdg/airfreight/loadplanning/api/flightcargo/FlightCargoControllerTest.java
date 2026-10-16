@@ -189,13 +189,35 @@ class FlightCargoControllerTest {
     void aLoadPlannerWhoIsNewInKeycloakIsRegisteredOnTheirFirstChange() throws Exception {
         UUID newPlanner = UUID.randomUUID();
 
-        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}")
-                .with(jwt().jwt(token -> token.subject(newPlanner.toString()).claim("name", "Jan Janssens"))
-                    .authorities(new SimpleGrantedAuthority("ROLE_load-planner"))))
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(namedToken(newPlanner, "Jan Janssens")))
             .andExpect(status().isOk());
 
         assertThat(uld("AKE20417HJ").getPositionChangedBy()).isEqualTo(new LoadPlannerId(newPlanner));
         assertThat(testHelper.loadPlannerName(new LoadPlannerId(newPlanner))).contains("Jan Janssens");
+    }
+
+    /** Finalizing is a change too: a new colleague can finalize the load as their first action. */
+    @Test
+    void aLoadPlannerWhoIsNewInKeycloakIsRegisteredWhenTheyFinalize() throws Exception {
+        testHelper.place(id, "AKE20417HJ", "CR");
+        UUID newPlanner = UUID.randomUUID();
+
+        mockMvc.perform(post(FINALIZE, id.id()).with(namedToken(newPlanner, "Jan Janssens")))
+            .andExpect(status().isOk());
+
+        assertThat(testHelper.find(id).getFinalizedBy()).isEqualTo(new LoadPlannerId(newPlanner));
+        assertThat(testHelper.loadPlannerName(new LoadPlannerId(newPlanner))).contains("Jan Janssens");
+    }
+
+    /** The cargo page shows the name Keycloak has now, not the one from the planner's first change. */
+    @Test
+    void aNameChangedInKeycloakIsStoredOnTheNextChange() throws Exception {
+        LoadPlannerId lotte = testHelper.saveLoadPlanner("Lotte");
+
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(namedToken(lotte.id(), "Lotte Peeters")))
+            .andExpect(status().isOk());
+
+        assertThat(testHelper.loadPlannerName(lotte)).contains("Lotte Peeters");
     }
 
     @Test
@@ -337,6 +359,12 @@ class FlightCargoControllerTest {
     /** A load planner with this account. */
     private static RequestPostProcessor token(String subject) {
         return jwt().jwt(token -> token.subject(subject)).authorities(new SimpleGrantedAuthority("ROLE_load-planner"));
+    }
+
+    /** A load planner whose token carries the name Keycloak gives the account, as a real token does. */
+    private static RequestPostProcessor namedToken(UUID subject, String name) {
+        return jwt().jwt(token -> token.subject(subject.toString()).claim("name", name))
+            .authorities(new SimpleGrantedAuthority("ROLE_load-planner"));
     }
 
     /** A planner who only reads: the account does not matter. */

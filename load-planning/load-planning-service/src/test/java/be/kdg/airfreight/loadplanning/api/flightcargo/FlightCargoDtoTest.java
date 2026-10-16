@@ -47,9 +47,10 @@ class FlightCargoDtoTest {
             new AirportCode("FRA"), NOW);
         cargo.book(new UldCode("AKE16689R7"), new Weight(new BigDecimal("1250"), WeightUnit.KG),
             new AirportCode("ATH"), NOW);
-        cargo.assign(new UldCode("AKE16689R7"), CL, LoadPlannerId.create(), NOW, FLOOR_PLAN, POLICY);
+        LoadPlannerId lotte = LoadPlannerId.create();
+        cargo.assign(new UldCode("AKE16689R7"), CL, lotte, NOW, FLOOR_PLAN, POLICY);
 
-        FlightCargoDto dto = FlightCargoDto.from(view());
+        FlightCargoDto dto = FlightCargoDto.from(view(), Map.of(lotte, "Lotte"));
 
         assertThat(dto.id()).isEqualTo(cargo.getId().id());
         assertThat(dto.flightNumber()).isEqualTo("HJ221");
@@ -63,12 +64,13 @@ class FlightCargoDtoTest {
         assertThat(dto.eta()).isEqualTo(dto.sta());
         assertThat(dto.departed()).isFalse();
         assertThat(dto.finalized()).isFalse();
+        assertThat(dto.finalizedBy()).isNull();
         assertThat(dto.loadingPeriod()).isEqualTo(new LoadingPeriodDto(
             Instant.parse("2026-01-08T18:30:00Z"), Instant.parse("2026-01-09T06:10:00Z")));
         assertThat(dto.loadCanChange()).isTrue();
         assertThat(dto.ulds()).containsExactly(
-            new UldDto("AKE16689R7", new WeightDto(new BigDecimal("1250"), WeightUnit.KG), "ATH", "CL"),
-            new UldDto("AKE20417HJ", new WeightDto(new BigDecimal("2646"), WeightUnit.LB), "FRA", null));
+            new UldDto("AKE16689R7", new WeightDto(new BigDecimal("1250"), WeightUnit.KG), "ATH", "CL", "Lotte"),
+            new UldDto("AKE20417HJ", new WeightDto(new BigDecimal("2646"), WeightUnit.LB), "FRA", null, null));
         assertThat(dto.loadPositions()).containsExactly("A1", "CL", "CR");
     }
 
@@ -77,7 +79,7 @@ class FlightCargoDtoTest {
         cargo.book(new UldCode("AKE20417HJ"), new Weight(new BigDecimal("2646"), WeightUnit.LB),
             new AirportCode("FRA"), NOW);
 
-        assertThat(FlightCargoDto.from(view()).ulds()).extracting(UldDto::loadPosition).containsOnlyNulls();
+        assertThat(FlightCargoDto.from(view(), Map.of()).ulds()).extracting(UldDto::loadPosition).containsOnlyNulls();
     }
 
     private FlightCargoSnapshot view() {
