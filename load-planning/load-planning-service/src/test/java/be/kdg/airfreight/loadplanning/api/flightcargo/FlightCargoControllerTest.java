@@ -184,14 +184,18 @@ class FlightCargoControllerTest {
         assertThat(uld("AKE20417HJ").getPositionChangedBy()).isEqualTo(loggedIn);
     }
 
+    /** Keycloak decides who is a load planner: a new colleague works at once, without a restart. */
     @Test
-    void aLoadPlannerWhoIsNotRegisteredIsRefused() throws Exception {
-        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(token(UUID.randomUUID().toString())))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.code").value("unknown-load-planner"))
-            .andExpect(jsonPath("$.detail").value("You are not registered as a load planner"));
+    void aLoadPlannerWhoIsNewInKeycloakIsRegisteredOnTheirFirstChange() throws Exception {
+        UUID newPlanner = UUID.randomUUID();
 
-        assertThat(uld("AKE20417HJ").hasPosition()).isFalse();
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}")
+                .with(jwt().jwt(token -> token.subject(newPlanner.toString()).claim("name", "Jan Janssens"))
+                    .authorities(new SimpleGrantedAuthority("ROLE_load-planner"))))
+            .andExpect(status().isOk());
+
+        assertThat(uld("AKE20417HJ").getPositionChangedBy()).isEqualTo(new LoadPlannerId(newPlanner));
+        assertThat(testHelper.loadPlannerName(new LoadPlannerId(newPlanner))).contains("Jan Janssens");
     }
 
     @Test

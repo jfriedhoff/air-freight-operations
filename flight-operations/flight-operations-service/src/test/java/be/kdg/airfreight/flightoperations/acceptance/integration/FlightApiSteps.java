@@ -91,11 +91,6 @@ public class FlightApiSteps {
         login = token(testHelper.saveFlightPlanner().id(), "flight-planner");
     }
 
-    @Given("I am logged in as a flight planner who is not registered")
-    public void aFlightPlannerWhoIsNotRegisteredIsLoggedIn() {
-        login = token(UUID.randomUUID(), "flight-planner");
-    }
-
     @Given("I am logged in as a load planner")
     @Given("there is a user with the role load planner in Keycloak")
     public void aLoadPlannerIsLoggedIn() {

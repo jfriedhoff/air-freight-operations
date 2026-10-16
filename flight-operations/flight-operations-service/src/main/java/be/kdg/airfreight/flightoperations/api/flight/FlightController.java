@@ -3,6 +3,7 @@ package be.kdg.airfreight.flightoperations.api.flight;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import be.kdg.airfreight.flightoperations.application.FlightPlannerService;
 import be.kdg.airfreight.flightoperations.application.FlightService;
 import be.kdg.airfreight.flightoperations.application.FlightsQuery;
 import be.kdg.airfreight.flightoperations.application.command.AddDelayCommand;
@@ -35,11 +36,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/flights")
 public class FlightController {
     private final FlightService flightService;
+    private final FlightPlannerService flightPlannerService;
     private final AirportCatalog airports;
     private final DelayCodeCatalog delayCodes;
 
-    public FlightController(FlightService flightService, AirportCatalog airports, DelayCodeCatalog delayCodes) {
+    public FlightController(FlightService flightService, FlightPlannerService flightPlannerService,
+                            AirportCatalog airports, DelayCodeCatalog delayCodes) {
         this.flightService = flightService;
+        this.flightPlannerService = flightPlannerService;
         this.airports = airports;
         this.delayCodes = delayCodes;
     }
@@ -68,6 +72,7 @@ public class FlightController {
     public ResponseEntity<FlightDto> addDelay(@PathVariable("id") UUID id, @Valid @RequestBody AddDelayDto dto,
                                               @AuthenticationPrincipal Jwt jwt) {
         FlightPlannerId flightPlanner = FlightPlannerId.fromAccount(jwt.getSubject());
+        flightPlannerService.register(flightPlanner, nameOf(jwt));
         log.info("Flight planner {} enters a {} delay of {} minutes for flight {}", flightPlanner.id(),
             dto.kind(), dto.minutes(), id);
         AddDelayCommand command = new AddDelayCommand(new FlightId(id), dto.kind(),
@@ -77,5 +82,14 @@ public class FlightController {
 
     private FlightDto toDto(Flight flight) {
         return FlightDto.from(flight, airports, delayCodes);
+    }
+
+    /** The name Keycloak gives the account. A token without one falls back to the user name, then to the id. */
+    private static String nameOf(Jwt jwt) {
+        String name = jwt.getClaimAsString("name");
+        if (name == null || name.isBlank()) {
+            name = jwt.getClaimAsString("preferred_username");
+        }
+        return name == null || name.isBlank() ? jwt.getSubject() : name;
     }
 }

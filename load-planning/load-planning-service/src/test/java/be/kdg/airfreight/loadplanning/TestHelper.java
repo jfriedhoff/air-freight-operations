@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import be.kdg.airfreight.loadplanning.domain.flightcargo.AircraftType;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.AirportCode;
@@ -114,6 +115,10 @@ public class TestHelper {
         return id;
     }
 
+    public Optional<String> loadPlannerName(LoadPlannerId id) {
+        return loadPlanners.findById(id).map(LoadPlanner::getName);
+    }
+
     public FlightCargo find(FlightCargoId id) {
         return cargos.findById(id).orElseThrow();
     }
@@ -122,7 +127,7 @@ public class TestHelper {
         return outbox.count();
     }
 
-    /** Load planners stay: their ids are random, and the seeded one must survive. */
+    /** Load planners stay: their ids are random, so one test never finds the planner of another. */
     public void cleanUp() {
         outbox.deleteAll();
         jpaCargos.deleteAll();

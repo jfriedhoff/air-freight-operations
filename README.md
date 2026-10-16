@@ -107,7 +107,7 @@ Voor Load Planning, dat zich als beide planners aanmeldt en ook toont dat een to
 
 Na het aanmelden op de ene context opent de andere zonder opnieuw een wachtwoord te vragen: beide frontends gebruiken dezelfde realm. Het adres van de andere context komt uit een Vite-variabele, `VITE_LOAD_PLANNING_URL` (standaard `http://localhost:8081`) en `VITE_FLIGHT_OPERATIONS_URL` (standaard `http://localhost:8080`). Draai maar één frontend tegelijk met `npm run dev`: beide gebruiken poort 5173, en een andere poort is geen geldige redirect in de realm. `npm run dev -- --strictPort` faalt dan duidelijk in plaats van uit te wijken naar 5174.
 
-Een planner die wijzigt, moet in zijn context geregistreerd zijn. De service registreert bij het opstarten de planners uit haar `application.properties` (`flight-operations.planners`, `load-planning.planners`); de id is die van het Keycloak-account.
+Keycloak bepaalt wie planner is. Een nieuwe collega met de rol `flight-planner` of `load-planner` kan meteen werken, zonder herstart: de service registreert een planner bij zijn eerste wijziging, met de id van het Keycloak-account en de naam uit het token (`name`, anders `preferred_username`).
 
 ### Bekende kwetsbaarheden in dependencies
 

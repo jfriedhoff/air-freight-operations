@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import be.kdg.airfreight.loadplanning.application.FinalizeOutcome;
 import be.kdg.airfreight.loadplanning.application.FlightCargoSnapshot;
+import be.kdg.airfreight.loadplanning.application.LoadPlannerService;
 import be.kdg.airfreight.loadplanning.application.FlightsToLoadQuery;
 import be.kdg.airfreight.loadplanning.application.LoadService;
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
@@ -38,9 +39,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/flight-cargos")
 public class FlightCargoController {
     private final LoadService loadService;
+    private final LoadPlannerService loadPlannerService;
 
-    public FlightCargoController(LoadService loadService) {
+    public FlightCargoController(LoadService loadService, LoadPlannerService loadPlannerService) {
         this.loadService = loadService;
+        this.loadPlannerService = loadPlannerService;
     }
 
     /**
@@ -71,6 +74,7 @@ public class FlightCargoController {
                                                  @Valid @RequestBody AssignLoadPositionDto dto,
                                                  @AuthenticationPrincipal Jwt jwt) {
         LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
+        loadPlannerService.register(loadPlanner, nameOf(jwt));
         UldCode uld = new UldCode(uldCode);
         FlightCargoSnapshot cargo = loadService.assign(
             new AssignLoadPositionCommand(new FlightCargoId(id), uld, dto.loadPosition(), loadPlanner));
@@ -96,6 +100,7 @@ public class FlightCargoController {
     public ResponseEntity<LoadCheckReportDto> finalizeLoad(@PathVariable("id") UUID id,
                                                            @AuthenticationPrincipal Jwt jwt) {
         LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
+        loadPlannerService.register(loadPlanner, nameOf(jwt));
         FinalizeOutcome outcome = loadService.finalizeLoad(
             new FinalizeLoadCommand(new FlightCargoId(id), loadPlanner));
         LoadCheckReportDto dto = LoadCheckReportDto.from(outcome.report());
@@ -104,5 +109,14 @@ public class FlightCargoController {
         }
         log.info("Load planner {} finalized the load of flight cargo {}", loadPlanner.id(), id);
         return ResponseEntity.ok(dto);
+    }
+
+    /** The name Keycloak gives the account. A token without one falls back to the user name, then to the id. */
+    private static String nameOf(Jwt jwt) {
+        String name = jwt.getClaimAsString("name");
+        if (name == null || name.isBlank()) {
+            name = jwt.getClaimAsString("preferred_username");
+        }
+        return name == null || name.isBlank() ? jwt.getSubject() : name;
     }
 }
