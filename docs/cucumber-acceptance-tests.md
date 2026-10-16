@@ -209,7 +209,7 @@ messaging (story 30) and load-planning (story 15); flight-operations follows the
 
 | Part | What it does | Why |
 | --- | --- | --- |
-| `src/test/resources/application.properties` | Replaces the main `application.properties` during the tests: the same settings, except that Hibernate uses its own schema `test` (`default_schema`, `create_namespaces`, `ddl-auto=create-drop`). | The tests run against PostgreSQL and RabbitMQ from Docker Compose, as in production, but never touch the dev data (lesson 06: an isolated, reproducible test database). |
+| `src/test/resources/application.properties` | Replaces the main `application.properties` during the tests: the same settings, except the database. Every service has its own test database (`load_planning_test`, `messaging_test`, `flight_operations_test`). | The tests run against PostgreSQL and RabbitMQ from Docker Compose, as in production, but never touch the dev data (lesson 06: an isolated, reproducible test database). |
 | `DatabaseCleanUp` | An `@After` hook that empties the tables after every scenario. | Every scenario starts empty, like `TestHelper.cleanUp()` in the course. |
 | `Clock` as `@MockitoBean` | Declared in `SpringCucumberConfig`; a step sets the time with `given(clock.instant())`. | System time is outside our code, and a scenario can need two moments ("processed on 2 January", "arrives again on 25 January"). |
 | Awaitility | `await().atMost(...).untilAsserted(...)` in the Then steps. | A message is published on the exchange of its sender, as the real sender does, and the listener handles it on its own thread. The test waits for the result instead of sleeping. |
