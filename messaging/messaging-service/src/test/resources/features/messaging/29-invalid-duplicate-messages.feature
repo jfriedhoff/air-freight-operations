@@ -33,6 +33,7 @@ Feature: Invalid and duplicate incoming messages are set aside and logged
       | the same departure and arrival airport      |
       | departure time 25:00                        |
       | no aircraft registration                    |
+      | a flight number without a letter (221)      |
 
   @integration
   Scenario: A duplicate message has one effect

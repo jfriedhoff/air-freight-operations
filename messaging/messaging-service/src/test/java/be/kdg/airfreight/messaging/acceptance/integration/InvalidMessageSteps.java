@@ -76,6 +76,7 @@ public class InvalidMessageSteps {
             case "the same departure and arrival airport" -> message.put("arrivalAirport", "BRU");
             case "departure time 25:00" -> message.put("departureTime", "25:00");
             case "no aircraft registration" -> message.remove("registration");
+            case "a flight number without a letter (221)" -> message.put("flightNumber", "221");
             default -> throw new IllegalArgumentException("Unknown error: " + error);
         }
         arrives(Stream.SCHEDULE, message);
