@@ -5,7 +5,6 @@ One section per team member. Remove an item when its merge request is merged.
 
 ## In short
 
-- Jonas: an airline code needs at least one letter (answer of the coach on 14/10/2026).
 - Jonas: steps for the scenario that lost `@to-confirm` on 14/10/2026 (#15); it is `@wip` until the steps exist.
 - Jonas: ask the coach what happens to a load that is not finalized in time (#18).
 
@@ -19,39 +18,6 @@ ATA: #13), the step must look at what each action records: the delay that was ch
 ATD or the ATA. Who removed a delay is a design question for #10, because the delay itself is gone.
 
 ## Jonas
-
-### Flight number: the airline code needs a letter
-
-**The rule.** The coach answered on 14/10/2026: the airline code (two or three characters) and the
-digits after it are required, and the airline code contains at least one letter. The assignment does
-not say so. `221` is therefore invalid.
-
-**How it works now.** All three services have their own `FlightNumber` with the same pattern
-`[A-Z0-9]{2}\d{1,4}`. It accepts `221` (`22` + `1`) and refuses a three-letter code such as `ABC123`.
-
-**The change.** The same pattern in all three:
-
-```java
-// IATA code (two characters, at least one letter) or ICAO code (three letters), then one to four digits
-private static final Pattern FORMAT = Pattern.compile("(?:[A-Z][A-Z0-9]|[0-9][A-Z]|[A-Z]{3})\\d{1,4}");
-```
-
-`HJ221` and `3V11` (used in the #8 scenarios) stay valid, `221` and `22221` become invalid, `ABC123`
-becomes valid. A three-character code is letters only, so a number such as `AB1234` can only be read
-as `AB` + `1234`.
-
-**Files to change:**
-
-| File | Change |
-| --- | --- |
-| `messaging/.../messaging/domain/FlightNumber.java` | Pattern and the message ("two characters with at least one letter, or three letters, followed by one to four digits") |
-| `flight-operations/.../flightoperations/domain/flight/FlightNumber.java` | Same |
-| `load-planning/.../loadplanning/domain/flightcargo/FlightNumber.java` | Same |
-| `messaging/.../features/messaging/29-invalid-duplicate-messages.feature` | Row "a flight number without a letter (221)" in "An invalid SSM is set aside", with its step |
-| A `FlightNumberTest` per service, or the existing value-object tests (`InvalidValueTest` in flight-operations) | `HJ221`, `3V11`, `ABC123` valid; `221`, `hj221`, `HJ`, `HJ12345` invalid |
-
-**After the code:** one line under Zelfreflectie 2 in `REFLECTIE.md` (the old question "Vluchtnummer
-`221`" says the code accepts it).
 
 ### Steps for the scenarios that lost `@to-confirm`
 
