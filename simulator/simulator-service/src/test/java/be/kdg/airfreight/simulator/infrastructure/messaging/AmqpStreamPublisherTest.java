@@ -10,6 +10,9 @@ import java.util.UUID;
 
 import be.kdg.airfreight.simulator.SentMessage;
 import be.kdg.airfreight.simulator.StreamProbe;
+import be.kdg.airfreight.simulator.application.BookingRecord;
+import be.kdg.airfreight.simulator.application.ScheduleRecord;
+import be.kdg.airfreight.simulator.application.StreamPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -37,9 +40,9 @@ class AmqpStreamPublisherTest {
     void anSsmTravelsAsJsonWithItsTypeAsRoutingKeyAndItsIdAsMessageId() throws Exception {
         UUID id = UUID.fromString("11111111-1111-4111-8111-111111111111");
 
-        publisher.send(new SsmMessage(id, SsmMessage.TYPE, SsmMessage.VERSION, NOW, LocalDate.of(2026, 1, 5),
-            LocalDate.of(2026, 1, 18), Set.of(DayOfWeek.MONDAY), LocalTime.of(6, 30), LocalTime.of(9, 45),
-            "HJ221", "BRU", "ATH", "SXBAA"));
+        publisher.send(new ScheduleRecord(LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 18),
+            Set.of(DayOfWeek.MONDAY), LocalTime.of(6, 30), LocalTime.of(9, 45), "HJ221", "BRU", "ATH", "SXBAA"),
+            id, NOW);
 
         SentMessage sent = probe.nextSsm();
         assertThat(sent.routingKey()).isEqualTo("network-planning.ssm");
@@ -68,8 +71,8 @@ class AmqpStreamPublisherTest {
     void aUldMessageTravelsOnTheBookingsStream() throws Exception {
         UUID id = UUID.fromString("22222222-2222-4222-8222-222222222222");
 
-        publisher.send(new UldMessage(id, UldMessage.TYPE, UldMessage.VERSION, NOW, "HJ221", 9, "BRU",
-            "AKE16689R7", new BigDecimal("1250.5"), "KG", "ATH"));
+        publisher.send(new BookingRecord("HJ221", LocalDate.of(2026, 1, 9), "BRU", "AKE16689R7",
+            new BigDecimal("1250.5"), "KG", "ATH"), id, NOW);
 
         SentMessage sent = probe.nextUldMessage();
         assertThat(sent.routingKey()).isEqualTo("cargo-booking.uld");

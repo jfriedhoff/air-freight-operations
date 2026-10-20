@@ -5,9 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import be.kdg.airfreight.simulator.infrastructure.messaging.SsmMessage;
-import be.kdg.airfreight.simulator.infrastructure.messaging.StreamPublisher;
-import be.kdg.airfreight.simulator.infrastructure.messaging.UldMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -29,10 +26,10 @@ public class SimulatorService {
     public List<UUID> sendSchedules(List<ScheduleRecord> records) {
         List<UUID> messageIds = new ArrayList<>();
         for (ScheduleRecord record : records) {
-            SsmMessage ssm = record.toSsm(UUID.randomUUID(), clock.instant());
-            publisher.send(ssm);
-            log.info("SSM {} sent for flight {}", ssm.messageId(), ssm.flightNumber());
-            messageIds.add(ssm.messageId());
+            UUID messageId = UUID.randomUUID();
+            publisher.send(record, messageId, clock.instant());
+            log.info("SSM {} sent for flight {}", messageId, record.flightNumber());
+            messageIds.add(messageId);
         }
         return messageIds;
     }
@@ -40,11 +37,10 @@ public class SimulatorService {
     public List<UUID> sendBookings(List<BookingRecord> records) {
         List<UUID> messageIds = new ArrayList<>();
         for (BookingRecord record : records) {
-            UldMessage uldMessage = record.toUldMessage(UUID.randomUUID(), clock.instant());
-            publisher.send(uldMessage);
-            log.info("ULD message {} sent for {} on flight {}", uldMessage.messageId(), uldMessage.uldCode(),
-                uldMessage.flightNumber());
-            messageIds.add(uldMessage.messageId());
+            UUID messageId = UUID.randomUUID();
+            publisher.send(record, messageId, clock.instant());
+            log.info("ULD message {} sent for {} on flight {}", messageId, record.uldCode(), record.flightNumber());
+            messageIds.add(messageId);
         }
         return messageIds;
     }

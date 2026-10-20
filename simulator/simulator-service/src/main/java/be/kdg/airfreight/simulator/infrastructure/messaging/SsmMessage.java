@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.util.Set;
 import java.util.UUID;
 
+import be.kdg.airfreight.simulator.application.ScheduleRecord;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
@@ -21,4 +22,10 @@ public record SsmMessage(UUID messageId, String type, int version, Instant creat
     /** Also the routing key the message travels with. */
     public static final String TYPE = "network-planning.ssm";
     public static final int VERSION = 1;
+
+    public static SsmMessage of(ScheduleRecord schedule, UUID messageId, Instant createdAt) {
+        return new SsmMessage(messageId, TYPE, VERSION, createdAt, schedule.periodFrom(), schedule.periodTo(),
+            schedule.weekdays(), schedule.departureTime(), schedule.arrivalTime(), schedule.flightNumber(),
+            schedule.departureAirport(), schedule.arrivalAirport(), schedule.registration());
+    }
 }

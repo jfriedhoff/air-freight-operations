@@ -12,9 +12,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import be.kdg.airfreight.simulator.infrastructure.messaging.SsmMessage;
-import be.kdg.airfreight.simulator.infrastructure.messaging.StreamPublisher;
-import be.kdg.airfreight.simulator.infrastructure.messaging.UldMessage;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,14 +26,14 @@ class SimulatorServiceTest {
     void oneSsmIsSentPerScheduleRecordInTheOrderOfTheRecords() {
         simulator.sendSchedules(List.of(scheduleFor("HJ221"), scheduleFor("3V11")));
 
-        assertThat(publisher.ssms).extracting(SsmMessage::flightNumber).containsExactly("HJ221", "3V11");
+        assertThat(publisher.schedules).extracting(sent -> sent.record().flightNumber()).containsExactly("HJ221", "3V11");
     }
 
     @Test
     void oneUldMessageIsSentPerBookingRecordInTheOrderOfTheRecords() {
         simulator.sendBookings(List.of(bookingOf("AKE16689R7"), bookingOf("PMC12345KL"), bookingOf("AKE22222R7")));
 
-        assertThat(publisher.uldMessages).extracting(UldMessage::uldCode)
+        assertThat(publisher.bookings).extracting(sent -> sent.record().uldCode())
             .containsExactly("AKE16689R7", "PMC12345KL", "AKE22222R7");
     }
 
@@ -45,14 +42,14 @@ class SimulatorServiceTest {
         List<UUID> ids = simulator.sendSchedules(List.of(scheduleFor("HJ221"), scheduleFor("HJ221")));
 
         assertThat(ids).hasSize(2).doesNotHaveDuplicates();
-        assertThat(publisher.ssms).extracting(SsmMessage::messageId).containsExactlyElementsOf(ids);
+        assertThat(publisher.schedules).extracting(Sent::messageId).containsExactlyElementsOf(ids);
     }
 
     @Test
     void aMessageIsStampedWithTheMomentItIsSent() {
         simulator.sendBookings(List.of(bookingOf("AKE16689R7")));
 
-        assertThat(publisher.uldMessages).extracting(UldMessage::createdAt).containsExactly(NOW);
+        assertThat(publisher.bookings).extracting(Sent::createdAt).containsExactly(NOW);
     }
 
     private static ScheduleRecord scheduleFor(String flightNumber) {
@@ -65,19 +62,22 @@ class SimulatorServiceTest {
             "ATH");
     }
 
+    private record Sent<R>(R record, UUID messageId, Instant createdAt) {
+    }
+
     /** Keeps what was sent, instead of a broker. */
     private static class RecordingPublisher implements StreamPublisher {
-        private final List<SsmMessage> ssms = new ArrayList<>();
-        private final List<UldMessage> uldMessages = new ArrayList<>();
+        private final List<Sent<ScheduleRecord>> schedules = new ArrayList<>();
+        private final List<Sent<BookingRecord>> bookings = new ArrayList<>();
 
         @Override
-        public void send(SsmMessage ssm) {
-            ssms.add(ssm);
+        public void send(ScheduleRecord schedule, UUID messageId, Instant createdAt) {
+            schedules.add(new Sent<>(schedule, messageId, createdAt));
         }
 
         @Override
-        public void send(UldMessage uldMessage) {
-            uldMessages.add(uldMessage);
+        public void send(BookingRecord booking, UUID messageId, Instant createdAt) {
+            bookings.add(new Sent<>(booking, messageId, createdAt));
         }
     }
 }
