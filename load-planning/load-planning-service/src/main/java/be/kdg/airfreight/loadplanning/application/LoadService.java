@@ -9,6 +9,7 @@ import java.util.List;
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.ClearLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.FinalizeLoadCommand;
+import be.kdg.airfreight.loadplanning.application.query.FlightsToLoadQuery;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoRepository;

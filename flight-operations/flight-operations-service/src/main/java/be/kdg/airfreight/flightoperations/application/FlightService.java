@@ -9,6 +9,7 @@ import be.kdg.airfreight.flightoperations.application.command.ChangeDelayCommand
 import be.kdg.airfreight.flightoperations.application.command.RegisterArrivalCommand;
 import be.kdg.airfreight.flightoperations.application.command.RegisterDepartureCommand;
 import be.kdg.airfreight.flightoperations.application.command.RemoveDelayCommand;
+import be.kdg.airfreight.flightoperations.application.query.FlightsQuery;
 import be.kdg.airfreight.flightoperations.domain.flight.ActualTimeTolerance;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCodeCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;

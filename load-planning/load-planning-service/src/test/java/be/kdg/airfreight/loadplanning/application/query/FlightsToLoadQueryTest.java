@@ -1,4 +1,4 @@
-package be.kdg.airfreight.loadplanning.application;
+package be.kdg.airfreight.loadplanning.application.query;
 
 import java.time.LocalDate;
 

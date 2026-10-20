@@ -5,8 +5,8 @@ import java.util.UUID;
 
 import be.kdg.airfreight.flightoperations.application.FlightPlannerService;
 import be.kdg.airfreight.flightoperations.application.FlightService;
-import be.kdg.airfreight.flightoperations.application.FlightsQuery;
 import be.kdg.airfreight.flightoperations.application.command.AddDelayCommand;
+import be.kdg.airfreight.flightoperations.application.query.FlightsQuery;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCode;
