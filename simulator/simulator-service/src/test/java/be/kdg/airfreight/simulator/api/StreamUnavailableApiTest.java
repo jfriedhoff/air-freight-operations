@@ -1,9 +1,11 @@
-package be.kdg.airfreight.simulator;
+package be.kdg.airfreight.simulator.api;
 
 import java.net.ConnectException;
+import java.time.Instant;
+import java.util.UUID;
 
-import be.kdg.airfreight.simulator.infrastructure.messaging.SsmMessage;
-import be.kdg.airfreight.simulator.infrastructure.messaging.StreamPublisher;
+import be.kdg.airfreight.simulator.application.ScheduleRecord;
+import be.kdg.airfreight.simulator.application.StreamPublisher;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.AmqpConnectException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +22,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Outside the api package: it replaces a bean of the infrastructure layer, which api itself may not touch. */
 @SpringBootTest
 @AutoConfigureMockMvc
 class StreamUnavailableApiTest {
@@ -35,7 +36,7 @@ class StreamUnavailableApiTest {
     void whenRabbitMqCannotBeReachedTheApiSaysSoInsteadOfFailing() throws Exception {
         // Arrange
         willThrow(new AmqpConnectException(new ConnectException("Connection refused")))
-            .given(publisher).send(any(SsmMessage.class));
+            .given(publisher).send(any(ScheduleRecord.class), any(UUID.class), any(Instant.class));
 
         // Act & Assert
         mockMvc.perform(post("/api/flight-schedules")
