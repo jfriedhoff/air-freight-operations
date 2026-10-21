@@ -88,3 +88,40 @@ export function plainDate(isoDate: string): string {
     const [year, month, day] = isoDate.split("-");
     return `${day}/${month}/${year}`;
 }
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/* How far Brussels time is ahead of UTC at this moment, in milliseconds: one hour in winter, two in summer. */
+function offsetAt(moment: number): number {
+    const p = parts(new Date(moment));
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - moment;
+}
+
+/* What a Brussels time that the user typed means in UTC. */
+export type BrusselsInput =
+    | {kind: "exact", utc: Date}
+    | {kind: "nonexistent"}
+    | {kind: "ambiguous", summer: Date, winter: Date};
+
+/* A date ("2026-10-25") and a time ("02:30") in Brussels, as a moment in UTC. On the night the clock goes forward,
+   02:00 to 03:00 does not exist, so the page must refuse it. On the night the clock goes back, 02:00 to 03:00 happens
+   twice, first in summer time and then in winter time, so the page must let the user choose. */
+export function brusselsToUtc(isoDate: string, time: string): BrusselsInput {
+    const [year, month, day] = isoDate.split("-").map(Number);
+    const [hour, minute] = time.split(":").map(Number);
+    const asUtc = Date.UTC(year, month - 1, day, hour, minute);
+    // The offset a day before and a day after: the same on most days, two different ones on a day the clock changes.
+    // Each offset that gives back the typed time at its own moment is a valid reading of that time.
+    const offsets = new Set([offsetAt(asUtc - DAY), offsetAt(asUtc + DAY)]);
+    const moments = [...offsets]
+        .filter(offset => offsetAt(asUtc - offset) === offset)
+        .map(offset => asUtc - offset)
+        .sort((a, b) => a - b);
+    if (moments.length === 0) {
+        return {kind: "nonexistent"};
+    }
+    if (moments.length === 1) {
+        return {kind: "exact", utc: new Date(moments[0])};
+    }
+    return {kind: "ambiguous", summer: new Date(moments[0]), winter: new Date(moments[1])};
+}

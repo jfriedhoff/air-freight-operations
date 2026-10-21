@@ -77,6 +77,21 @@ simulator:
   variables:
     MODULE: "simulator:simulator-service"
 
+# The frontend tests run on Node itself (node --test), so this job needs no JDK, Gradle, database or RabbitMQ.
+# They only import our own code, so there is no npm install either. The JUnit file feeds the Tests tab
+flight-operations-frontend:
+  stage: test
+  image: node:24-alpine
+  interruptible: true
+  script:
+    - cd flight-operations/flight-operations-frontend
+    - node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml "src/**/*.test.ts"
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      junit: flight-operations/flight-operations-frontend/junit.xml
+
 # Mutation testing with PIT (docs/mutation-testing-pit.md). It is slow, so a job only runs when someone
 # clicks its play button. PIT runs the unit tests on the domain: no database or RabbitMQ needed
 .mutation-tests:
