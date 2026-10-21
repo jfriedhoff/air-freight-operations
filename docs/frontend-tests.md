@@ -23,6 +23,7 @@ what a page offers to which role, and how an error from the server is worded. Th
 | Flight Operations | `presenter/ganttTimeline.test.ts` | Where a bar starts and how wide it is, an arrival after the end of the day cut off at the edge, the minimum width of a bar, the place of the Brussels midnight line in winter and in summer |
 | Flight Operations | `domain/Flight.test.ts` | Which delays the page offers for each status and role, and when an ETD or ETA is shown |
 | Load Planning | `domain/FlightCargo.test.ts` | Which words the page chooses when the load cannot change, including the edges of the loading period; who may change the load; the ULDs without a load position |
+| Load Planning | `domain/Deck.test.ts` | The deck of the floor plan: columns and rows from the floor plan (nose and tail on the centre line, L and R of a row in one column, the door), the colour by destination, the marks of the offloading check only where the report's ULD is still drawn, a cell that is stuck and in the way, the side weights and their rounding, the targets of a picked ULD, and when a pick survives a reload |
 | Load Planning | `domain/FlightToLoad.test.ts` | The address of the list with and without departed flights, and when an ETD or ETA is shown |
 | Load Planning | `presenter/brusselsTime.test.ts` | UTC shown as Brussels time with CET or CEST |
 | Both | `domain/FlightIdentity.test.ts` | A page of the other context reads back the identity it was opened with; an address that misses one of the three parts has none |

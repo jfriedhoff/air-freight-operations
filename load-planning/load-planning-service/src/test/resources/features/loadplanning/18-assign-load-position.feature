@@ -112,3 +112,43 @@ Feature: Assign, change or clear a load position from the floor plan
   Scenario: Assigning a load position sends no message to the partners
     When I place AKE16689R7 on CL
     Then no message is sent to the partners
+
+  # The floor plan on the cargo page (team extension, see analyse.md question 14). Walked through by hand.
+  @ui
+  Scenario: The deck shows free and taken positions
+    Given AKE16689R7 is on CL
+    When I open the cargo page of HJ221
+    Then I see the main deck from above with the nose on the left and the cargo door at RL
+    And CL shows AKE16689R7 in the colour of a ULD for the destination of the flight
+    And every other position is shown as free
+
+  @ui
+  Scenario: Placing a ULD by clicking a free position
+    When I pick AKE16689R7 among the ULDs still to place
+    Then every free position is shown as a place it can go to
+    When I click CL
+    Then AKE16689R7 is on CL
+    And the list next to AKE16689R7 shows CL
+
+  @ui
+  Scenario: The deck shows which ULD is in the way
+    Given HJ221 goes to ATH
+    And AKE16689R7 for ATH is on CL
+    When I place AKE20417HJ for FRA on DL
+    Then CL is marked as a ULD that cannot be offloaded
+    And DL is marked as a ULD that is in the way
+    And the reason of the offloading check is shown below the deck
+
+  @ui
+  Scenario: The deck shows the weight on each side
+    Given AKE16689R7 of 1250 kg is on CL
+    When I open the cargo page of HJ221
+    Then I see 1250 kg on the left and 0 kg on the right, and that the heaviest side may carry at most 0 kg
+    And the left side is shown as too heavy
+
+  @ui
+  Scenario: A flight planner sees the deck without changing it
+    Given I am logged in as a flight planner
+    When I open the cargo page of HJ221
+    Then I see the deck with every ULD on its position
+    But I cannot pick a ULD or a position, and I see no findings of the checks
