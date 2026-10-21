@@ -13,6 +13,18 @@ export interface Uld {
     positionChangedBy: string | null;
 }
 
+/* A load position as the floor plan lists it, nose to tail. A position in the nose or the tail has no side. */
+export interface LoadPositionOnDeck {
+    name: string;
+    side: "LEFT" | "RIGHT" | null;
+}
+
+/* The floor plan of the aircraft: its positions in deck order, and the position at the cargo door. */
+export interface FloorPlan {
+    positions: LoadPositionOnDeck[];
+    door: string;
+}
+
 export interface LoadingPeriod {
     start: string;
     end: string;
@@ -37,6 +49,7 @@ export interface FlightCargo {
     loadCanChange: boolean;
     ulds: Uld[];
     loadPositions: string[];
+    floorPlan: FloorPlan;
 }
 
 /* Why the load cannot change, as the page words it. OPEN: it can change. */

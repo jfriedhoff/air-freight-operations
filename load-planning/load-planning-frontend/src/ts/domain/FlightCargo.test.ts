@@ -18,7 +18,7 @@ function cargo(changes: Partial<FlightCargo> = {}): FlightCargo {
         etd: "2026-01-09T06:30:00Z", eta: "2026-01-09T08:00:00Z",
         departed: false, finalized: false, finalizedBy: null,
         loadingPeriod: {start: START, end: END}, loadCanChange: false,
-        ulds: [], loadPositions: [],
+        ulds: [], loadPositions: [], floorPlan: {positions: [], door: "RL"},
         ...changes,
     };
 }

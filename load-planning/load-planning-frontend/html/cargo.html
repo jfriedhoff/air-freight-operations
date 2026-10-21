@@ -62,11 +62,35 @@
             </div>
         </section>
 
+        <section id="deck-panel" class="panel">
+            <div class="panel-header">
+                <h2 class="text-base font-semibold">Vloerplan</h2>
+                <span class="text-sm opacity-60 mr-auto">Hoofddek van boven gezien, neus links</span>
+            </div>
+            <div class="p-4 space-y-3">
+                <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Legende">
+                    <li><span class="deck-key deck-free"></span>vrij</li>
+                    <li><span class="deck-key deck-to-arrival"></span>naar <span id="deck-arrival"></span></li>
+                    <li><span class="deck-key deck-to-other"></span>naar een andere bestemming</li>
+                    <li><span class="deck-key deck-door"></span>vrachtdeur</li>
+                    <li><span class="deck-key deck-stuck">✕</span>kan niet uitgeladen worden</li>
+                    <li><span class="deck-key deck-in-the-way">▲</span>staat in de weg</li>
+                </ul>
+                <div class="overflow-x-auto" data-scrolls>
+                    <div id="deck" class="deck"></div>
+                </div>
+                <p id="side-weights" class="hidden text-sm"></p>
+                <p id="offloading-reason" class="hidden text-sm text-error"></p>
+                <p id="checks-note" class="hidden text-sm opacity-70"></p>
+            </div>
+        </section>
+
         <section class="panel">
             <div class="panel-header">
                 <h2 class="text-base font-semibold">Geboekte ULD's</h2>
                 <span id="uld-summary" class="text-sm opacity-60 mr-auto"></span>
                 <div id="load-actions" class="hidden">
+                    <button id="check-load-btn" class="btn btn-sm btn-outline">Check Load</button>
                     <button id="finalize-btn" class="btn btn-sm btn-primary">Finalize Load</button>
                 </div>
             </div>

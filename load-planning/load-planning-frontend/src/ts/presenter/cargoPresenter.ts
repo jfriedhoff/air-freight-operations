@@ -1,3 +1,4 @@
+import {deckCells, offloadingReason, sideWeights} from "../domain/Deck.ts";
 import {canChangeLoad, holderOf, stateOf, withoutLoadPosition} from "../domain/FlightCargo.ts";
 import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
 import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
@@ -5,11 +6,12 @@ import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import {listQuery, showsEta, showsEtd} from "../domain/FlightToLoad.ts";
 import {flightOperationsAddress} from "../infrastructure/contexts.ts";
 import {
-    assignLoadPosition, clearLoadPosition, finalizeLoad, findFlightCargo, getFlightCargo,
+    assignLoadPosition, checkLoad, clearLoadPosition, finalizeLoad, findFlightCargo, getFlightCargo,
 } from "../infrastructure/flightCargoRest.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
+import {drawDeck, drawFindings} from "./deckPresenter.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {showReport} from "./loadCheckReportPresenter.ts";
 import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
@@ -26,6 +28,7 @@ const uldTable = document.getElementById("uld-table")!;
 const uldRows = document.getElementById("ulds")!;
 const loadActions = document.getElementById("load-actions")!;
 const finalizeButton = document.getElementById("finalize-btn") as HTMLButtonElement;
+const checkLoadButton = document.getElementById("check-load-btn") as HTMLButtonElement;
 
 /* The page opens with the id of the cargo, or with the identity of the flight when Vluchtdetails links to it. */
 const address = new URLSearchParams(window.location.search);
@@ -36,6 +39,9 @@ let isLoadPlanner = false;
 let assigning = false;
 /* A request to finalize is on its way: the automatic reload waits for it too. */
 let finalizing = false;
+/* The number of the latest load of the cargo (a reload, or the answer to a change). An answer to an earlier one
+   that arrives later is not drawn: it would put an older state over a newer one. */
+let latestLoad = 0;
 
 function text(id: string, value: string): void {
     document.getElementById(id)!.textContent = value;
@@ -142,6 +148,7 @@ function render(cargo: FlightCargo): void {
     text("sta", brusselsDateTime(cargo.sta));
     estimatedTime("etd-row", "etd", cargo.etd, showsEtd(cargo));
     estimatedTime("eta-row", "eta", cargo.eta, showsEta(cargo));
+    text("deck-arrival", cargo.arrivalAirport);
     text("loading-period", `van ${brusselsDateTime(cargo.loadingPeriod.start)} tot `
         + brusselsDateTime(cargo.loadingPeriod.end));
 
@@ -167,11 +174,49 @@ function render(cargo: FlightCargo): void {
     section.classList.remove("hidden");
 }
 
+/* The deck with what the checks say about the load as it stands. Only while the load planner can change the load:
+   then the page asks the checks after every load, and the report below shows the same answer. Otherwise the deck is
+   only drawn, and the report keeps what it last showed (the report of Finalize Load). */
+async function showDeck(cargo: FlightCargo, load: number): Promise<void> {
+    const changeable = canChangeLoad(cargo, isLoadPlanner);
+    if (!changeable) {
+        drawDeck(deckCells(cargo, null, null, false), () => false, () => undefined);
+        drawFindings(null, null, null);
+        return;
+    }
+    try {
+        const report = await checkLoad(cargo.id);
+        if (load !== latestLoad) {
+            return;
+        }
+        drawDeck(deckCells(cargo, report, null, true), () => false, () => undefined);
+        drawFindings(sideWeights(report), offloadingReason(report), null);
+        showReport(report);
+    } catch {
+        if (load === latestLoad) {
+            drawDeck(deckCells(cargo, null, null, true), () => false, () => undefined);
+            drawFindings(null, null,
+                "De controles konden niet opgehaald worden; het vloerplan toont de lading zonder.");
+        }
+    }
+}
+
+/* Draws one answer of the server, unless a newer load was started in the meantime. */
+async function display(answer: Promise<FlightCargo>): Promise<void> {
+    const load = ++latestLoad;
+    const cargo = await answer;
+    if (load !== latestLoad) {
+        return;
+    }
+    render(cargo);
+    await showDeck(cargo, load);
+}
+
 /* Asks the cargo again; on failure what is on the screen stays and the reason is shown. A message the user
    has not acted on yet stays too: a reload never clears the message box when it succeeds. */
 async function reload(): Promise<boolean> {
     try {
-        render(await getFlightCargo(flightCargoId!));
+        await display(getFlightCargo(flightCargoId!));
         return true;
     } catch (error) {
         clearMessages(messageBox);
@@ -206,7 +251,7 @@ async function clear(cargoId: string, uldCode: string): Promise<void> {
 async function changeLoadPosition(change: () => Promise<FlightCargo>, confirmation: string): Promise<void> {
     assigning = true;
     try {
-        render(await change());
+        await display(change());
         addInfo(messageBox, confirmation);
     } catch (error) {
         const refusal = (error as Error).message;
@@ -249,6 +294,14 @@ async function finalize(): Promise<void> {
     }
 }
 
+/* Check Load: the checks run again on the load as it is stored now, and the report shows them. */
+async function checkTheLoad(): Promise<void> {
+    clearMessages(messageBox);
+    if (await reload()) {
+        addInfo(messageBox, "De lading is gecontroleerd: zie het rapport.");
+    }
+}
+
 /* The id of the cargo of the flight with this identity. Flight events reach Load Planning through Messaging, so a
    flight that Flight Operations just created may not be known here for a moment. */
 async function flightCargoIdOf(flight: FlightIdentity): Promise<string | null> {
@@ -285,6 +338,7 @@ async function init(): Promise<void> {
         }
     }
     finalizeButton.addEventListener("click", finalize);
+    checkLoadButton.addEventListener("click", checkTheLoad);
     startAutoRefresh(reload, () => !assigning && !finalizing && !aChoiceIsInProgress());
 }
 
