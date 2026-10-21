@@ -5,5 +5,5 @@ package be.kdg.airfreight.loadplanning.domain.flightcargo;
  * without anything to show has no details. A new kind of details is added here and mapped in the API; a check
  * without details touches nothing.
  */
-public sealed interface LoadCheckDetails permits OffloadingDetails {
+public sealed interface LoadCheckDetails permits LateralBalanceDetails, OffloadingDetails {
 }
