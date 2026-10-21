@@ -11,6 +11,11 @@ tasks.named('build') {
     dependsOn('npm_run_build')
 }
 
+// build depends on check, so ./gradlew build also runs the frontend tests
+tasks.named('check') {
+    dependsOn('npm_run_test')
+}
+
 // Fix for Mac users with Homebrew
 def file = new File('/opt/homebrew/bin/npm')
 if (file.exists()) {
