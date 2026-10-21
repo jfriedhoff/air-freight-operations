@@ -13,7 +13,7 @@ import {
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
-import {drawDeck, drawFindings, drawPick, drawTray} from "./deckPresenter.ts";
+import {drawDeck, drawFindings, drawPick, drawTray, focusFirstTarget} from "./deckPresenter.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {showReport} from "./loadCheckReportPresenter.ts";
 import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
@@ -88,13 +88,15 @@ function stateLine(cargo: FlightCargo, loadedAt: Date): string {
 }
 
 /* The list of the floor plan's positions next to a ULD, as the case asks; the deck above is the main way. A choice
-   is sent at once; "Leegmaken" takes the ULD off its position. A position held by another ULD is shown with it and
-   cannot be chosen; the server decides anyway. */
+   with the mouse is sent at once; a choice with the keyboard (arrow keys, typing) only on Enter or when the list is
+   left, because in some browsers every arrow key changes a closed list. "Leegmaken" takes the ULD off its position.
+   A position held by another ULD is shown with it and cannot be chosen; the server decides anyway. */
 function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     const cell = document.createElement("td");
     const choice = document.createElement("select");
     choice.className = "select select-sm w-auto";
     choice.setAttribute("aria-label", `Laadpositie van ${uld.code}`);
+    choice.dataset.uld = uld.code;
     const none = createElementWithText("option", uld.loadPosition === null ? "Kies een laadpositie" : "Leegmaken") as
         HTMLOptionElement;
     none.value = "";
@@ -108,10 +110,38 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
         option.disabled = takenByAnother;
         choice.appendChild(option);
     }
-    choice.value = uld.loadPosition ?? "";
-    choice.addEventListener("change", () => choice.value === ""
-        ? clear(cargo.id, uld.code)
-        : assign(cargo.id, uld.code, choice.value));
+    const stored = uld.loadPosition ?? "";
+    choice.value = stored;
+    let byKeyboard = false;
+    const send = (): void => {
+        byKeyboard = false;
+        if (choice.value === stored) {
+            return;
+        }
+        if (choice.value === "") {
+            clear(cargo.id, uld.code);
+        } else {
+            assign(cargo.id, uld.code, choice.value);
+        }
+    };
+    choice.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            send();
+        } else if (event.key !== "Tab") {
+            byKeyboard = true;
+        }
+    });
+    choice.addEventListener("change", () => {
+        if (!byKeyboard) {
+            send();
+        }
+    });
+    choice.addEventListener("blur", () => {
+        if (byKeyboard) {
+            send();
+        }
+    });
     cell.appendChild(choice);
     return cell;
 }
@@ -169,7 +199,13 @@ function render(cargo: FlightCargo): void {
     roleNote.classList.toggle("hidden", isLoadPlanner);
 
     const changeable = canChangeLoad(cargo, isLoadPlanner);
+    // the table is drawn anew: the keyboard stays on the list of the same ULD
+    const focused = document.activeElement instanceof HTMLSelectElement && uldRows.contains(document.activeElement)
+        ? document.activeElement.dataset.uld : undefined;
     uldRows.replaceChildren(...cargo.ulds.map(uld => uldRow(cargo, uld, changeable)));
+    if (focused !== undefined) {
+        uldRows.querySelector<HTMLSelectElement>(`select[data-uld="${focused}"]`)?.focus();
+    }
     loadActions.classList.toggle("hidden", !changeable);
     uldSummary.textContent = summary(cargo);
     noUlds.classList.toggle("hidden", cargo.ulds.length > 0);
@@ -215,12 +251,22 @@ function redrawDeck(cargo: FlightCargo, report: LoadCheckReport | null): void {
     drawPick(pick, () => clear(cargo.id, pick!.code), () => choose(null));
 }
 
-/* Picking the picked ULD again drops it; picking another one changes the pick. */
+/* Picking the picked ULD again drops it; picking another one changes the pick. A ULD picked from the tray puts the
+   keyboard on the first position it can go to. */
 function choose(next: Pick | null): void {
     pick = next !== null && pick !== null && pick.code === next.code ? null : next;
     if (shown !== null) {
         redrawDeck(shown.cargo, shown.report);
     }
+    if (pick !== null && pick.position === null) {
+        focusFirstTarget();
+    }
+}
+
+/* A list next to a ULD that has the focus may hold a keyboard choice that is not sent yet, or be open: the
+   automatic reload would redraw it under the user. */
+function aListHasTheFocus(): boolean {
+    return document.activeElement instanceof HTMLSelectElement && uldRows.contains(document.activeElement);
 }
 
 /* A ULD on the deck is picked; a free position takes the picked ULD. */
@@ -382,7 +428,7 @@ async function init(): Promise<void> {
             choose(null);
         }
     });
-    startAutoRefresh(reload, () => !assigning && !finalizing);
+    startAutoRefresh(reload, () => !assigning && !finalizing && !aListHasTheFocus());
 }
 
 init();

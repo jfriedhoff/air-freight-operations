@@ -60,9 +60,11 @@ export function drawDeck(cells: DeckCell[], clickable: (cell: DeckCell) => boole
                          onClick: (cell: DeckCell) => void): void {
     const columns = Math.max(0, ...cells.map(cell => cell.column));
     deck.style.setProperty("--deck-columns", String(columns));
+    const focused = focusedIn(deck, "position");
     deck.replaceChildren(...cells.map(cell => {
         const button = document.createElement("button");
         button.type = "button";
+        button.dataset.position = cell.name;
         button.className = classesOf(cell);
         button.style.gridColumn = String(cell.column);
         button.style.gridRow = cell.row === "top" ? "1" : cell.row === "middle" ? "2" : "3";
@@ -84,6 +86,24 @@ export function drawDeck(cells: DeckCell[], clickable: (cell: DeckCell) => boole
         }
         return button;
     }));
+    refocus(deck, "position", focused);
+}
+
+/* The deck and the tray are drawn anew on every answer: the keyboard stays on the same position or ULD. */
+function focusedIn(container: HTMLElement, key: string): string | null {
+    const active = document.activeElement;
+    return active instanceof HTMLElement && container.contains(active) ? active.dataset[key] ?? null : null;
+}
+
+function refocus(container: HTMLElement, key: string, value: string | null): void {
+    if (value !== null) {
+        container.querySelector<HTMLElement>(`[data-${key}="${value}"]`)?.focus();
+    }
+}
+
+/* Puts the keyboard on the first free position a picked ULD can go to. */
+export function focusFirstTarget(): void {
+    deck.querySelector<HTMLElement>(".deck-target")?.focus();
 }
 
 /* The findings of the checks next to the deck, or a note when they could not be asked. */
@@ -123,14 +143,17 @@ export function drawTray(cargo: FlightCargo, changeable: boolean, pick: Pick | n
     traySection.classList.toggle("hidden", !changeable);
     const waiting = withoutLoadPosition(cargo);
     trayEmpty.classList.toggle("hidden", waiting.length > 0);
+    const focused = focusedIn(tray, "uld");
     tray.replaceChildren(...waiting.map(uld => {
         const picked = pick?.code === uld.code;
         const chip = createElementWithText("button", `${uld.code} · ${weightOf(uld)} · ${uld.destination}`);
         chip.className = `btn btn-sm font-mono ${picked ? "btn-warning" : "btn-outline"}`;
         chip.setAttribute("aria-pressed", String(picked));
+        chip.dataset.uld = uld.code;
         chip.addEventListener("click", () => onPick(uld));
         return chip;
     }));
+    refocus(tray, "uld", focused);
 }
 
 /* What the load planner is doing: which ULD is picked, and what a click does now. */
