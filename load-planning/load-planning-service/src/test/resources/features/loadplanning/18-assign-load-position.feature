@@ -101,8 +101,7 @@ Feature: Assign, change or clear a load position from the floor plan
       | place AKE16689R7 on CR                 |
       | clear the load position of AKE16689R7  |
 
-  # The endpoint for placing a ULD exists; this scenario with two requests at the same time is the next step
-  @integration @wip
+  @integration
   Scenario: Two load planners choose the same position at the same time
     Given AKE20417HJ is also booked on HJ221
     When two load planners place AKE16689R7 and AKE20417HJ on CL at the same time
