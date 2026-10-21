@@ -31,6 +31,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import java.time.Instant;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.startsWith;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -325,6 +326,151 @@ class FlightCargoControllerTest {
     }
 
     @Test
+    void clearingAUldWithoutALoadPositionIsRefusedWithItsReason() throws Exception {
+        mockMvc.perform(clear("AKE20417HJ").with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"))
+            .andExpect(jsonPath("$.detail").value("ULD AKE20417HJ has no load position"));
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void aPositionThatIsNotOnTheFloorPlanIsABadRequestWithItsReason() throws Exception {
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"Z9\"}")
+                .with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value(startsWith("Load position Z9 is not on the floor plan")));
+
+        assertTheLoadDidNotChange();
+    }
+
+    /** The edges of the loading period, also with a delay, are the Examples of story 18; one case here. */
+    @Test
+    void outsideTheLoadingPeriodAChangeIsRefusedWithItsReason() throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+        clock.set(Instant.parse("2026-01-09T06:10:00Z"));
+
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(token(loadPlanner)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"))
+            .andExpect(jsonPath("$.detail").value("The load can only change within the loading period"));
+        mockMvc.perform(clear("AKE16689R7").with(token(loadPlanner)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("The load can only change within the loading period"));
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void aChangeAfterDepartureIsRefusedWithItsReason() throws Exception {
+        testHelper.depart(id);
+
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}")
+                .with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"))
+            .andExpect(jsonPath("$.detail").value("The load can no longer change: the flight has departed"));
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void aChangeAfterFinalizingIsRefusedWithItsReason() throws Exception {
+        testHelper.finalizeLoad(id);
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(token(loadPlanner)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"))
+            .andExpect(jsonPath("$.detail").value("The load is finalized and can no longer change"));
+        mockMvc.perform(clear("AKE16689R7").with(token(loadPlanner)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("The load is finalized and can no longer change"));
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void aChangeToACargoThatDoesNotExistIsNotFound() throws Exception {
+        mockMvc.perform(put(LOAD_POSITION, UUID.randomUUID(), "AKE20417HJ").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"loadPosition\": \"CR\"}").with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("not-found"));
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void aUldThatIsNotBookedOnTheFlightIsNotFound() throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(assign("PMC12345KL", "{\"loadPosition\": \"CR\"}").with(token(loadPlanner)))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("not-found"))
+            .andExpect(jsonPath("$.detail").value("ULD [PMC12345KL] is not booked on this flight"));
+        mockMvc.perform(clear("PMC12345KL").with(token(loadPlanner)))
+            .andExpect(status().isNotFound());
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void aMalformedUldCodeIsABadRequest() throws Exception {
+        mockMvc.perform(assign("ake16689r7", "{\"loadPosition\": \"CR\"}")
+                .with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value(startsWith("ULD code 'ake16689r7' is invalid")));
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void aBodyWithoutALoadPositionIsABadRequestThatNamesTheField() throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(assign("AKE20417HJ", "{}").with(token(loadPlanner)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value("loadPosition: is required"));
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \" \"}").with(token(loadPlanner)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.detail").value("loadPosition: is required"));
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
+    void anUnreadableBodyIsABadRequest() throws Exception {
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": ")
+                .with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value("The request cannot be read: check its fields"));
+
+        assertTheLoadDidNotChange();
+    }
+
+    /** SecurityConfigTest checks the rules on any address; here once on the two changes of a load position. */
+    @Test
+    void withoutATokenOrWithNoneOrBothPlannerRolesTheLoadPositionDoesNotChange() throws Exception {
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}"))
+            .andExpect(status().isUnauthorized());
+        mockMvc.perform(clear("AKE16689R7"))
+            .andExpect(status().isUnauthorized());
+        mockMvc.perform(assign("AKE20417HJ", "{\"loadPosition\": \"CR\"}").with(planner("operations")))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(clear("AKE16689R7").with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
+                .authorities(new SimpleGrantedAuthority("ROLE_load-planner"),
+                    new SimpleGrantedAuthority("ROLE_flight-planner"))))
+            .andExpect(status().isForbidden());
+
+        assertTheLoadDidNotChange();
+    }
+
+    @Test
     void checkLoadGivesOneResultPerCheckAndChangesNothing() throws Exception {
         mockMvc.perform(get(LOAD_CHECK, id.id()).with(token(testHelper.saveLoadPlanner("Test load planner"))))
             .andExpect(status().isOk())
@@ -386,6 +532,12 @@ class FlightCargoControllerTest {
 
     private MockHttpServletRequestBuilder clear(String uldCode) {
         return delete(LOAD_POSITION, id.id(), uldCode);
+    }
+
+    /** The cargo as the setup left it: AKE16689R7 on CL, AKE20417HJ without a load position. */
+    private void assertTheLoadDidNotChange() {
+        assertThat(testHelper.find(id).getLoad()).extracting(stored -> stored.getCode().value() + " "
+            + stored.getPosition().name()).containsExactly("AKE16689R7 CL");
     }
 
     private Uld uld(String code) {
