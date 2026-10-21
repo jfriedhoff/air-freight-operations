@@ -15,7 +15,8 @@ export interface Timeline {
 export interface BarPlace {
     leftPercent: number;
     widthPercent: number;
-    cutOff: boolean;
+    cutOffAtStart: boolean;
+    cutOffAtEnd: boolean;
 }
 
 export function timelineOf(day: string): Timeline {
@@ -29,15 +30,23 @@ function percentOf(timeline: Timeline, moment: number): number {
     return (clamped - timeline.start) / (timeline.end - timeline.start) * 100;
 }
 
-/* The bar of a flight from STD to STA. An arrival after the end of the day is cut off at the edge. */
+/* The bar of a flight from STD to STA. A flight of the day before starts at the left edge, an arrival after the
+   end of the day is cut off at the right edge. */
 export function barPlace(timeline: Timeline, std: string, sta: string): BarPlace {
     const left = percentOf(timeline, Date.parse(std));
     const width = Math.max(percentOf(timeline, Date.parse(sta)) - left, MIN_WIDTH_PERCENT);
     return {
         leftPercent: Math.min(left, 100 - width),
         widthPercent: width,
-        cutOff: Date.parse(sta) > timeline.end,
+        cutOffAtStart: Date.parse(std) < timeline.start,
+        cutOffAtEnd: Date.parse(sta) > timeline.end,
     };
+}
+
+/* The flights of the day before that are still in the air when this day starts. Their day stays the day before,
+   but the part of the flight after 00:00 UTC belongs on this timeline too. */
+export function stillInTheAir<T extends { sta: string }>(timeline: Timeline, flightsOfDayBefore: T[]): T[] {
+    return flightsOfDayBefore.filter(flight => Date.parse(flight.sta) > timeline.start);
 }
 
 /* The start of every hour on the timeline, with its place in percent. */
