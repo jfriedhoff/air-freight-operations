@@ -102,7 +102,7 @@ public class Flight {
     }
 
     public FinalizedLoadReceived recordFinalizedLoad(Instant now) {
-        if (getStatus() != FlightStatus.PLANNED) {
+        if (!isPlanned()) {
             throw new DomainRuleViolationException(
                 "The finalized load can only be received while the flight is planned");
         }
@@ -115,7 +115,7 @@ public class Flight {
 
     public FlightDeparted registerDeparture(Instant atd, FlightPlannerId by, Instant now,
                                             ActualTimeTolerance tolerance) {
-        if (getStatus() != FlightStatus.PLANNED) {
+        if (!isPlanned()) {
             throw new DomainRuleViolationException("The departure of this flight has already been registered");
         }
         if (!finalizedLoadReceived) {
@@ -137,12 +137,11 @@ public class Flight {
 
     public FlightLanded registerArrival(Instant ata, FlightPlannerId by, Instant now,
                                         ActualTimeTolerance tolerance) {
-        FlightStatus status = getStatus();
-        if (status == FlightStatus.PLANNED) {
+        if (isPlanned()) {
             throw new DomainRuleViolationException(
                 "The arrival can only be registered once the flight has departed");
         }
-        if (status == FlightStatus.LANDED) {
+        if (hasLanded()) {
             throw new DomainRuleViolationException("The arrival of this flight has already been registered");
         }
         if (ata.isAfter(now)) {
@@ -171,13 +170,22 @@ public class Flight {
     }
 
     public FlightStatus getStatus() {
-        if (actualArrival != null) {
+        if (hasLanded()) {
             return FlightStatus.LANDED;
         }
-        if (actualDeparture != null) {
+        if (!isPlanned()) {
             return FlightStatus.DEPARTED;
         }
         return FlightStatus.PLANNED;
+    }
+
+    /** Planned until the ATD is registered: the status is derived from the actual times, not stored. */
+    public boolean isPlanned() {
+        return actualDeparture == null;
+    }
+
+    public boolean hasLanded() {
+        return actualArrival != null;
     }
 
     public FlightId getId() {
@@ -233,14 +241,19 @@ public class Flight {
     }
 
     private void requireDelaysCanChange(DelayKind kind) {
-        FlightStatus status = getStatus();
-        if (kind == DelayKind.DEPARTURE && status != FlightStatus.PLANNED) {
-            throw new DomainRuleViolationException(
-                "A departure delay can only change while the flight is planned");
-        }
-        if (kind == DelayKind.ARRIVAL && status == FlightStatus.LANDED) {
-            throw new DomainRuleViolationException(
-                "An arrival delay can no longer change once the flight has landed");
+        switch (kind) {
+            case DEPARTURE -> {
+                if (!isPlanned()) {
+                    throw new DomainRuleViolationException(
+                        "A departure delay can only change while the flight is planned");
+                }
+            }
+            case ARRIVAL -> {
+                if (hasLanded()) {
+                    throw new DomainRuleViolationException(
+                        "An arrival delay can no longer change once the flight has landed");
+                }
+            }
         }
     }
 
@@ -276,12 +289,11 @@ public class Flight {
         EstimatedTimes estimated = getEstimated();
         ArrivalEstimateChanged arrivalChanged = new ArrivalEstimateChanged(id, flightNumber,
             scheduled.departureDate(), departureAirport, arrivalAirport, registration, estimated.arrival(), by, now);
-        if (kind == DelayKind.ARRIVAL) {
-            return List.of(arrivalChanged);
-        }
-        DepartureEstimateChanged departureChanged = new DepartureEstimateChanged(id, flightNumber,
-            scheduled.departureDate(), departureAirport, registration, estimated.departure(), by, now);
-        return List.of(departureChanged, arrivalChanged);
+        return switch (kind) {
+            case ARRIVAL -> List.of(arrivalChanged);
+            case DEPARTURE -> List.of(new DepartureEstimateChanged(id, flightNumber, scheduled.departureDate(),
+                departureAirport, registration, estimated.departure(), by, now), arrivalChanged);
+        };
     }
 
     @Override
