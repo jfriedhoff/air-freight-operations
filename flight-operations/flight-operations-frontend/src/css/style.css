@@ -1,7 +1,15 @@
 @import "tailwindcss";
 
 @plugin "@tailwindcss/typography";
-@plugin "daisyui";
+@plugin "daisyui" {
+    themes: light --default, dark --prefersdark, corporate;
+}
+
+/* A line at every hour of a Gantt row. The timeline is always one UTC day, so it has 24 equal hours. */
+.hour-grid {
+    background-image: linear-gradient(to right, var(--color-base-200) 1px, transparent 1px);
+    background-size: calc(100% / 24) 100%;
+}
 
 @layer base {
     h1 {

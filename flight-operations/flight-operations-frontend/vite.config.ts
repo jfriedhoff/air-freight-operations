@@ -24,6 +24,7 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, "index.html"),
                 flightDetails: resolve(__dirname, "html/flight-details.html"),
+                ganttChart: resolve(__dirname, "html/gantt-chart.html"),
             },
         },
         outDir: "../flight-operations-service/src/main/resources/static",

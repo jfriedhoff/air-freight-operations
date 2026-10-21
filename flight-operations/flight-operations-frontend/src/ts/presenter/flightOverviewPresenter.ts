@@ -16,6 +16,7 @@ const dayField = document.getElementById("day") as HTMLInputElement;
 const flightsTable = document.getElementById("flights-table")!;
 const flightRows = document.getElementById("flights")!;
 const noFlights = document.getElementById("no-flights")!;
+const ganttLink = document.getElementById("gantt-link") as HTMLAnchorElement;
 
 const ROLE_NAME = {"flight-planner": "flight planner", "load-planner": "load planner"};
 
@@ -48,6 +49,7 @@ function flightRow(flight: FlightRow): HTMLTableRowElement {
 function render(flightsOfDay: FlightsOfDay): void {
     day = flightsOfDay.scheduledDepartureDate;
     dayField.value = day;
+    ganttLink.href = `html/gantt-chart.html${overviewQuery(day)}`;
     const flights = flightsOfDay.flights;
     flightRows.replaceChildren(...flights.map(flightRow));
     flightsTable.classList.toggle("hidden", flights.length === 0);
