@@ -21,6 +21,14 @@ Feature: See all flights of a chosen day on a Gantt chart
     And the row shows that the flight lands on 10 January at 01:30 Brussels time
 
   @ui
+  Scenario: A flight of the day before that is still in the air continues on the next day
+    Given flight 3V11 of 9 January 2026 with STD 21:00 UTC and STA 10 January 00:30 UTC
+    When I open the Gantt chart of 10 January
+    Then the bar of 3V11 starts at the left edge of the timeline and ends at 01:30 Brussels time
+    And the row shows that the flight departed on 9 January at 22:00 Brussels time
+    And 3V11 is not counted as a flight of 10 January
+
+  @ui
   Scenario: The day of a flight is its scheduled departure date in UTC
     Given flight 3V13 has STD 9 January 2026 23:30 UTC, in Brussels 10 January 00:30
     When I open the Gantt chart of 9 January

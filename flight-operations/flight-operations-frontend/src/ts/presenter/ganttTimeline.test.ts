@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {barPlace, brusselsMidnightPercent, hoursOf, timelineOf} from "./ganttTimeline.ts";
+import {barPlace, brusselsMidnightPercent, hoursOf, stillInTheAir, timelineOf} from "./ganttTimeline.ts";
 
 const DAY = timelineOf("2026-01-09");
 
@@ -15,14 +15,28 @@ test("the timeline is the UTC day", () => {
 
 test("a bar runs from STD to STA", () => {
     assert.deepEqual(barPlace(DAY, "2026-01-09T06:00:00Z", "2026-01-09T12:00:00Z"),
-        {leftPercent: 25, widthPercent: 25, cutOff: false});
+        {leftPercent: 25, widthPercent: 25, cutOffAtStart: false, cutOffAtEnd: false});
 });
 
 test("an arrival after the end of the day is cut off at the edge", () => {
     const bar = barPlace(DAY, "2026-01-09T22:00:00Z", "2026-01-10T02:00:00Z");
     assertNear(bar.leftPercent, 22 / 24 * 100);
     assertNear(bar.widthPercent, 2 / 24 * 100);
-    assert.equal(bar.cutOff, true);
+    assert.equal(bar.cutOffAtStart, false);
+    assert.equal(bar.cutOffAtEnd, true);
+});
+
+test("a flight of the day before that lands after midnight UTC continues at the start of the timeline", () => {
+    const bar = barPlace(DAY, "2026-01-08T21:00:00Z", "2026-01-09T00:30:00Z");
+    assert.equal(bar.leftPercent, 0);
+    assertNear(bar.widthPercent, 0.5 / 24 * 100);
+    assert.equal(bar.cutOffAtStart, true);
+    assert.equal(bar.cutOffAtEnd, false);
+});
+
+test("only the flights of the day before that are still in the air when the day starts", () => {
+    const flights = [{sta: "2026-01-08T23:00:00Z"}, {sta: "2026-01-09T00:00:00Z"}, {sta: "2026-01-09T00:30:00Z"}];
+    assert.deepEqual(stillInTheAir(DAY, flights), [{sta: "2026-01-09T00:30:00Z"}]);
 });
 
 test("a departure at 23:59 UTC still gets a visible bar inside the chart", () => {

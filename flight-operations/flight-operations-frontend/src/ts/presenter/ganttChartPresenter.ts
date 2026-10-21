@@ -13,7 +13,7 @@ import {
     longDate,
     plainDate,
 } from "./brusselsTime.ts";
-import {barPlace, brusselsMidnightPercent, hoursOf, timelineOf} from "./ganttTimeline.ts";
+import {barPlace, brusselsMidnightPercent, hoursOf, stillInTheAir, timelineOf} from "./ganttTimeline.ts";
 import type {Timeline} from "./ganttTimeline.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {addError, clearMessages} from "./messagePresenter.ts";
@@ -31,12 +31,12 @@ const hours = document.getElementById("hours")!;
 const rows = document.getElementById("rows")!;
 const noFlights = document.getElementById("no-flights")!;
 
-const COLUMNS = "grid grid-cols-[5rem_6rem_8.5rem_8.5rem_1fr]";
+const COLUMNS = "grid grid-cols-[6.5rem_6rem_8.5rem_8.5rem_1fr]";
 
 /* Same as the overview: the address holds the chosen day; without one the server answers with today (UTC). */
 let day: string | null = new URLSearchParams(window.location.search).get("scheduledDepartureDate");
 
-/* A time on the shown day needs no date; a time on the next day in Brussels does. */
+/* A time on the shown day needs no date; a time on another day in Brussels does. */
 function momentText(instant: string, shownDay: string): string {
     return brusselsDate(instant) === shownDay ? brusselsTimeWithZone(instant) : brusselsShortDateTime(instant);
 }
@@ -68,9 +68,17 @@ function flightRow(flight: FlightRow, timeline: Timeline, shownDay: string, midn
     const row = document.createElement("div");
     row.className = `${COLUMNS} items-center border-b border-base-200 last:border-b-0 hover:bg-base-200/50`;
 
+    const place = barPlace(timeline, flight.std, flight.sta);
     const link = createElementWithText("a", flight.flightNumber) as HTMLAnchorElement;
     link.href = details;
-    link.className = "link link-hover font-medium px-4";
+    link.className = "link link-hover font-medium";
+    const flightCell = document.createElement("div");
+    flightCell.className = "px-4 py-1";
+    flightCell.append(link);
+    if (place.cutOffAtStart) {
+        // In Brussels time a flight of the day before can depart on the shown day, so its own day is named.
+        flightCell.append(cell(plainDate(flight.scheduledDepartureDate), "block text-xs opacity-60"));
+    }
 
     const track = document.createElement("div");
     track.className = "relative h-9 hour-grid";
@@ -80,45 +88,57 @@ function flightRow(flight: FlightRow, timeline: Timeline, shownDay: string, midn
     midnight.style.left = `${midnightPercent}%`;
 
     // The bar opens Vluchtdetails like the flight number. It is left out of the tab order because the
-    // flight number already is in it. A bar cut off at the end of the day has a square right end.
-    const place = barPlace(timeline, flight.std, flight.sta);
+    // flight number already is in it. A bar cut off at the end of the day has a square right end. A flight
+    // of the day before is lighter and has a square left end: it belongs to that day.
     const bar = document.createElement("a");
     bar.href = details;
     bar.tabIndex = -1;
     bar.title = `${flight.flightNumber} ${flight.departureAirport}–${flight.arrivalAirport}: ${std} – ${sta}`;
-    bar.className = "absolute top-2.5 bottom-2.5 rounded-sm bg-primary hover:brightness-110"
-        + (place.cutOff ? " rounded-r-none" : "");
+    bar.className = "absolute top-2.5 bottom-2.5 rounded-sm hover:brightness-110"
+        + (place.cutOffAtStart ? " bg-primary/50 rounded-l-none" : " bg-primary")
+        + (place.cutOffAtEnd ? " rounded-r-none" : "");
     bar.style.left = `${place.leftPercent}%`;
     bar.style.width = `${place.widthPercent}%`;
 
     track.append(midnight, bar);
-    row.append(link, cell(`${flight.departureAirport}–${flight.arrivalAirport}`, "opacity-70"),
+    row.append(flightCell, cell(`${flight.departureAirport}–${flight.arrivalAirport}`, "opacity-70"),
         cell(std, ""), cell(sta, ""), track);
     return row;
 }
 
-function render(flightsOfDay: FlightsOfDay): void {
+/* Only the flights of the day are counted: a flight of the day before keeps its own day. */
+function countText(ofDay: number, fromDayBefore: number): string {
+    const count = ofDay === 1 ? "1 vlucht" : `${ofDay} vluchten`;
+    return fromDayBefore === 0 ? count : `${count}, en ${fromDayBefore} van de vorige dag nog onderweg`;
+}
+
+function render(flightsOfDay: FlightsOfDay, flightsOfDayBefore: FlightRow[]): void {
     const shownDay = flightsOfDay.scheduledDepartureDate;
     const flights = flightsOfDay.flights;
     day = shownDay;
     dayField.value = shownDay;
     backLink.href = `../index.html${overviewQuery(shownDay)}`;
     dayTitle.textContent = `Vluchten van ${longDate(shownDay)}`;
-    flightCount.textContent = flights.length === 1 ? "1 vlucht" : `${flights.length} vluchten`;
 
     const timeline = timelineOf(shownDay);
+    const carriedOver = stillInTheAir(timeline, flightsOfDayBefore);
+    const shown = [...carriedOver, ...flights];
+    flightCount.textContent = countText(flights.length, carriedOver.length);
     const midnightPercent = brusselsMidnightPercent(timeline, shownDay);
     hours.replaceChildren(...hourAxis(timeline));
-    rows.replaceChildren(...flights.map(flight => flightRow(flight, timeline, shownDay, midnightPercent)));
-    chart.classList.toggle("hidden", flights.length === 0);
-    noFlights.classList.toggle("hidden", flights.length > 0);
+    rows.replaceChildren(...shown.map(flight => flightRow(flight, timeline, shownDay, midnightPercent)));
+    chart.classList.toggle("hidden", shown.length === 0);
+    noFlights.classList.toggle("hidden", shown.length > 0);
     noFlights.textContent = `Geen vluchten op ${plainDate(shownDay)}.`;
 }
 
-/* Asks the flights again; on failure what is on the screen stays and the reason is shown. */
+/* Asks the flights again; on failure what is on the screen stays and the reason is shown. The day itself comes
+   first: without a day in the address the server chooses it, and the day before follows from it. */
 async function reload(): Promise<boolean> {
     try {
-        render(await getFlights(day));
+        const flightsOfDay = await getFlights(day);
+        const dayBefore = await getFlights(addDays(flightsOfDay.scheduledDepartureDate, -1));
+        render(flightsOfDay, dayBefore.flights);
         return true;
     } catch (error) {
         clearMessages(messageBox);
