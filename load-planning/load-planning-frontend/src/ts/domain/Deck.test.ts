@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {deckCells, kilograms, offloadingReason, sideWeights} from "./Deck.ts";
+import {deckCells, keptPick, kilograms, offloadingReason, sideWeights} from "./Deck.ts";
 import type {DeckCell} from "./Deck.ts";
 import type {FlightCargo, LoadPositionOnDeck, Uld} from "./FlightCargo.ts";
 import type {LoadCheckReport, LoadCheckResult} from "./LoadCheckReport.ts";
@@ -148,4 +148,38 @@ test("the reason of a failed offloading check is shown below the deck", () => {
 test("a weight is shown in kg rounded to 0.1 kg, as in the sentence of the check", () => {
     assert.equal(kilograms(1200.19841102), "1200.2 kg");
     assert.equal(kilograms(0), "0 kg");
+});
+
+test("a ULD picked from the tray can go to every free position, not to a taken one", () => {
+    const cells = deckCells(cargo([uld("AKE16689R7", "ATH", "CL"), uld("AKE20417HJ", "FRA", null)]), null,
+        "AKE20417HJ", true);
+
+    assert.equal(cell(cells, "CL").target, false);
+    assert.equal(cell(cells, "CR").target, true);
+    assert.equal(cells.filter(candidate => candidate.target).length, 33);
+    assert.equal(cells.some(candidate => candidate.picked), false);
+});
+
+test("a ULD picked on the deck is shown as picked and can move to every free position", () => {
+    const cells = deckCells(cargo([uld("AKE16689R7", "ATH", "CL")]), null, "AKE16689R7", true);
+
+    assert.equal(cell(cells, "CL").picked, true);
+    assert.equal(cell(cells, "CL").target, false);
+    assert.equal(cells.filter(candidate => candidate.target).length, 33);
+});
+
+test("when the load cannot change nothing is picked and nothing is a target", () => {
+    const cells = deckCells(cargo([uld("AKE16689R7", "ATH", "CL")]), null, "AKE16689R7", false);
+
+    assert.equal(cells.some(candidate => candidate.picked || candidate.target), false);
+});
+
+test("a pick survives a reload while its ULD is where it was and the load can change", () => {
+    const pick = {code: "AKE16689R7", position: "CL"};
+
+    assert.deepEqual(keptPick(cargo([uld("AKE16689R7", "ATH", "CL")]), pick, true), pick);
+    assert.equal(keptPick(cargo([uld("AKE16689R7", "ATH", "DL")]), pick, true), null);
+    assert.equal(keptPick(cargo([]), pick, true), null);
+    assert.equal(keptPick(cargo([uld("AKE16689R7", "ATH", "CL")]), pick, false), null);
+    assert.equal(keptPick(cargo([uld("AKE16689R7", "ATH", "CL")]), null, true), null);
 });

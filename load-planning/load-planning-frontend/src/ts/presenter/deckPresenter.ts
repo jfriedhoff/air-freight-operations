@@ -1,4 +1,6 @@
-import type {DeckCell, SideWeights} from "../domain/Deck.ts";
+import type {DeckCell, Pick, SideWeights} from "../domain/Deck.ts";
+import {withoutLoadPosition} from "../domain/FlightCargo.ts";
+import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
 import {kilograms} from "../domain/Deck.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 
@@ -6,6 +8,17 @@ const deck = document.getElementById("deck")!;
 const sideWeightsLine = document.getElementById("side-weights")!;
 const offloadingLine = document.getElementById("offloading-reason")!;
 const checksNote = document.getElementById("checks-note")!;
+const traySection = document.getElementById("tray-section")!;
+const tray = document.getElementById("tray")!;
+const trayEmpty = document.getElementById("tray-empty")!;
+const pickBar = document.getElementById("pick-bar")!;
+const pickText = document.getElementById("pick-text")!;
+const pickClearButton = document.getElementById("pick-clear-btn") as HTMLButtonElement;
+const pickCancelButton = document.getElementById("pick-cancel-btn") as HTMLButtonElement;
+let clearPicked: () => void = () => undefined;
+let cancelPick: () => void = () => undefined;
+pickClearButton.addEventListener("click", () => clearPicked());
+pickCancelButton.addEventListener("click", () => cancelPick());
 
 /* What a cell says to a screen reader: the same as the colours and symbols say to the eye. */
 function labelOf(cell: DeckCell): string {
@@ -54,16 +67,17 @@ export function drawDeck(cells: DeckCell[], clickable: (cell: DeckCell) => boole
         button.style.gridColumn = String(cell.column);
         button.style.gridRow = cell.row === "top" ? "1" : cell.row === "middle" ? "2" : "3";
         button.setAttribute("aria-label", labelOf(cell));
-        button.setAttribute("aria-pressed", String(cell.picked));
         button.appendChild(createElementWithText("span", cell.name)).className = "deck-name";
         if (cell.uld !== null) {
             button.appendChild(createElementWithText("span", cell.uld)).className = "deck-uld";
         }
         if (cell.stuck || cell.inTheWay) {
             // a symbol as well as a colour, so the marks are also clear without telling red apart
-            button.appendChild(createElementWithText("span", cell.stuck ? "✕" : "▲")).className = "deck-mark";
+            const marks = (cell.stuck ? "✕" : "") + (cell.inTheWay ? "▲" : "");
+            button.appendChild(createElementWithText("span", marks)).className = "deck-mark";
         }
         if (clickable(cell)) {
+            button.setAttribute("aria-pressed", String(cell.picked));
             button.addEventListener("click", () => onClick(cell));
         } else {
             button.setAttribute("aria-disabled", "true");
@@ -98,4 +112,36 @@ function side(name: string, weight: number, tooHeavy: boolean): HTMLElement {
         element.className = "text-error font-semibold";
     }
     return element;
+}
+
+function weightOf(uld: Uld): string {
+    return `${uld.weight.value} ${uld.weight.unit.toLowerCase()}`;
+}
+
+/* The booked ULDs without a load position, as buttons to pick one: only while the load planner can change the load. */
+export function drawTray(cargo: FlightCargo, changeable: boolean, pick: Pick | null, onPick: (uld: Uld) => void): void {
+    traySection.classList.toggle("hidden", !changeable);
+    const waiting = withoutLoadPosition(cargo);
+    trayEmpty.classList.toggle("hidden", waiting.length > 0);
+    tray.replaceChildren(...waiting.map(uld => {
+        const picked = pick?.code === uld.code;
+        const chip = createElementWithText("button", `${uld.code} · ${weightOf(uld)} · ${uld.destination}`);
+        chip.className = `btn btn-sm font-mono ${picked ? "btn-warning" : "btn-outline"}`;
+        chip.setAttribute("aria-pressed", String(picked));
+        chip.addEventListener("click", () => onPick(uld));
+        return chip;
+    }));
+}
+
+/* What the load planner is doing: which ULD is picked, and what a click does now. */
+export function drawPick(pick: Pick | null, onClear: () => void, onCancel: () => void): void {
+    pickBar.classList.toggle("hidden", pick === null);
+    pickClearButton.classList.toggle("hidden", pick?.position == null);
+    clearPicked = onClear;
+    cancelPick = onCancel;
+    if (pick !== null) {
+        pickText.textContent = pick.position === null
+            ? `Gekozen: ${pick.code}. Klik op een vrije laadpositie (groen) om de ULD te plaatsen.`
+            : `Gekozen: ${pick.code} op ${pick.position}. Klik op een vrije laadpositie (groen) om te verplaatsen.`;
+    }
 }

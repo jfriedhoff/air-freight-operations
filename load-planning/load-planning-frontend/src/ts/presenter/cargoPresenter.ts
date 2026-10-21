@@ -1,8 +1,10 @@
-import {deckCells, offloadingReason, sideWeights} from "../domain/Deck.ts";
+import {deckCells, keptPick, offloadingReason, sideWeights} from "../domain/Deck.ts";
+import type {DeckCell, Pick} from "../domain/Deck.ts";
 import {canChangeLoad, holderOf, stateOf, withoutLoadPosition} from "../domain/FlightCargo.ts";
 import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
 import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
 import type {FlightIdentity} from "../domain/FlightIdentity.ts";
+import type {LoadCheckReport} from "../domain/LoadCheckReport.ts";
 import {listQuery, showsEta, showsEtd} from "../domain/FlightToLoad.ts";
 import {flightOperationsAddress} from "../infrastructure/contexts.ts";
 import {
@@ -11,7 +13,7 @@ import {
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
-import {drawDeck, drawFindings} from "./deckPresenter.ts";
+import {drawDeck, drawFindings, drawPick, drawTray} from "./deckPresenter.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {showReport} from "./loadCheckReportPresenter.ts";
 import {addError, addInfo, clearMessages} from "./messagePresenter.ts";
@@ -42,6 +44,12 @@ let finalizing = false;
 /* The number of the latest load of the cargo (a reload, or the answer to a change). An answer to an earlier one
    that arrives later is not drawn: it would put an older state over a newer one. */
 let latestLoad = 0;
+/* What the deck shows now: the cargo of the latest load and the report of its checks (null without one). */
+let shown: {cargo: FlightCargo, report: LoadCheckReport | null} | null = null;
+/* The ULD the load planner picked to place or move, or null. */
+let pick: Pick | null = null;
+/* Why the checks of the latest load could not be asked, or null when they could (or were not needed). */
+let checksFailure: string | null = null;
 
 function text(id: string, value: string): void {
     document.getElementById(id)!.textContent = value;
@@ -79,15 +87,16 @@ function stateLine(cargo: FlightCargo, loadedAt: Date): string {
     }
 }
 
-/* The selection list holds the load positions of the floor plan, as the server gives them, and a button:
-   a choice is only sent when the load planner says so. A position that holds another ULD is shown with that ULD
-   and cannot be chosen; the server decides anyway. A ULD on a position also gets a button to clear it. */
+/* The list of the floor plan's positions next to a ULD, as the case asks; the deck above is the main way. A choice
+   is sent at once; "Leegmaken" takes the ULD off its position. A position held by another ULD is shown with it and
+   cannot be chosen; the server decides anyway. */
 function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     const cell = document.createElement("td");
     const choice = document.createElement("select");
     choice.className = "select select-sm w-auto";
-    choice.dataset.current = uld.loadPosition ?? "";
-    const none = createElementWithText("option", "Kies een laadpositie") as HTMLOptionElement;
+    choice.setAttribute("aria-label", `Laadpositie van ${uld.code}`);
+    const none = createElementWithText("option", uld.loadPosition === null ? "Kies een laadpositie" : "Leegmaken") as
+        HTMLOptionElement;
     none.value = "";
     choice.appendChild(none);
     for (const position of cargo.loadPositions) {
@@ -100,16 +109,10 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
         choice.appendChild(option);
     }
     choice.value = uld.loadPosition ?? "";
-    const assignButton = createElementWithText("button", "Toekennen") as HTMLButtonElement;
-    assignButton.className = "btn btn-sm btn-outline ml-2";
-    assignButton.addEventListener("click", () => assign(cargo.id, uld.code, choice.value));
-    cell.append(choice, assignButton);
-    if (uld.loadPosition !== null) {
-        const clearButton = createElementWithText("button", "Leegmaken") as HTMLButtonElement;
-        clearButton.className = "btn btn-sm btn-outline ml-2";
-        clearButton.addEventListener("click", () => clear(cargo.id, uld.code));
-        cell.appendChild(clearButton);
-    }
+    choice.addEventListener("change", () => choice.value === ""
+        ? clear(cargo.id, uld.code)
+        : assign(cargo.id, uld.code, choice.value));
+    cell.appendChild(choice);
     return cell;
 }
 
@@ -178,9 +181,9 @@ function render(cargo: FlightCargo): void {
    then the page asks the checks after every load, and the report below shows the same answer. Otherwise the deck is
    only drawn, and the report keeps what it last showed (the report of Finalize Load). */
 async function showDeck(cargo: FlightCargo, load: number): Promise<void> {
-    const changeable = canChangeLoad(cargo, isLoadPlanner);
-    if (!changeable) {
-        drawDeck(deckCells(cargo, null, null, false), () => false, () => undefined);
+    checksFailure = null;
+    if (!canChangeLoad(cargo, isLoadPlanner)) {
+        redrawDeck(cargo, null);
         drawFindings(null, null, null);
         return;
     }
@@ -189,15 +192,43 @@ async function showDeck(cargo: FlightCargo, load: number): Promise<void> {
         if (load !== latestLoad) {
             return;
         }
-        drawDeck(deckCells(cargo, report, null, true), () => false, () => undefined);
+        redrawDeck(cargo, report);
         drawFindings(sideWeights(report), offloadingReason(report), null);
         showReport(report);
-    } catch {
+    } catch (error) {
         if (load === latestLoad) {
-            drawDeck(deckCells(cargo, null, null, true), () => false, () => undefined);
+            checksFailure = (error as Error).message;
+            redrawDeck(cargo, null);
             drawFindings(null, null,
                 "De controles konden niet opgehaald worden; het vloerplan toont de lading zonder.");
         }
+    }
+}
+
+/* Deck, tray and the line about the picked ULD, from what the deck shows now. A pick needs no new answer. */
+function redrawDeck(cargo: FlightCargo, report: LoadCheckReport | null): void {
+    shown = {cargo, report};
+    const changeable = canChangeLoad(cargo, isLoadPlanner);
+    const cells = deckCells(cargo, report, pick?.code ?? null, changeable);
+    drawDeck(cells, cell => changeable && (cell.uld !== null || pick !== null), cell => clickOnDeck(cargo, cell));
+    drawTray(cargo, changeable, pick, uld => choose({code: uld.code, position: null}));
+    drawPick(pick, () => clear(cargo.id, pick!.code), () => choose(null));
+}
+
+/* Picking the picked ULD again drops it; picking another one changes the pick. */
+function choose(next: Pick | null): void {
+    pick = next !== null && pick !== null && pick.code === next.code ? null : next;
+    if (shown !== null) {
+        redrawDeck(shown.cargo, shown.report);
+    }
+}
+
+/* A ULD on the deck is picked; a free position takes the picked ULD. */
+function clickOnDeck(cargo: FlightCargo, cell: DeckCell): void {
+    if (cell.uld !== null) {
+        choose({code: cell.uld, position: cell.name});
+    } else if (pick !== null) {
+        assign(cargo.id, pick.code, cell.name);
     }
 }
 
@@ -207,6 +238,11 @@ async function display(answer: Promise<FlightCargo>): Promise<void> {
     const cargo = await answer;
     if (load !== latestLoad) {
         return;
+    }
+    const before = pick;
+    pick = keptPick(cargo, pick, canChangeLoad(cargo, isLoadPlanner));
+    if (before !== null && pick === null && !assigning) {
+        addInfo(messageBox, `${before.code} is intussen verplaatst of de lading kan niet meer wijzigen: kies opnieuw.`);
     }
     render(cargo);
     await showDeck(cargo, load);
@@ -223,11 +259,6 @@ async function reload(): Promise<boolean> {
         addError(messageBox, (error as Error).message);
         return false;
     }
-}
-
-/* A selection list that shows another position than the stored one: a choice in progress. */
-function aChoiceIsInProgress(): boolean {
-    return Array.from(uldRows.querySelectorAll("select")).some(choice => choice.value !== choice.dataset.current);
 }
 
 /* Whether the choice is allowed is the server's answer. */
@@ -250,6 +281,7 @@ async function clear(cargoId: string, uldCode: string): Promise<void> {
    stored, and the reason of the refusal stays on the screen. */
 async function changeLoadPosition(change: () => Promise<FlightCargo>, confirmation: string): Promise<void> {
     assigning = true;
+    pick = null;
     try {
         await display(change());
         addInfo(messageBox, confirmation);
@@ -297,7 +329,12 @@ async function finalize(): Promise<void> {
 /* Check Load: the checks run again on the load as it is stored now, and the report shows them. */
 async function checkTheLoad(): Promise<void> {
     clearMessages(messageBox);
-    if (await reload()) {
+    if (!await reload()) {
+        return;
+    }
+    if (checksFailure !== null) {
+        addError(messageBox, checksFailure);
+    } else {
         addInfo(messageBox, "De lading is gecontroleerd: zie het rapport.");
     }
 }
@@ -339,7 +376,13 @@ async function init(): Promise<void> {
     }
     finalizeButton.addEventListener("click", finalize);
     checkLoadButton.addEventListener("click", checkTheLoad);
-    startAutoRefresh(reload, () => !assigning && !finalizing && !aChoiceIsInProgress());
+    document.addEventListener("keydown", event => {
+        const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement;
+        if (event.key === "Escape" && pick !== null && !typing) {
+            choose(null);
+        }
+    });
+    startAutoRefresh(reload, () => !assigning && !finalizing);
 }
 
 init();

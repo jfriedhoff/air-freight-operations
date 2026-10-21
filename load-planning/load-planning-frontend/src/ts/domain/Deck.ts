@@ -23,6 +23,12 @@ export interface DeckCell {
 
 export type SideWeights = LateralBalance & { passed: boolean };
 
+/* The ULD the load planner picked to place, and where it stood when it was picked (null: in the tray). */
+export interface Pick {
+    code: string;
+    position: string | null;
+}
+
 const ROW_OF_SIDE = {LEFT: "bottom", RIGHT: "top"} as const;
 
 /* The columns of the deck from the floor plan in deck order: a position without a side has a column of its own,
@@ -50,7 +56,8 @@ function names(marks: UldOnDeck[], cargo: FlightCargo): Set<string> {
     return new Set(marks.filter(mark => holderOf(cargo, mark.position) === mark.uld).map(mark => mark.position));
 }
 
-/* The cells of the deck for this cargo, with the marks of the report (none without a report). */
+/* The cells of the deck for this cargo, with the marks of the report (none without a report). While a ULD is picked
+   and the load can change, its cell is shown as picked and every free position is a place it can go to. */
 export function deckCells(cargo: FlightCargo, report: LoadCheckReport | null, picked: string | null,
                           changeable: boolean): DeckCell[] {
     const columns = columnsOf(cargo);
@@ -69,8 +76,8 @@ export function deckCells(cargo: FlightCargo, report: LoadCheckReport | null, pi
             toArrival: uld === undefined ? null : uld.destination === cargo.arrivalAirport,
             stuck: stuck.has(position.name),
             inTheWay: inTheWay.has(position.name),
-            target: false,
-            picked: false,
+            target: changeable && picked !== null && code === null,
+            picked: changeable && picked !== null && code === picked,
         };
     });
 }
@@ -90,4 +97,14 @@ export function offloadingReason(report: LoadCheckReport | null): string | null 
 /* A weight for the screen, rounded to 0.1 kg as the sentence of the check is: "1200.2 kg". */
 export function kilograms(value: number): string {
     return `${Math.round(value * 10) / 10} kg`;
+}
+
+/* After a reload the pick stays only while its ULD is still where it was and the load can still change: otherwise
+   another planner moved it, or the loading period ended, and the planner must pick again. */
+export function keptPick(cargo: FlightCargo, pick: Pick | null, changeable: boolean): Pick | null {
+    if (pick === null || !changeable) {
+        return null;
+    }
+    const uld = cargo.ulds.find(candidate => candidate.code === pick.code);
+    return uld !== undefined && uld.loadPosition === pick.position ? pick : null;
 }

@@ -63,11 +63,6 @@
         @apply border-base-content/40 bg-base-300;
     }
 
-    .deck-door {
-        @apply border-b-4 border-b-warning;
-        border-bottom-style: solid;
-    }
-
     .deck-stuck {
         @apply outline-2 outline-offset-[-3px] outline-error;
     }
@@ -80,8 +75,15 @@
         @apply border-solid border-success bg-success/15 cursor-pointer;
     }
 
+    /* a ring, not an outline: a picked ULD that cannot be offloaded keeps its red outline */
     .deck-picked {
-        @apply outline-3 outline-warning;
+        @apply ring-4 ring-warning;
+    }
+
+    /* after the states above: the door stays marked, also on a free position that is a target */
+    .deck-door {
+        @apply border-b-4 border-b-warning;
+        border-bottom-style: solid;
     }
 
     .deck-key {

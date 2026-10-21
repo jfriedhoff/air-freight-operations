@@ -76,6 +76,16 @@
                     <li><span class="deck-key deck-stuck">✕</span>kan niet uitgeladen worden</li>
                     <li><span class="deck-key deck-in-the-way">▲</span>staat in de weg</li>
                 </ul>
+                <div id="tray-section" class="hidden">
+                    <p class="text-xs font-semibold opacity-70 mb-1">Nog te plaatsen: kies een ULD, dan een vrije laadpositie</p>
+                    <div id="tray" class="flex flex-wrap gap-2"></div>
+                    <p id="tray-empty" class="hidden text-sm opacity-70">Alle ULD's hebben een laadpositie.</p>
+                </div>
+                <div id="pick-bar" class="hidden flex flex-wrap items-center gap-2 text-sm" role="status">
+                    <span id="pick-text"></span>
+                    <button id="pick-clear-btn" class="btn btn-sm btn-outline hidden">Leegmaken</button>
+                    <button id="pick-cancel-btn" class="btn btn-sm btn-outline">Annuleren</button>
+                </div>
                 <div class="overflow-x-auto" data-scrolls>
                     <div id="deck" class="deck"></div>
                 </div>
