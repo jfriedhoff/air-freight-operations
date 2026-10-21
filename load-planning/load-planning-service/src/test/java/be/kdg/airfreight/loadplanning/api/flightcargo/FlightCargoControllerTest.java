@@ -1,9 +1,12 @@
 package be.kdg.airfreight.loadplanning.api.flightcargo;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import com.jayway.jsonpath.JsonPath;
 import be.kdg.airfreight.loadplanning.TestClock;
 import be.kdg.airfreight.loadplanning.TestHelper;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
@@ -31,6 +34,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import java.time.Instant;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -52,6 +56,7 @@ class FlightCargoControllerTest {
     private static final String LOAD_CHECK = "/api/flight-cargos/{id}/load-check";
     private static final String FINALIZE = "/api/flight-cargos/{id}/finalize";
     private static final String LATERAL_BALANCE = "$.results[?(@.checkName == 'Lateral balance')]";
+    private static final String OFFLOADING = "$.results[?(@.checkName == 'Offloading')]";
     private static final String REPORT_LATERAL_BALANCE = "$.report.results[?(@.checkName == 'Lateral balance')]";
 
     @Autowired
@@ -488,6 +493,8 @@ class FlightCargoControllerTest {
 
     @Test
     void checkLoadGivesOneResultPerCheckAndChangesNothing() throws Exception {
+        Long versionBefore = testHelper.find(id).getVersion();
+
         mockMvc.perform(get(LOAD_CHECK, id.id()).with(token(testHelper.saveLoadPlanner("Test load planner"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.hardChecksPassed").value(false))
@@ -498,7 +505,37 @@ class FlightCargoControllerTest {
                 "Left carries 1250 kg and right 0 kg; the heaviest side may carry at most 0 kg")));
 
         assertThat(testHelper.find(id).isFinalized()).isFalse();
+        assertThat(testHelper.find(id).getVersion()).as("a check does not raise the version").isEqualTo(versionBefore);
         assertThat(testHelper.outboxCount()).isZero();
+    }
+
+    /** AKE16689R7 for ATH on CL cannot reach the door at RL: AKE20417HJ for FRA stands on DL, its next position. */
+    @Test
+    void checkLoadNamesTheUldThatCannotBeOffloadedAndTheUldInItsWay() throws Exception {
+        testHelper.place(id, "AKE20417HJ", "DL");
+
+        mockMvc.perform(get(LOAD_CHECK, id.id()).with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath(OFFLOADING + ".passed", contains(false)))
+            .andExpect(jsonPath(OFFLOADING + ".offloading.obstructions[0].stuck.uld", contains("AKE16689R7")))
+            .andExpect(jsonPath(OFFLOADING + ".offloading.obstructions[0].stuck.position", contains("CL")))
+            .andExpect(jsonPath(OFFLOADING + ".offloading.obstructions[0].inTheWay[0].uld", contains("AKE20417HJ")))
+            .andExpect(jsonPath(OFFLOADING + ".offloading.obstructions[0].inTheWay[0].position", contains("DL")))
+            .andExpect(jsonPath(OFFLOADING + ".lateralBalance", contains(nullValue())));
+    }
+
+    @Test
+    void checkLoadGivesTheWeightOnEachSideAndTheHeavierSide() throws Exception {
+        String answer = mockMvc.perform(get(LOAD_CHECK, id.id())
+                .with(token(testHelper.saveLoadPlanner("Test load planner"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath(LATERAL_BALANCE + ".lateralBalance.heavierSide", contains("LEFT")))
+            .andExpect(jsonPath(LATERAL_BALANCE + ".offloading", contains(nullValue())))
+            .andReturn().getResponse().getContentAsString();
+
+        assertThat(kilograms(answer, "leftKilograms")).isEqualByComparingTo("1250");
+        assertThat(kilograms(answer, "rightKilograms")).isEqualByComparingTo("0");
+        assertThat(kilograms(answer, "maximumOnTheHeaviestSide")).isEqualByComparingTo("0");
     }
 
     @Test
@@ -544,6 +581,12 @@ class FlightCargoControllerTest {
 
     private MockHttpServletRequestBuilder assign(String uldCode, String body) {
         return put(LOAD_POSITION, id.id(), uldCode).contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
+    /** A weight of the lateral balance result as a number, whatever scale the JSON gives it. */
+    private static BigDecimal kilograms(String answer, String field) {
+        List<Number> values = JsonPath.read(answer, LATERAL_BALANCE + ".lateralBalance." + field);
+        return new BigDecimal(values.getFirst().toString());
     }
 
     private MockHttpServletRequestBuilder clear(String uldCode) {
