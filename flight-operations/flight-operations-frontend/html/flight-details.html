@@ -7,62 +7,105 @@
     <title>Vluchtdetails</title>
     <script type="module" src="../src/ts/presenter/flightDetailsPresenter.ts"></script>
     <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
+    <script type="module" src="../src/ts/presenter/navigation.ts"></script>
+    <script type="module" src="../src/ts/presenter/themeToggle.ts"></script>
     <link rel="stylesheet" href="../src/css/style.css"/>
 </head>
-<body class="container m-5 invisible">
-<div class="flex justify-end items-center gap-2">
-    <span id="user-name"></span>
-    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
-</div>
-<p><a class="link" id="back-to-overview" href="../index.html">← Overzicht vluchten</a></p>
-<h1 class="text-2xl font-bold">Vluchtdetails</h1>
-<p class="text-sm opacity-70">Alle tijden in Brusselse tijd.</p>
+<body class="min-h-screen bg-base-200 invisible">
+<header class="bg-slate-800 text-slate-100">
+    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm whitespace-nowrap overflow-x-auto">
+        <span class="font-semibold">Air Freight Operations</span>
+        <nav class="flex h-full">
+            <a href="../index.html" class="nav-link-active">Overzicht vluchten</a>
+            <a href="gantt-chart.html" class="nav-link">Gantt chart</a>
+            <a data-load-planning="html/flights-to-load.html" href="#" class="nav-link">Te beladen vluchten</a>
+        </nav>
+        <div class="ml-auto flex items-center gap-4">
+            <button id="theme-btn" class="btn btn-xs btn-ghost text-slate-300" title="Licht of donker thema"></button>
+            <span id="user-name" class="text-slate-300"></span>
+            <button id="logout-btn" class="btn btn-xs btn-outline border-slate-500 text-slate-100">Afmelden</button>
+        </div>
+    </div>
+</header>
 
-<div class="alert hidden my-4" id="message-box"></div>
+<main class="max-w-screen-2xl mx-auto px-6 py-6">
+    <p class="text-sm mb-3"><a class="link link-hover" id="back-to-overview" href="../index.html">← Overzicht vluchten</a></p>
+    <div class="alert hidden mb-4" id="message-box"></div>
 
-<section id="flight-details" class="hidden">
-    <table class="table w-auto my-4">
-        <tbody>
-        <tr><th>Vlucht</th><td id="flight-number"></td></tr>
-        <tr><th>Scheduled vertrekdatum (UTC)</th><td id="scheduled-departure-date"></td></tr>
-        <tr><th>Status</th><td id="status"></td></tr>
-        <tr><th>Vertrek</th><td id="departure-airport"></td></tr>
-        <tr><th>Aankomst</th><td id="arrival-airport"></td></tr>
-        <tr><th>STD</th><td id="std"></td></tr>
-        <tr id="etd-row" class="hidden"><th>ETD</th><td id="etd"></td></tr>
-        <tr id="atd-row" class="hidden"><th>ATD</th><td id="atd"></td></tr>
-        <tr><th>STA</th><td id="sta"></td></tr>
-        <tr id="eta-row" class="hidden"><th>ETA</th><td id="eta"></td></tr>
-        <tr id="ata-row" class="hidden"><th>ATA</th><td id="ata"></td></tr>
-        </tbody>
-    </table>
-    <p class="my-2"><a class="link" id="cargo-link" href="#">Lading van deze vlucht</a> (Load Planning)</p>
+    <div id="flight-details" class="hidden space-y-6">
+        <section class="panel">
+            <div class="panel-header">
+                <h1 class="text-base font-semibold">Vlucht <span id="flight-number"></span></h1>
+                <span id="status" class="badge badge-sm badge-outline mr-auto"></span>
+                <a class="btn btn-sm btn-outline" id="cargo-link" href="#">Lading van deze vlucht (Load Planning)</a>
+            </div>
+            <div class="grid md:grid-cols-2 items-start">
+                <table class="table table-sm key-value">
+                    <tbody>
+                    <tr><th>Scheduled vertrekdatum (UTC)</th><td id="scheduled-departure-date"></td></tr>
+                    <tr><th>Vertrek</th><td id="departure-airport"></td></tr>
+                    <tr><th>STD</th><td id="std"></td></tr>
+                    <tr id="etd-row" class="hidden"><th>ETD</th><td id="etd"></td></tr>
+                    <tr id="atd-row" class="hidden"><th>ATD</th><td id="atd"></td></tr>
+                    </tbody>
+                </table>
+                <table class="table table-sm key-value">
+                    <tbody>
+                    <tr><th>Aankomst</th><td id="arrival-airport"></td></tr>
+                    <tr><th>STA</th><td id="sta"></td></tr>
+                    <tr id="eta-row" class="hidden"><th>ETA</th><td id="eta"></td></tr>
+                    <tr id="ata-row" class="hidden"><th>ATA</th><td id="ata"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-    <h2 class="text-xl font-bold mt-6">Vertragingen</h2>
-    <p id="no-delays">Geen vertragingen.</p>
-    <table class="table table-zebra">
-        <thead>
-        <tr><th>Voor</th><th>Minuten</th><th>Delay reason</th><th>Beschrijving</th><th>Gewijzigd door</th></tr>
-        </thead>
-        <tbody id="delays"></tbody>
-    </table>
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="text-base font-semibold">Vertragingen</h2>
+            </div>
+            <p id="no-delays" class="px-4 py-6 text-sm opacity-70">Geen vertragingen.</p>
+            <table class="table table-sm">
+                <thead class="bg-base-200/50 text-xs">
+                <tr><th>Voor</th><th>Minuten</th><th>Delay reason</th><th>Beschrijving</th><th>Gewijzigd door</th></tr>
+                </thead>
+                <tbody id="delays"></tbody>
+            </table>
+        </section>
 
-    <p id="role-note" class="hidden mt-6">Alleen een flight planner kan vertragingen ingeven.</p>
+        <p id="role-note" class="hidden text-sm opacity-70">Alleen een flight planner kan vertragingen ingeven.</p>
 
-    <form id="delay-form" class="hidden mt-6 flex flex-col gap-2 max-w-xl">
-        <h2 class="text-xl font-bold">Vertraging toevoegen</h2>
-        <label class="label" for="kind">Voor</label>
-        <select id="kind" name="kind" required class="select"></select>
-        <label class="label" for="minutes">Minuten</label>
-        <input type="number" id="minutes" name="minutes" required class="input"/>
-        <label class="label" for="reason">Delay reason (IATA)</label>
-        <select id="reason" name="reason" required class="select">
-            <option value="">Kies een delay reason</option>
-        </select>
-        <label class="label" for="description">Beschrijving</label>
-        <textarea id="description" name="description" required class="textarea"></textarea>
-        <div><button type="submit" class="btn btn-primary mt-2">Toevoegen</button></div>
-    </form>
-</section>
+        <form id="delay-form" class="hidden panel">
+            <div class="panel-header">
+                <h2 class="text-base font-semibold">Vertraging toevoegen</h2>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4 p-4 max-w-3xl">
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium" for="kind">Voor</label>
+                    <select id="kind" name="kind" required class="select select-sm w-full"></select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium" for="minutes">Minuten</label>
+                    <input type="number" id="minutes" name="minutes" required class="input input-sm w-full"/>
+                </div>
+                <div class="flex flex-col gap-1 sm:col-span-2">
+                    <label class="text-sm font-medium" for="reason">Delay reason (IATA)</label>
+                    <select id="reason" name="reason" required class="select select-sm w-full">
+                        <option value="">Kies een delay reason</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 sm:col-span-2">
+                    <label class="text-sm font-medium" for="description">Beschrijving</label>
+                    <textarea id="description" name="description" required class="textarea w-full"></textarea>
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t border-base-300">
+                <button type="submit" class="btn btn-sm btn-primary">Toevoegen</button>
+            </div>
+        </form>
+
+        <p class="text-xs opacity-60">Alle tijden in Brusselse tijd.</p>
+    </div>
+</main>
 </body>
 </html>

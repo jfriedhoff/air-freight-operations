@@ -8,20 +8,39 @@
     <title>Load Planning</title>
     <script type="module" src="./src/ts/presenter/startPresenter.ts"></script>
     <script type="module" src="./src/ts/presenter/userPresenter.ts"></script>
+    <script type="module" src="./src/ts/presenter/navigation.ts"></script>
+    <script type="module" src="./src/ts/presenter/themeToggle.ts"></script>
     <link rel="stylesheet" href="./src/css/style.css"/>
 </head>
-<body class="container m-5 invisible">
-<div class="flex justify-end items-center gap-2">
-    <span id="user-name"></span>
-    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
-</div>
-<p><a class="link" id="portal-link" href="#">← Air Freight Operations</a></p>
-<h1 class="text-2xl font-bold">Load Planning</h1>
+<body class="min-h-screen bg-base-200 invisible">
+<header class="bg-slate-800 text-slate-100">
+    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm whitespace-nowrap overflow-x-auto">
+        <span class="font-semibold">Air Freight Operations</span>
+        <nav class="flex h-full">
+            <a data-flight-operations="./" href="#" class="nav-link">Overzicht vluchten</a>
+            <a data-flight-operations="html/gantt-chart.html" href="#" class="nav-link">Gantt chart</a>
+            <a href="html/flights-to-load.html" class="nav-link">Te beladen vluchten</a>
+        </nav>
+        <div class="ml-auto flex items-center gap-4">
+            <button id="theme-btn" class="btn btn-xs btn-ghost text-slate-300" title="Licht of donker thema"></button>
+            <span id="user-name" class="text-slate-300"></span>
+            <button id="logout-btn" class="btn btn-xs btn-outline border-slate-500 text-slate-100">Afmelden</button>
+        </div>
+    </div>
+</header>
 
-<div class="alert hidden my-4" id="message-box"></div>
+<main class="max-w-screen-2xl mx-auto px-6 py-6">
+    <div class="alert hidden mb-4" id="message-box"></div>
 
-<section id="start" class="hidden">
-    <p><a class="link" href="html/flights-to-load.html">Te beladen vluchten</a></p>
-</section>
+    <section id="start" class="hidden panel max-w-xl">
+        <div class="panel-header">
+            <h1 class="text-base font-semibold">Load Planning</h1>
+        </div>
+        <div class="p-4 space-y-4 text-sm">
+            <p>Plan de lading van een vlucht: kies de vlucht in de lijst van te beladen vluchten.</p>
+            <a class="btn btn-sm btn-primary" href="html/flights-to-load.html">Te beladen vluchten</a>
+        </div>
+    </section>
+</main>
 </body>
 </html>

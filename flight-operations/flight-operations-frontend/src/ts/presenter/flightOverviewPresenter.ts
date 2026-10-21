@@ -1,18 +1,20 @@
 import {overviewQuery} from "../domain/FlightOverview.ts";
 import type {FlightRow, FlightsOfDay} from "../domain/FlightOverview.ts";
-import {loadPlanningAddress} from "../infrastructure/contexts.ts";
 import {getFlights} from "../infrastructure/flightRest.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
-import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
+import {addDays, brusselsDateTime, longDate, plainDate} from "./brusselsTime.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {addError, clearMessages} from "./messagePresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
 const portal = document.getElementById("portal")!;
 const overview = document.getElementById("overview")!;
-const flightsToLoadLink = document.getElementById("flights-to-load-link") as HTMLAnchorElement;
 const dayField = document.getElementById("day") as HTMLInputElement;
+const previousDayButton = document.getElementById("previous-day") as HTMLButtonElement;
+const nextDayButton = document.getElementById("next-day") as HTMLButtonElement;
+const dayTitle = document.getElementById("day-title")!;
+const flightCount = document.getElementById("flight-count")!;
 const flightsTable = document.getElementById("flights-table")!;
 const flightRows = document.getElementById("flights")!;
 const noFlights = document.getElementById("no-flights")!;
@@ -29,7 +31,7 @@ function flightRow(flight: FlightRow): HTMLTableRowElement {
     const row = document.createElement("tr");
     const link = createElementWithText("a", flight.flightNumber) as HTMLAnchorElement;
     link.href = `html/flight-details.html?flightId=${encodeURIComponent(flight.id)}`;
-    link.className = "link";
+    link.className = "link link-hover font-medium";
     const linkCell = document.createElement("td");
     linkCell.appendChild(link);
     row.appendChild(linkCell);
@@ -51,6 +53,8 @@ function render(flightsOfDay: FlightsOfDay): void {
     dayField.value = day;
     ganttLink.href = `html/gantt-chart.html${overviewQuery(day)}`;
     const flights = flightsOfDay.flights;
+    dayTitle.textContent = `Vluchten van ${longDate(day)}`;
+    flightCount.textContent = flights.length === 1 ? "1 vlucht" : `${flights.length} vluchten`;
     flightRows.replaceChildren(...flights.map(flightRow));
     flightsTable.classList.toggle("hidden", flights.length === 0);
     noFlights.classList.toggle("hidden", flights.length > 0);
@@ -79,17 +83,25 @@ async function choose(): Promise<void> {
     }
 }
 
-/* The entry of the application: after login it shows the role, the way to Load Planning and the flights of
-   today. Both roles may look at everything; what a role may change, each service decides on every request. */
+function moveDays(days: number): void {
+    if (day) {
+        dayField.value = addDays(day, days);
+        choose();
+    }
+}
+
+/* The entry of the application: after login it shows the role and the flights of today. Both roles may look at
+   everything; what a role may change, each service decides on every request. */
 async function init(): Promise<void> {
     const role = await plannerRoleOrNoAccess(messageBox);
     if (role === null) {
         return;
     }
     document.getElementById("role")!.textContent = ROLE_NAME[role];
-    flightsToLoadLink.href = loadPlanningAddress("html/flights-to-load.html");
     portal.classList.remove("hidden");
     dayField.addEventListener("change", choose);
+    previousDayButton.addEventListener("click", () => moveDays(-1));
+    nextDayButton.addEventListener("click", () => moveDays(1));
     startAutoRefresh(reload, () => true);
 }
 

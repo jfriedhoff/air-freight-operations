@@ -3,13 +3,17 @@ import type {FlightsToLoad, FlightToLoad} from "../domain/FlightToLoad.ts";
 import {getFlightsToLoad} from "../infrastructure/flightCargoRest.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
-import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
+import {addDays, brusselsDateTime, longDate, plainDate} from "./brusselsTime.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {addError, clearMessages} from "./messagePresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
 const section = document.getElementById("flights-to-load")!;
 const dayField = document.getElementById("day") as HTMLInputElement;
+const previousDayButton = document.getElementById("previous-day") as HTMLButtonElement;
+const nextDayButton = document.getElementById("next-day") as HTMLButtonElement;
+const dayTitle = document.getElementById("day-title")!;
+const flightCount = document.getElementById("flight-count")!;
 const hideDepartedBox = document.getElementById("hide-departed") as HTMLInputElement;
 const flightsTable = document.getElementById("flights-table")!;
 const flightRows = document.getElementById("flights")!;
@@ -21,11 +25,22 @@ const address = new URLSearchParams(window.location.search);
 let day: string | null = address.get("scheduledDepartureDate");
 let includeDeparted = address.get("includeDeparted") === "true";
 
+/* A status as a small label, or an empty cell when the flight does not have that status. */
+function badgeCell(shown: boolean, text: string, className: string): HTMLTableCellElement {
+    const cell = document.createElement("td");
+    if (shown) {
+        const badge = createElementWithText("span", text);
+        badge.className = `badge badge-sm ${className}`;
+        cell.appendChild(badge);
+    }
+    return cell;
+}
+
 function flightRow(flight: FlightToLoad): HTMLTableRowElement {
     const row = document.createElement("tr");
     const link = createElementWithText("a", flight.flightNumber) as HTMLAnchorElement;
     link.href = `cargo.html?flightCargoId=${encodeURIComponent(flight.id)}`;
-    link.className = "link";
+    link.className = "link link-hover font-medium";
     const linkCell = document.createElement("td");
     linkCell.appendChild(link);
     row.appendChild(linkCell);
@@ -37,12 +52,13 @@ function flightRow(flight: FlightToLoad): HTMLTableRowElement {
         showsEtd(flight) ? brusselsDateTime(flight.etd) : "",
         brusselsDateTime(flight.sta),
         showsEta(flight) ? brusselsDateTime(flight.eta) : "",
-        flight.departed ? "Opgestegen" : "",
-        flight.finalized ? "Gefinaliseerd" : "",
     ];
     for (const cell of cells) {
         row.appendChild(createElementWithText("td", cell));
     }
+    row.append(
+        badgeCell(flight.departed, "Opgestegen", "badge-ghost"),
+        badgeCell(flight.finalized, "Gefinaliseerd", "badge-soft badge-success"));
     return row;
 }
 
@@ -51,6 +67,8 @@ function render(flightsToLoad: FlightsToLoad): void {
     dayField.value = day;
     hideDepartedBox.checked = !includeDeparted;
     const flights = flightsToLoad.flights;
+    dayTitle.textContent = `Te beladen vluchten van ${longDate(day)}`;
+    flightCount.textContent = flights.length === 1 ? "1 vlucht" : `${flights.length} vluchten`;
     flightRows.replaceChildren(...flights.map(flightRow));
     flightsTable.classList.toggle("hidden", flights.length === 0);
     noFlights.classList.toggle("hidden", flights.length > 0);
@@ -81,12 +99,21 @@ async function choose(): Promise<void> {
     }
 }
 
+function moveDays(days: number): void {
+    if (day) {
+        dayField.value = addDays(day, days);
+        choose();
+    }
+}
+
 async function init(): Promise<void> {
     if (await plannerRoleOrNoAccess(messageBox) === null) {
         return;
     }
     dayField.addEventListener("change", choose);
     hideDepartedBox.addEventListener("change", choose);
+    previousDayButton.addEventListener("click", () => moveDays(-1));
+    nextDayButton.addEventListener("click", () => moveDays(1));
     startAutoRefresh(reload, () => true);
 }
 

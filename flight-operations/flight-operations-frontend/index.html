@@ -8,46 +8,61 @@
     <title>Air Freight Operations</title>
     <script type="module" src="./src/ts/presenter/flightOverviewPresenter.ts"></script>
     <script type="module" src="./src/ts/presenter/userPresenter.ts"></script>
+    <script type="module" src="./src/ts/presenter/navigation.ts"></script>
+    <script type="module" src="./src/ts/presenter/themeToggle.ts"></script>
     <link rel="stylesheet" href="./src/css/style.css"/>
 </head>
-<body class="container m-5 invisible">
-<div class="flex justify-end items-center gap-2">
-    <span id="user-name"></span>
-    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
-</div>
-<h1 class="text-2xl font-bold">Air Freight Operations</h1>
-
-<div class="alert hidden my-4" id="message-box"></div>
-
-<section id="portal" class="hidden">
-    <p>U bent aangemeld als <span id="role"></span>. U kunt alles bekijken en wijzigen wat bij uw rol hoort.</p>
-    <p class="my-2"><a class="link" id="flights-to-load-link" href="#">Te beladen vluchten</a> (Load Planning)</p>
-
-    <h2 class="text-xl font-bold mt-6">Overzicht vluchten</h2>
-    <p class="text-sm opacity-70">Alle tijden in Brusselse tijd. De dag van een vlucht is haar scheduled
-        vertrekdatum in UTC.</p>
-
-    <div class="flex flex-wrap items-end gap-4 my-4">
-        <div class="flex flex-col">
-            <label class="label" for="day">Scheduled vertrekdatum (UTC)</label>
-            <input type="date" id="day" class="input"/>
+<body class="min-h-screen bg-base-200 invisible">
+<header class="bg-slate-800 text-slate-100">
+    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm whitespace-nowrap overflow-x-auto">
+        <span class="font-semibold">Air Freight Operations</span>
+        <nav class="flex h-full">
+            <a href="index.html" class="nav-link-active">Overzicht vluchten</a>
+            <a id="gantt-link" href="html/gantt-chart.html" class="nav-link">Gantt chart</a>
+            <a data-load-planning="html/flights-to-load.html" href="#" class="nav-link">Te beladen vluchten</a>
+        </nav>
+        <div class="ml-auto flex items-center gap-4">
+            <button id="theme-btn" class="btn btn-xs btn-ghost text-slate-300" title="Licht of donker thema"></button>
+            <span id="user-name" class="text-slate-300"></span>
+            <button id="logout-btn" class="btn btn-xs btn-outline border-slate-500 text-slate-100">Afmelden</button>
         </div>
-        <button id="refresh-btn" class="btn btn-sm">Vernieuwen</button>
-        <span id="updated-at" class="text-sm opacity-70"></span>
     </div>
-    <p class="my-2"><a class="link" id="gantt-link" href="html/gantt-chart.html">Gantt chart van deze dag</a></p>
+</header>
 
-    <div id="overview" class="hidden">
-        <p id="no-flights" class="hidden"></p>
-        <table id="flights-table" class="table table-zebra">
-            <thead>
-            <tr>
-                <th>Vlucht</th><th>Scheduled vertrekdatum</th><th>Vertrek</th><th>Aankomst</th><th>STD</th><th>STA</th>
-            </tr>
-            </thead>
-            <tbody id="flights"></tbody>
-        </table>
+<main class="max-w-screen-2xl mx-auto px-6 py-6">
+    <div class="alert hidden mb-4" id="message-box"></div>
+
+    <div id="portal" class="hidden">
+        <section class="panel">
+            <div class="panel-header">
+                <h1 class="text-base font-semibold mr-auto">
+                    <span id="day-title"></span>
+                    <span id="flight-count" class="ml-2 font-normal opacity-60"></span>
+                </h1>
+                <button id="previous-day" class="btn btn-sm btn-outline">Vorige dag</button>
+                <input type="date" id="day" class="input input-sm w-40" aria-label="Scheduled vertrekdatum (UTC)"/>
+                <button id="next-day" class="btn btn-sm btn-outline">Volgende dag</button>
+                <button id="refresh-btn" class="btn btn-sm btn-outline">Vernieuwen</button>
+                <span id="updated-at" class="text-xs opacity-60"></span>
+            </div>
+
+            <div id="overview" class="hidden">
+                <p id="no-flights" class="hidden px-4 py-8 text-sm opacity-70"></p>
+                <table id="flights-table" class="table table-sm">
+                    <thead class="bg-base-200/50 text-xs">
+                    <tr>
+                        <th>Vlucht</th><th>Scheduled vertrekdatum</th><th>Vertrek</th><th>Aankomst</th>
+                        <th>STD</th><th>STA</th>
+                    </tr>
+                    </thead>
+                    <tbody id="flights"></tbody>
+                </table>
+            </div>
+        </section>
+        <p class="text-xs opacity-60 mt-3">Aangemeld als <span id="role"></span>: u kunt alles bekijken en wijzigen wat
+            bij uw rol hoort. Alle tijden in Brusselse tijd. De dag van een vlucht is haar scheduled vertrekdatum in
+            UTC.</p>
     </div>
-</section>
+</main>
 </body>
 </html>

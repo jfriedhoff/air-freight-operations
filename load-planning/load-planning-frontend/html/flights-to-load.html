@@ -8,43 +8,62 @@
     <title>Te beladen vluchten</title>
     <script type="module" src="../src/ts/presenter/flightsToLoadPresenter.ts"></script>
     <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
+    <script type="module" src="../src/ts/presenter/navigation.ts"></script>
+    <script type="module" src="../src/ts/presenter/themeToggle.ts"></script>
     <link rel="stylesheet" href="../src/css/style.css"/>
 </head>
-<body class="container m-5 invisible">
-<div class="flex justify-end items-center gap-2">
-    <span id="user-name"></span>
-    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
-</div>
-<h1 class="text-2xl font-bold">Te beladen vluchten</h1>
-<p class="text-sm opacity-70">Alle tijden in Brusselse tijd. De dag van een vlucht is haar scheduled vertrekdatum
-    in UTC.</p>
-
-<div class="alert hidden my-4" id="message-box"></div>
-
-<section id="flights-to-load" class="hidden">
-    <div class="flex flex-wrap items-end gap-4 my-4">
-        <div class="flex flex-col">
-            <label class="label" for="day">Scheduled vertrekdatum (UTC)</label>
-            <input type="date" id="day" class="input"/>
+<body class="min-h-screen bg-base-200 invisible">
+<header class="bg-slate-800 text-slate-100">
+    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm whitespace-nowrap overflow-x-auto">
+        <span class="font-semibold">Air Freight Operations</span>
+        <nav class="flex h-full">
+            <a data-flight-operations="./" href="#" class="nav-link">Overzicht vluchten</a>
+            <a data-flight-operations="html/gantt-chart.html" href="#" class="nav-link">Gantt chart</a>
+            <a href="flights-to-load.html" class="nav-link-active">Te beladen vluchten</a>
+        </nav>
+        <div class="ml-auto flex items-center gap-4">
+            <button id="theme-btn" class="btn btn-xs btn-ghost text-slate-300" title="Licht of donker thema"></button>
+            <span id="user-name" class="text-slate-300"></span>
+            <button id="logout-btn" class="btn btn-xs btn-outline border-slate-500 text-slate-100">Afmelden</button>
         </div>
-        <label class="label cursor-pointer gap-2">
-            <input type="checkbox" id="hide-departed" class="checkbox" checked/>
-            Opgestegen vluchten verbergen
-        </label>
-        <button id="refresh-btn" class="btn btn-sm">Vernieuwen</button>
-        <span id="updated-at" class="text-sm opacity-70"></span>
     </div>
+</header>
 
-    <p id="no-flights" class="hidden"></p>
-    <table id="flights-table" class="table table-zebra">
-        <thead>
-        <tr>
-            <th>Vlucht</th><th>Scheduled vertrekdatum</th><th>Vertrek</th><th>Aankomst</th>
-            <th>STD</th><th>ETD</th><th>STA</th><th>ETA</th><th>Vlucht</th><th>Lading</th>
-        </tr>
-        </thead>
-        <tbody id="flights"></tbody>
-    </table>
-</section>
+<main class="max-w-screen-2xl mx-auto px-6 py-6">
+    <div class="alert hidden mb-4" id="message-box"></div>
+
+    <div id="flights-to-load" class="hidden">
+        <section class="panel">
+            <div class="panel-header">
+                <h1 class="text-base font-semibold mr-auto">
+                    <span id="day-title"></span>
+                    <span id="flight-count" class="ml-2 font-normal opacity-60"></span>
+                </h1>
+                <label class="flex items-center gap-2 text-sm mr-2 cursor-pointer">
+                    <input type="checkbox" id="hide-departed" class="checkbox checkbox-sm" checked/>
+                    Opgestegen vluchten verbergen
+                </label>
+                <button id="previous-day" class="btn btn-sm btn-outline">Vorige dag</button>
+                <input type="date" id="day" class="input input-sm w-40" aria-label="Scheduled vertrekdatum (UTC)"/>
+                <button id="next-day" class="btn btn-sm btn-outline">Volgende dag</button>
+                <button id="refresh-btn" class="btn btn-sm btn-outline">Vernieuwen</button>
+                <span id="updated-at" class="text-xs opacity-60"></span>
+            </div>
+
+            <p id="no-flights" class="hidden px-4 py-8 text-sm opacity-70"></p>
+            <table id="flights-table" class="table table-sm">
+                <thead class="bg-base-200/50 text-xs">
+                <tr>
+                    <th>Vlucht</th><th>Scheduled vertrekdatum</th><th>Vertrek</th><th>Aankomst</th>
+                    <th>STD</th><th>ETD</th><th>STA</th><th>ETA</th><th>Vlucht</th><th>Lading</th>
+                </tr>
+                </thead>
+                <tbody id="flights"></tbody>
+            </table>
+        </section>
+        <p class="text-xs opacity-60 mt-3">Alle tijden in Brusselse tijd. De dag van een vlucht is haar scheduled
+            vertrekdatum in UTC.</p>
+    </div>
+</main>
 </body>
 </html>

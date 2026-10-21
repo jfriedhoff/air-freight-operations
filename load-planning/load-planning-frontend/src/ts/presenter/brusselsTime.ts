@@ -32,3 +32,20 @@ export function plainDate(isoDate: string): string {
     const [year, month, day] = isoDate.split("-");
     return `${day}/${month}/${year}`;
 }
+
+/* The date a number of days later (or earlier), as "2026-01-10" */
+export function addDays(isoDate: string, days: number): string {
+    const [year, month, day] = isoDate.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
+/* "vrijdag 9 januari 2026", for a date without a time such as the scheduled departure date */
+export function longDate(isoDate: string): string {
+    return new Intl.DateTimeFormat("nl-BE", {
+        timeZone: "UTC",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    }).format(new Date(`${isoDate}T00:00:00Z`));
+}
