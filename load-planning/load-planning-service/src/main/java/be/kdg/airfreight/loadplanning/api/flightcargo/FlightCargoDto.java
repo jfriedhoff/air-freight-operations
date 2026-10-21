@@ -19,17 +19,17 @@ import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The cargo of a flight as the cargo page needs it: the flight, every booked ULD in order of its code, and the
- * load positions of the floor plan in deck order for the selection list. All times are UTC; the page shows
- * them in Brussels time. loadCanChange says nothing about the role of the user. finalizedBy is the name of the
- * load planner who finalized the load.
+ * The cargo of a flight as the cargo page needs it: the flight, every booked ULD in order of its code, the names
+ * of the load positions in deck order for the selection list, and the floor plan for the deck. All times are UTC;
+ * the page shows them in Brussels time. loadCanChange says nothing about the role of the user. finalizedBy is the
+ * name of the load planner who finalized the load.
  */
 public record FlightCargoDto(UUID id, String flightNumber, LocalDate scheduledDepartureDate,
                              String departureAirport, String arrivalAirport, String aircraftType,
                              Instant std, Instant sta, Instant etd, Instant eta,
                              boolean departed, boolean finalized, @Nullable String finalizedBy,
                              LoadingPeriodDto loadingPeriod, boolean loadCanChange, List<UldDto> ulds,
-                             List<String> loadPositions) {
+                             List<String> loadPositions, FloorPlanDto floorPlan) {
     public static FlightCargoDto from(FlightCargoSnapshot snapshot, Map<LoadPlannerId, String> plannerNames) {
         FlightCargo cargo = snapshot.cargo();
         FlightInfo flight = cargo.getFlightInfo();
@@ -42,7 +42,8 @@ public record FlightCargoDto(UUID id, String flightNumber, LocalDate scheduledDe
             LoadingPeriodDto.from(snapshot.loadingPeriod()), snapshot.loadCanChange(),
             cargo.getUlds().stream().map(uld -> UldDto.from(uld, plannerNames))
                 .sorted(Comparator.comparing(UldDto::code)).toList(),
-            snapshot.floorPlan().positions().stream().map(LoadPosition::name).toList());
+            snapshot.floorPlan().positions().stream().map(LoadPosition::name).toList(),
+            FloorPlanDto.from(snapshot.floorPlan()));
     }
 
     /** Every load planner whose name the page shows: who placed each ULD and who finalized the load. */

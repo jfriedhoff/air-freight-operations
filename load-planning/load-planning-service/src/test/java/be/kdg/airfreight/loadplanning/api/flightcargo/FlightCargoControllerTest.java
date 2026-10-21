@@ -121,6 +121,22 @@ class FlightCargoControllerTest {
             .andExpect(jsonPath("$.loadPositions[33]").value("X"));
     }
 
+    /** The page draws the deck from this: positions in deck order with their side, and where the cargo door is. */
+    @Test
+    void theCargoCarriesTheFloorPlanInDeckOrderWithSidesAndTheDoor() throws Exception {
+        mockMvc.perform(get(CARGO, id.id()).with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.floorPlan.positions.length()").value(34))
+            .andExpect(jsonPath("$.floorPlan.positions[0].name").value("A1"))
+            .andExpect(jsonPath("$.floorPlan.positions[0].side").isEmpty())
+            .andExpect(jsonPath("$.floorPlan.positions[3].name").value("CL"))
+            .andExpect(jsonPath("$.floorPlan.positions[3].side").value("LEFT"))
+            .andExpect(jsonPath("$.floorPlan.positions[4].name").value("CR"))
+            .andExpect(jsonPath("$.floorPlan.positions[4].side").value("RIGHT"))
+            .andExpect(jsonPath("$.floorPlan.positions[33].name").value("X"))
+            .andExpect(jsonPath("$.floorPlan.door").value("RL"));
+    }
+
     @Test
     void aFinalizedLoadIsShownAsFinalizedAndNoLongerChangeable() throws Exception {
         testHelper.finalizeLoad(id);

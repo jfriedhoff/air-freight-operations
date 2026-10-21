@@ -34,7 +34,7 @@ public final class Boeing747400FFloorPlan {
             routes.put(inRow(row, Side.RIGHT), List.of(new Route(pathToDoor(row, Side.RIGHT))));
         }
         routes.put(new LoadPosition(TAIL, null), routesViaRow(List.of(), ROWS.getLast()));
-        return new FloorPlan(AIRCRAFT_TYPE, routes);
+        return new FloorPlan(AIRCRAFT_TYPE, routes, inRow(DOOR_ROW, Side.LEFT));
     }
 
     /** The nose positions between this one and row C: A1 passes A2 and B1, A2 passes B1. */

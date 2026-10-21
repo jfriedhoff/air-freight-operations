@@ -26,7 +26,7 @@ class FlightCargoTest {
     private static final LoadingPolicy POLICY = new LoadingPolicy(Duration.ofHours(12), Duration.ofMinutes(20));
     private static final AirportCode ATH = new AirportCode("ATH");
     private static final LoadPosition CL = new LoadPosition("CL", Side.LEFT);
-    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfCL());
+    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfCL(), CL);
     private static final Instant IN_THE_LOADING_PERIOD = Instant.parse("2026-01-09T05:00:00Z");
     private static final UldCode CODE = new UldCode("AKE16689R7");
     private static final Weight WEIGHT = new Weight(new BigDecimal("1250"), WeightUnit.KG);

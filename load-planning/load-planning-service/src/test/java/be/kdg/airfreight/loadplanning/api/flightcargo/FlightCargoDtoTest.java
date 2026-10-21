@@ -34,7 +34,7 @@ class FlightCargoDtoTest {
     private static final LoadPosition CL = new LoadPosition("CL", Side.LEFT);
     private static final LoadPosition CR = new LoadPosition("CR", Side.RIGHT);
     private static final LoadPosition A1 = new LoadPosition("A1", null);
-    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfA1ClAndCr());
+    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfA1ClAndCr(), CL);
 
     private final FlightCargo cargo = FlightCargo.create(
         new FlightId(new FlightNumber("HJ221"), LocalDate.of(2026, 1, 9), new AirportCode("BRU")),
