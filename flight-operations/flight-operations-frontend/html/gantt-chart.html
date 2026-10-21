@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="nl" data-theme="corporate">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="icon" href="data:,"/>
+    <title>Gantt chart</title>
+    <script type="module" src="../src/ts/presenter/ganttChartPresenter.ts"></script>
+    <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
+    <link rel="stylesheet" href="../src/css/style.css"/>
+</head>
+<body class="min-h-screen bg-base-200 invisible">
+<header class="bg-slate-800 text-slate-100">
+    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm">
+        <span class="font-semibold">Air Freight Operations</span>
+        <nav class="flex h-full">
+            <a id="back-to-overview" href="../index.html"
+               class="flex items-center px-3 text-slate-300 hover:text-white">Overzicht vluchten</a>
+            <span class="flex items-center px-3 border-b-2 border-sky-400 text-white">Gantt chart</span>
+        </nav>
+        <div class="ml-auto flex items-center gap-4">
+            <span id="user-name" class="text-slate-300"></span>
+            <button id="logout-btn" class="btn btn-xs btn-outline border-slate-500 text-slate-100">Afmelden</button>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-screen-2xl mx-auto px-6 py-6">
+    <div class="alert hidden mb-4" id="message-box"></div>
+
+    <div id="gantt" class="hidden">
+        <section class="bg-base-100 border border-base-300 rounded">
+            <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-base-300">
+                <h1 class="text-base font-semibold m-0 mr-auto">
+                    <span id="day-title"></span>
+                    <span id="flight-count" class="ml-2 font-normal opacity-60"></span>
+                </h1>
+                <button id="previous-day" class="btn btn-sm btn-outline">Vorige dag</button>
+                <input type="date" id="day" class="input input-sm w-40" aria-label="Scheduled vertrekdatum (UTC)"/>
+                <button id="next-day" class="btn btn-sm btn-outline">Volgende dag</button>
+                <button id="refresh-btn" class="btn btn-sm btn-outline">Vernieuwen</button>
+                <span id="updated-at" class="text-xs opacity-60"></span>
+            </div>
+
+            <p id="no-flights" class="hidden px-4 py-8 text-sm opacity-70"></p>
+            <div id="chart" class="hidden overflow-x-auto">
+                <div class="min-w-[72rem] text-sm">
+                    <div class="grid grid-cols-[5rem_6rem_8.5rem_8.5rem_1fr] border-b border-base-300 bg-base-200/50
+                                text-xs font-medium opacity-80">
+                        <span class="px-4 py-2">Vlucht</span>
+                        <span class="py-2">Route</span>
+                        <span class="py-2">STD</span>
+                        <span class="py-2">STA</span>
+                        <div id="hours" class="relative"></div>
+                    </div>
+                    <div id="rows"></div>
+                </div>
+            </div>
+        </section>
+        <p class="text-xs opacity-60 mt-3">De dag van een vlucht is haar scheduled vertrekdatum in UTC: de tijdlijn
+            loopt van 00:00 tot 24:00 UTC. Alle tijden staan in Brusselse tijd; de stippellijn is middernacht in
+            Brussel.</p>
+    </div>
+</main>
+</body>
+</html>

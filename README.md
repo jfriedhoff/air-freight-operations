@@ -103,6 +103,7 @@ Voor Load Planning, dat zich als beide planners aanmeldt en ook toont dat een to
 | --- | --- | --- |
 | Flight Operations | Startpagina: de ingang na het aanmelden, met het overzicht van de vluchten van vandaag (UTC) | http://localhost:8080/ |
 | Flight Operations | Vluchtdetails | http://localhost:8080/html/flight-details.html?flightId=… |
+| Flight Operations | Gantt chart: de vluchten van één dag op een tijdlijn | http://localhost:8080/html/gantt-chart.html |
 | Load Planning | Startpagina | http://localhost:8081/ |
 | Load Planning | Te beladen vluchten | http://localhost:8081/html/flights-to-load.html |
 | Load Planning | Cargo-pagina | via een vlucht in de lijst van te beladen vluchten |
