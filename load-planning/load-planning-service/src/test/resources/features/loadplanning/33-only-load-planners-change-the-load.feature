@@ -19,12 +19,8 @@ Feature: Only flight planners can change flights and only load planners can chan
       | flight planner | assign a load position | refused with 403 Forbidden |
       | flight planner | check the load         | refused with 403 Forbidden |
       | flight planner | finalize the load      | refused with 403 Forbidden |
-
-    # Waits for the endpoint to clear a load position
-    @wip
-    Examples:
-      | role           | action                | result                     |
-      | flight planner | clear a load position | refused with 403 Forbidden |
+      | load planner   | clear a load position  | accepted                   |
+      | flight planner | clear a load position  | refused with 403 Forbidden |
 
   @integration
   Scenario Outline: Everyone can view
@@ -47,9 +43,4 @@ Feature: Only flight planners can change flights and only load planners can chan
       | role         | user | action                 |
       | load planner | bram | assign a load position |
       | load planner | bram | finalize the load      |
-
-    # Waits for the endpoint to clear a load position
-    @wip
-    Examples:
-      | role         | user | action                |
-      | load planner | bram | clear a load position |
+      | load planner | bram | clear a load position  |

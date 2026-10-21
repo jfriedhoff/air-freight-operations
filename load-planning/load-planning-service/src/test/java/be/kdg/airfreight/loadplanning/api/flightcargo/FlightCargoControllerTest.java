@@ -33,6 +33,7 @@ import java.time.Instant;
 import static org.hamcrest.Matchers.contains;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -287,6 +288,43 @@ class FlightCargoControllerTest {
     }
 
     @Test
+    void movingAUldFreesItsOldPosition() throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(assign("AKE16689R7", "{\"loadPosition\": \"CR\"}").with(token(loadPlanner)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.ulds[0].loadPosition").value("CR"));
+
+        assertThat(testHelper.find(id).getLoad()).extracting(stored -> stored.getPosition().name())
+            .containsExactly("CR");
+    }
+
+    @Test
+    void aLoadPlannerClearsALoadPosition() throws Exception {
+        LoadPlannerId loadPlanner = testHelper.saveLoadPlanner("Test load planner");
+
+        mockMvc.perform(clear("AKE16689R7").with(token(loadPlanner)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(id.id().toString()))
+            .andExpect(jsonPath("$.ulds[0].code").value("AKE16689R7"))
+            .andExpect(jsonPath("$.ulds[0].loadPosition").isEmpty())
+            .andExpect(jsonPath("$.loadCanChange").value(true));
+
+        Uld stored = uld("AKE16689R7");
+        assertThat(stored.hasPosition()).isFalse();
+        assertThat(stored.getPositionChangedBy()).isEqualTo(loadPlanner);
+        assertThat(testHelper.outboxCount()).as("clearing a load position sends nothing to partners").isZero();
+    }
+
+    @Test
+    void aFlightPlannerMayNotClear() throws Exception {
+        mockMvc.perform(clear("AKE16689R7").with(planner("flight-planner")))
+            .andExpect(status().isForbidden());
+
+        assertThat(uld("AKE16689R7").hasPosition()).isTrue();
+    }
+
+    @Test
     void checkLoadGivesOneResultPerCheckAndChangesNothing() throws Exception {
         mockMvc.perform(get(LOAD_CHECK, id.id()).with(token(testHelper.saveLoadPlanner("Test load planner"))))
             .andExpect(status().isOk())
@@ -344,6 +382,10 @@ class FlightCargoControllerTest {
 
     private MockHttpServletRequestBuilder assign(String uldCode, String body) {
         return put(LOAD_POSITION, id.id(), uldCode).contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
+    private MockHttpServletRequestBuilder clear(String uldCode) {
+        return delete(LOAD_POSITION, id.id(), uldCode);
     }
 
     private Uld uld(String code) {

@@ -8,6 +8,7 @@ import be.kdg.airfreight.loadplanning.application.FlightCargoSnapshot;
 import be.kdg.airfreight.loadplanning.application.LoadPlannerService;
 import be.kdg.airfreight.loadplanning.application.LoadService;
 import be.kdg.airfreight.loadplanning.application.command.AssignLoadPositionCommand;
+import be.kdg.airfreight.loadplanning.application.command.ClearLoadPositionCommand;
 import be.kdg.airfreight.loadplanning.application.command.FinalizeLoadCommand;
 import be.kdg.airfreight.loadplanning.application.query.FlightsToLoadQuery;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.AirportCode;
@@ -21,6 +22,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -82,6 +84,21 @@ public class FlightCargoController {
         // so nothing a caller typed reaches the log unchecked. A refusal is logged by ErrorHandling.
         log.info("Load planner {} put ULD {} on load position {} for flight cargo {}", loadPlanner.id(), uld.value(),
             dto.loadPosition(), id);
+        return ResponseEntity.ok(toDto(cargo));
+    }
+
+    /** Takes the ULD off its load position; it stays booked on the flight, and nothing goes to the partners. */
+    @DeleteMapping("/{id}/ulds/{uldCode}/load-position")
+    public ResponseEntity<FlightCargoDto> clear(@PathVariable("id") UUID id,
+                                                @PathVariable("uldCode") String uldCode,
+                                                @AuthenticationPrincipal Jwt jwt) {
+        LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
+        loadPlannerService.register(loadPlanner, nameOf(jwt));
+        UldCode uld = new UldCode(uldCode);
+        FlightCargoSnapshot cargo = loadService.clear(new ClearLoadPositionCommand(new FlightCargoId(id), uld,
+            loadPlanner));
+        log.info("Load planner {} took ULD {} off its load position for flight cargo {}", loadPlanner.id(),
+            uld.value(), id);
         return ResponseEntity.ok(toDto(cargo));
     }
 

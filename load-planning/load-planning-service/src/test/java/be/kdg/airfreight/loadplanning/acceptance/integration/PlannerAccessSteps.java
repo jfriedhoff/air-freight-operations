@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.namedToken;
 import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.token;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -104,6 +105,15 @@ public class PlannerAccessSteps {
     @When("I assign a load position through the API")
     public void assignALoadPosition() throws Exception {
         answer = mockMvc.perform(assignToCl().with(login));
+        recorded = () -> bookedUld().getPositionChangedBy();
+    }
+
+    /** The ULD is on CL first, so there is a load position to clear. */
+    @When("I clear a load position through the API")
+    public void clearALoadPosition() throws Exception {
+        testHelper.place(cargoOfHj221(), ULD, "CL");
+        answer = mockMvc.perform(delete("/api/flight-cargos/{id}/ulds/{uldCode}/load-position", cargoOfHj221().id(),
+            ULD).with(login));
         recorded = () -> bookedUld().getPositionChangedBy();
     }
 
