@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {canChangeLoad, stateOf, withoutLoadPosition} from "./FlightCargo.ts";
+import {canChangeLoad, holderOf, stateOf, withoutLoadPosition} from "./FlightCargo.ts";
 import type {FlightCargo, Uld} from "./FlightCargo.ts";
 
 const START = "2026-01-08T18:30:00Z";
@@ -56,4 +56,11 @@ test("inside the period while the server says no, the clocks disagree and the pa
 test("the ULDs without a load position are the cargo that would stay behind", () => {
     const flight = cargo({ulds: [uld("AKE12345HJ", "11L"), uld("AKE67890HJ", null)]});
     assert.deepEqual(withoutLoadPosition(flight).map(u => u.code), ["AKE67890HJ"]);
+});
+
+test("a load position is held by the ULD on it, and by nobody when it is free", () => {
+    const withTwo = cargo({ulds: [uld("AKE16689R7", "CL"), uld("AKE20417HJ", null)]});
+
+    assert.equal(holderOf(withTwo, "CL"), "AKE16689R7");
+    assert.equal(holderOf(withTwo, "CR"), null);
 });

@@ -74,3 +74,9 @@ export function stateOf(cargo: FlightCargo, loadedAt: Date): LoadState {
 export function withoutLoadPosition(cargo: FlightCargo): Uld[] {
     return cargo.ulds.filter(uld => uld.loadPosition === null);
 }
+
+/* The ULD on this load position, or null when it is free. The page shows it next to the position; whether the
+   position may be taken is the server's answer. */
+export function holderOf(cargo: FlightCargo, position: string): string | null {
+    return cargo.ulds.find(uld => uld.loadPosition === position)?.code ?? null;
+}

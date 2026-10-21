@@ -1,10 +1,12 @@
-import {canChangeLoad, stateOf, withoutLoadPosition} from "../domain/FlightCargo.ts";
+import {canChangeLoad, holderOf, stateOf, withoutLoadPosition} from "../domain/FlightCargo.ts";
 import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
 import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
 import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import {listQuery, showsEta, showsEtd} from "../domain/FlightToLoad.ts";
 import {flightOperationsAddress} from "../infrastructure/contexts.ts";
-import {assignLoadPosition, finalizeLoad, findFlightCargo, getFlightCargo} from "../infrastructure/flightCargoRest.ts";
+import {
+    assignLoadPosition, clearLoadPosition, finalizeLoad, findFlightCargo, getFlightCargo,
+} from "../infrastructure/flightCargoRest.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 import {startAutoRefresh} from "./autoRefresh.ts";
 import {brusselsDateTime, plainDate} from "./brusselsTime.ts";
@@ -30,7 +32,7 @@ const address = new URLSearchParams(window.location.search);
 let flightCargoId: string | null = address.get("flightCargoId");
 const identity: FlightIdentity | null = identityIn(address);
 let isLoadPlanner = false;
-/* A request to assign is on its way: the automatic reload waits for it. */
+/* A request to assign or clear a load position is on its way: the automatic reload waits for it. */
 let assigning = false;
 /* A request to finalize is on its way: the automatic reload waits for it too. */
 let finalizing = false;
@@ -72,7 +74,8 @@ function stateLine(cargo: FlightCargo, loadedAt: Date): string {
 }
 
 /* The selection list holds the load positions of the floor plan, as the server gives them, and a button:
-   a choice is only sent when the load planner says so. */
+   a choice is only sent when the load planner says so. A position that holds another ULD is shown with that ULD
+   and cannot be chosen; the server decides anyway. A ULD on a position also gets a button to clear it. */
 function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     const cell = document.createElement("td");
     const choice = document.createElement("select");
@@ -82,8 +85,12 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     none.value = "";
     choice.appendChild(none);
     for (const position of cargo.loadPositions) {
-        const option = createElementWithText("option", position) as HTMLOptionElement;
+        const holder = holderOf(cargo, position);
+        const takenByAnother = holder !== null && holder !== uld.code;
+        const option = createElementWithText("option", takenByAnother ? `${position} (${holder})` : position) as
+            HTMLOptionElement;
         option.value = position;
+        option.disabled = takenByAnother;
         choice.appendChild(option);
     }
     choice.value = uld.loadPosition ?? "";
@@ -91,6 +98,12 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     assignButton.className = "btn btn-sm btn-outline ml-2";
     assignButton.addEventListener("click", () => assign(cargo.id, uld.code, choice.value));
     cell.append(choice, assignButton);
+    if (uld.loadPosition !== null) {
+        const clearButton = createElementWithText("button", "Leegmaken") as HTMLButtonElement;
+        clearButton.className = "btn btn-sm ml-2";
+        clearButton.addEventListener("click", () => clear(cargo.id, uld.code));
+        cell.appendChild(clearButton);
+    }
     return cell;
 }
 
@@ -172,18 +185,29 @@ function aChoiceIsInProgress(): boolean {
     return Array.from(uldRows.querySelectorAll("select")).some(choice => choice.value !== choice.dataset.current);
 }
 
-/* Whether the choice is allowed is the server's answer. After a refusal the cargo is asked again, so the page
-   shows what is stored, and the reason of the refusal stays on the screen. */
+/* Whether the choice is allowed is the server's answer. */
 async function assign(cargoId: string, uldCode: string, loadPosition: string): Promise<void> {
     clearMessages(messageBox);
     if (loadPosition === "") {
         addError(messageBox, "Kies eerst een laadpositie.");
         return;
     }
+    await changeLoadPosition(() => assignLoadPosition(cargoId, uldCode, loadPosition),
+        `${uldCode} staat op ${loadPosition}.`);
+}
+
+async function clear(cargoId: string, uldCode: string): Promise<void> {
+    clearMessages(messageBox);
+    await changeLoadPosition(() => clearLoadPosition(cargoId, uldCode), `${uldCode} heeft geen laadpositie meer.`);
+}
+
+/* The page redraws from the server's answer. After a refusal the cargo is asked again, so the page shows what is
+   stored, and the reason of the refusal stays on the screen. */
+async function changeLoadPosition(change: () => Promise<FlightCargo>, confirmation: string): Promise<void> {
     assigning = true;
     try {
-        render(await assignLoadPosition(cargoId, uldCode, loadPosition));
-        addInfo(messageBox, `${uldCode} staat op ${loadPosition}.`);
+        render(await change());
+        addInfo(messageBox, confirmation);
     } catch (error) {
         const refusal = (error as Error).message;
         await reload();

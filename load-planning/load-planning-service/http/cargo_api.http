@@ -92,6 +92,57 @@ Content-Type: application/json
     });
 %}
 
+### The load planner takes the ULD off its load position again (200 within the loading period, otherwise 409)
+DELETE {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/{{uld-code}}/load-position
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("The ULD has no load position, or the refusal says why", function () {
+        client.assert(response.status === 200 || (response.status === 409 && response.body.detail.length > 0),
+            "Expected 200, or 409 with a reason, got " + response.status);
+    });
+%}
+
+### Clearing it once more: the ULD has no load position (409)
+DELETE {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/{{uld-code}}/load-position
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("A ULD without a load position cannot be cleared", function () {
+        client.assert(response.status === 409 && response.body.code === "rule-refused", "Expected 409 rule-refused");
+    });
+%}
+
+### A load position that is not on the floor plan (400)
+PUT {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/{{uld-code}}/load-position
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "loadPosition": "Z9"
+}
+
+> {%
+    client.test("Only positions from the floor plan", function () {
+        client.assert(response.status === 400 && response.body.code === "invalid-input", "Expected 400 invalid-input");
+    });
+%}
+
+### A ULD that is not booked on this flight (404)
+PUT {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/PMC12345KL/load-position
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "loadPosition": "CL"
+}
+
+> {%
+    client.test("Only a ULD that is booked on the flight", function () {
+        client.assert(response.status === 404 && response.body.code === "not-found", "Expected 404 not-found");
+    });
+%}
+
 ### Log in as the flight planner
 POST {{keycloak}}/protocol/openid-connect/token
 Content-Type: application/x-www-form-urlencoded
@@ -123,6 +174,16 @@ Content-Type: application/json
 
 > {%
     client.test("Only a load planner changes the load", function () {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+### A flight planner may not clear a load position either: 403
+DELETE {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/{{uld-code}}/load-position
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("Only a load planner clears a load position", function () {
         client.assert(response.status === 403, "Expected 403, got " + response.status);
     });
 %}

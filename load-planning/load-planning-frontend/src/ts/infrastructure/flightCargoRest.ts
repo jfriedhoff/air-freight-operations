@@ -64,6 +64,17 @@ export async function assignLoadPosition(flightCargoId: string, uldCode: string,
     return throwResponseError("De laadpositie is geweigerd", response);
 }
 
+/* Takes the ULD off its load position; the server answers with the whole cargo, like an assignment. */
+export async function clearLoadPosition(flightCargoId: string, uldCode: string): Promise<FlightCargo> {
+    const url = `${FLIGHT_CARGOS_URL}/${encodeURIComponent(flightCargoId)}/ulds/${encodeURIComponent(uldCode)}`
+        + "/load-position";
+    const response = await authorizedFetch(url, {method: "DELETE"});
+    if (response.ok) {
+        return response.json();
+    }
+    return throwResponseError("De laadpositie kon niet leeggemaakt worden", response);
+}
+
 /* The server answers with the report both ways: 200 when the load is finalized, 409 with the code
    hard-check-failed and the report when a hard check fails. Any other refusal, such as outside the loading
    period, is an error with its reason. */
