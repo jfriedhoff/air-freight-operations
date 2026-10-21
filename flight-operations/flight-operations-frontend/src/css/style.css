@@ -2,19 +2,34 @@
 
 @plugin "@tailwindcss/typography";
 @plugin "daisyui" {
-    themes: light --default, dark --prefersdark, corporate;
+    themes: corporate --default, business --prefersdark;
+}
+
+/* The same frame on every page of both contexts: a dark top bar, and white panels on a grey page. */
+@layer components {
+    .nav-link {
+        @apply flex items-center px-3 whitespace-nowrap text-slate-300 hover:text-white;
+    }
+
+    .nav-link-active {
+        @apply flex items-center px-3 whitespace-nowrap border-b-2 border-sky-400 text-white;
+    }
+
+    .panel {
+        @apply bg-base-100 border border-base-300 rounded;
+    }
+
+    .panel-header {
+        @apply flex flex-wrap items-center gap-2 px-4 py-3 border-b border-base-300;
+    }
+
+    .key-value th {
+        @apply w-56 font-medium opacity-70;
+    }
 }
 
 /* A line at every hour of a Gantt row. The timeline is always one UTC day, so it has 24 equal hours. */
 .hour-grid {
     background-image: linear-gradient(to right, var(--color-base-200) 1px, transparent 1px);
     background-size: calc(100% / 24) 100%;
-}
-
-@layer base {
-    h1 {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin: 1rem 0.2rem;
-    }
 }

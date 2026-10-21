@@ -1,12 +1,29 @@
 @import "tailwindcss";
 
 @plugin "@tailwindcss/typography";
-@plugin "daisyui";
+@plugin "daisyui" {
+    themes: corporate --default, business --prefersdark;
+}
 
-@layer base {
-    h1 {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin: 1rem 0.2rem;
+/* The same frame on every page of both contexts: a dark top bar, and white panels on a grey page. */
+@layer components {
+    .nav-link {
+        @apply flex items-center px-3 whitespace-nowrap text-slate-300 hover:text-white;
+    }
+
+    .nav-link-active {
+        @apply flex items-center px-3 whitespace-nowrap border-b-2 border-sky-400 text-white;
+    }
+
+    .panel {
+        @apply bg-base-100 border border-base-300 rounded;
+    }
+
+    .panel-header {
+        @apply flex flex-wrap items-center gap-2 px-4 py-3 border-b border-base-300;
+    }
+
+    .key-value th {
+        @apply w-56 font-medium opacity-70;
     }
 }

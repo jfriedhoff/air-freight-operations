@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl" data-theme="corporate">
+<html lang="nl">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,18 +7,21 @@
     <title>Gantt chart</title>
     <script type="module" src="../src/ts/presenter/ganttChartPresenter.ts"></script>
     <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
+    <script type="module" src="../src/ts/presenter/navigation.ts"></script>
+    <script type="module" src="../src/ts/presenter/themeToggle.ts"></script>
     <link rel="stylesheet" href="../src/css/style.css"/>
 </head>
 <body class="min-h-screen bg-base-200 invisible">
 <header class="bg-slate-800 text-slate-100">
-    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm">
+    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm whitespace-nowrap overflow-x-auto">
         <span class="font-semibold">Air Freight Operations</span>
         <nav class="flex h-full">
-            <a id="back-to-overview" href="../index.html"
-               class="flex items-center px-3 text-slate-300 hover:text-white">Overzicht vluchten</a>
-            <span class="flex items-center px-3 border-b-2 border-sky-400 text-white">Gantt chart</span>
+            <a id="back-to-overview" href="../index.html" class="nav-link">Overzicht vluchten</a>
+            <a href="gantt-chart.html" class="nav-link-active">Gantt chart</a>
+            <a data-load-planning="html/flights-to-load.html" href="#" class="nav-link">Te beladen vluchten</a>
         </nav>
         <div class="ml-auto flex items-center gap-4">
+            <button id="theme-btn" class="btn btn-xs btn-ghost text-slate-300" title="Licht of donker thema"></button>
             <span id="user-name" class="text-slate-300"></span>
             <button id="logout-btn" class="btn btn-xs btn-outline border-slate-500 text-slate-100">Afmelden</button>
         </div>
@@ -29,9 +32,9 @@
     <div class="alert hidden mb-4" id="message-box"></div>
 
     <div id="gantt" class="hidden">
-        <section class="bg-base-100 border border-base-300 rounded">
-            <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-base-300">
-                <h1 class="text-base font-semibold m-0 mr-auto">
+        <section class="panel">
+            <div class="panel-header">
+                <h1 class="text-base font-semibold mr-auto">
                     <span id="day-title"></span>
                     <span id="flight-count" class="ml-2 font-normal opacity-60"></span>
                 </h1>

@@ -1,14 +1,11 @@
-import {flightOperationsAddress} from "../infrastructure/contexts.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
 
 const messageBox = document.getElementById("message-box")!;
 const start = document.getElementById("start")!;
-const portalLink = document.getElementById("portal-link") as HTMLAnchorElement;
 
-/* The start page of Load Planning: the way back to the entry of the application, and, for a user with exactly
-   one planner role, the way into Load Planning. */
+/* The start page of Load Planning: for a user with exactly one planner role, the way into Load Planning. The way
+   back to the entry of the application is in the top bar. */
 async function init(): Promise<void> {
-    portalLink.href = flightOperationsAddress("./");
     if (await plannerRoleOrNoAccess(messageBox) === null) {
         return;
     }

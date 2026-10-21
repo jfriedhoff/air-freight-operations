@@ -88,7 +88,7 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     }
     choice.value = uld.loadPosition ?? "";
     const assignButton = createElementWithText("button", "Toekennen") as HTMLButtonElement;
-    assignButton.className = "btn btn-sm btn-primary ml-2";
+    assignButton.className = "btn btn-sm btn-outline ml-2";
     assignButton.addEventListener("click", () => assign(cargo.id, uld.code, choice.value));
     cell.append(choice, assignButton);
     return cell;

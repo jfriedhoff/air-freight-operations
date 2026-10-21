@@ -8,65 +8,93 @@
     <title>Cargo-pagina</title>
     <script type="module" src="../src/ts/presenter/cargoPresenter.ts"></script>
     <script type="module" src="../src/ts/presenter/userPresenter.ts"></script>
+    <script type="module" src="../src/ts/presenter/navigation.ts"></script>
+    <script type="module" src="../src/ts/presenter/themeToggle.ts"></script>
     <link rel="stylesheet" href="../src/css/style.css"/>
 </head>
-<body class="container m-5 invisible">
-<div class="flex justify-end items-center gap-2">
-    <span id="user-name"></span>
-    <button id="logout-btn" class="btn btn-sm">Afmelden</button>
-</div>
-<p><a class="link" id="back-to-list" href="flights-to-load.html">← Te beladen vluchten</a></p>
-<h1 class="text-2xl font-bold">Cargo-pagina</h1>
-<p class="text-sm opacity-70">Alle tijden in Brusselse tijd.</p>
-
-<div class="alert hidden my-4" id="message-box"></div>
-
-<section id="cargo" class="hidden">
-    <div class="flex items-center gap-4 my-2">
-        <button id="refresh-btn" class="btn btn-sm">Vernieuwen</button>
-        <span id="updated-at" class="text-sm opacity-70"></span>
+<body class="min-h-screen bg-base-200 invisible">
+<header class="bg-slate-800 text-slate-100">
+    <div class="max-w-screen-2xl mx-auto px-6 h-12 flex items-center gap-8 text-sm whitespace-nowrap overflow-x-auto">
+        <span class="font-semibold">Air Freight Operations</span>
+        <nav class="flex h-full">
+            <a data-flight-operations="./" href="#" class="nav-link">Overzicht vluchten</a>
+            <a data-flight-operations="html/gantt-chart.html" href="#" class="nav-link">Gantt chart</a>
+            <a href="flights-to-load.html" class="nav-link-active">Te beladen vluchten</a>
+        </nav>
+        <div class="ml-auto flex items-center gap-4">
+            <button id="theme-btn" class="btn btn-xs btn-ghost text-slate-300" title="Licht of donker thema"></button>
+            <span id="user-name" class="text-slate-300"></span>
+            <button id="logout-btn" class="btn btn-xs btn-outline border-slate-500 text-slate-100">Afmelden</button>
+        </div>
     </div>
+</header>
 
-    <table class="table w-auto my-4">
-        <tbody>
-        <tr><th>Vlucht</th><td id="flight-number"></td></tr>
-        <tr><th>Scheduled vertrekdatum (UTC)</th><td id="scheduled-departure-date"></td></tr>
-        <tr><th>Vertrek</th><td id="departure-airport"></td></tr>
-        <tr><th>Aankomst</th><td id="arrival-airport"></td></tr>
-        <tr><th>STD</th><td id="std"></td></tr>
-        <tr id="etd-row" class="hidden"><th>ETD</th><td id="etd"></td></tr>
-        <tr><th>STA</th><td id="sta"></td></tr>
-        <tr id="eta-row" class="hidden"><th>ETA</th><td id="eta"></td></tr>
-        <tr><th>Beladingsperiode</th><td id="loading-period"></td></tr>
-        </tbody>
-    </table>
-    <p class="my-2"><a class="link" id="flight-details-link" href="#">Vluchtdetails</a> (Flight Operations)</p>
+<main class="max-w-screen-2xl mx-auto px-6 py-6">
+    <p class="text-sm mb-3"><a class="link link-hover" id="back-to-list" href="flights-to-load.html">← Te beladen vluchten</a></p>
+    <div class="alert hidden mb-4" id="message-box"></div>
 
-    <p id="load-state" class="font-bold hidden"></p>
-    <p id="role-note" class="hidden">Alleen een load planner kan laadposities wijzigen.</p>
+    <div id="cargo" class="hidden space-y-6">
+        <section class="panel">
+            <div class="panel-header">
+                <h1 class="text-base font-semibold mr-auto">Lading van vlucht <span id="flight-number"></span></h1>
+                <a class="btn btn-sm btn-outline" id="flight-details-link" href="#">Vluchtdetails (Flight Operations)</a>
+                <button id="refresh-btn" class="btn btn-sm btn-outline">Vernieuwen</button>
+                <span id="updated-at" class="text-xs opacity-60"></span>
+            </div>
+            <p id="load-state" class="hidden px-4 py-2 border-b border-base-300 bg-warning/10 text-sm font-medium"></p>
+            <div class="grid md:grid-cols-2 items-start">
+                <table class="table table-sm key-value">
+                    <tbody>
+                    <tr><th>Scheduled vertrekdatum (UTC)</th><td id="scheduled-departure-date"></td></tr>
+                    <tr><th>Vertrek</th><td id="departure-airport"></td></tr>
+                    <tr><th>STD</th><td id="std"></td></tr>
+                    <tr id="etd-row" class="hidden"><th>ETD</th><td id="etd"></td></tr>
+                    <tr><th>Beladingsperiode</th><td id="loading-period"></td></tr>
+                    </tbody>
+                </table>
+                <table class="table table-sm key-value">
+                    <tbody>
+                    <tr><th>Aankomst</th><td id="arrival-airport"></td></tr>
+                    <tr><th>STA</th><td id="sta"></td></tr>
+                    <tr id="eta-row" class="hidden"><th>ETA</th><td id="eta"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-    <h2 class="text-xl font-bold mt-6">Geboekte ULD's</h2>
-    <p id="uld-summary"></p>
-    <p id="no-ulds" class="hidden">Geen geboekte ULD's.</p>
-    <table id="uld-table" class="table">
-        <thead>
-        <tr><th>ULD</th><th>Gewicht</th><th>Bestemming</th><th>Laadpositie</th><th>Toegekend door</th></tr>
-        </thead>
-        <tbody id="ulds"></tbody>
-    </table>
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="text-base font-semibold">Geboekte ULD's</h2>
+                <span id="uld-summary" class="text-sm opacity-60 mr-auto"></span>
+                <div id="load-actions" class="hidden">
+                    <button id="finalize-btn" class="btn btn-sm btn-primary">Finalize Load</button>
+                </div>
+            </div>
+            <p id="no-ulds" class="hidden px-4 py-6 text-sm opacity-70">Geen geboekte ULD's.</p>
+            <table id="uld-table" class="table table-sm">
+                <thead class="bg-base-200/50 text-xs">
+                <tr><th>ULD</th><th>Gewicht</th><th>Bestemming</th><th>Laadpositie</th><th>Toegekend door</th></tr>
+                </thead>
+                <tbody id="ulds"></tbody>
+            </table>
+        </section>
 
-    <section id="load-actions" class="my-4 hidden">
-        <button id="finalize-btn" class="btn btn-primary">Finalize Load</button>
-    </section>
-    <section id="load-check-report" class="hidden">
-        <h2 class="text-xl font-bold mt-6">Rapport</h2>
-        <table class="table">
-            <thead>
-            <tr><th>Controle</th><th>Resultaat</th><th>Reden</th><th>Soort</th></tr>
-            </thead>
-            <tbody id="load-check-results"></tbody>
-        </table>
-    </section>
-</section>
+        <p id="role-note" class="hidden text-sm opacity-70">Alleen een load planner kan laadposities wijzigen.</p>
+
+        <section id="load-check-report" class="hidden panel">
+            <div class="panel-header">
+                <h2 class="text-base font-semibold">Rapport</h2>
+            </div>
+            <table class="table table-sm">
+                <thead class="bg-base-200/50 text-xs">
+                <tr><th>Controle</th><th>Resultaat</th><th>Reden</th><th>Soort</th></tr>
+                </thead>
+                <tbody id="load-check-results"></tbody>
+            </table>
+        </section>
+
+        <p class="text-xs opacity-60">Alle tijden in Brusselse tijd.</p>
+    </div>
+</main>
 </body>
 </html>
