@@ -48,6 +48,8 @@ let latestLoad = 0;
 let shown: {cargo: FlightCargo, report: LoadCheckReport | null} | null = null;
 /* The ULD the load planner picked to place or move, or null. */
 let pick: Pick | null = null;
+/* A choice made with the keyboard in a list that is not sent yet: the automatic reload would redraw it away. */
+let keyboardChoicePending = false;
 /* Why the checks of the latest load could not be asked, or null when they could (or were not needed). */
 let checksFailure: string | null = null;
 
@@ -112,9 +114,8 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     }
     const stored = uld.loadPosition ?? "";
     choice.value = stored;
-    let byKeyboard = false;
     const send = (): void => {
-        byKeyboard = false;
+        keyboardChoicePending = false;
         if (choice.value === stored) {
             return;
         }
@@ -129,16 +130,16 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
             event.preventDefault();
             send();
         } else if (event.key !== "Tab") {
-            byKeyboard = true;
+            keyboardChoicePending = true;
         }
     });
     choice.addEventListener("change", () => {
-        if (!byKeyboard) {
+        if (!keyboardChoicePending) {
             send();
         }
     });
     choice.addEventListener("blur", () => {
-        if (byKeyboard) {
+        if (keyboardChoicePending) {
             send();
         }
     });
@@ -263,11 +264,7 @@ function choose(next: Pick | null): void {
     }
 }
 
-/* A list next to a ULD that has the focus may hold a keyboard choice that is not sent yet, or be open: the
-   automatic reload would redraw it under the user. */
-function aListHasTheFocus(): boolean {
-    return document.activeElement instanceof HTMLSelectElement && uldRows.contains(document.activeElement);
-}
+
 
 /* A ULD on the deck is picked; a free position takes the picked ULD. */
 function clickOnDeck(cargo: FlightCargo, cell: DeckCell): void {
@@ -428,7 +425,7 @@ async function init(): Promise<void> {
             choose(null);
         }
     });
-    startAutoRefresh(reload, () => !assigning && !finalizing && !aListHasTheFocus());
+    startAutoRefresh(reload, () => !assigning && !finalizing && !keyboardChoicePending);
 }
 
 init();
