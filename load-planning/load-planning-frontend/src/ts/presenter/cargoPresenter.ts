@@ -100,7 +100,7 @@ function positionChoice(cargo: FlightCargo, uld: Uld): HTMLElement {
     cell.append(choice, assignButton);
     if (uld.loadPosition !== null) {
         const clearButton = createElementWithText("button", "Leegmaken") as HTMLButtonElement;
-        clearButton.className = "btn btn-sm ml-2";
+        clearButton.className = "btn btn-sm btn-outline ml-2";
         clearButton.addEventListener("click", () => clear(cargo.id, uld.code));
         cell.appendChild(clearButton);
     }
