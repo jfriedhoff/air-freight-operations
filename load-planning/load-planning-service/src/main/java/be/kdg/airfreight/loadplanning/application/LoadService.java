@@ -92,13 +92,14 @@ public class LoadService {
         return snapshot(cargo, floorPlan, now);
     }
 
-    public FlightCargo clear(ClearLoadPositionCommand command) {
+    public FlightCargoSnapshot clear(ClearLoadPositionCommand command) {
         requireRegistered(command.by());
         FlightCargo cargo = find(command.flightCargoId());
-        LoadPositionCleared cleared = cargo.clear(command.uldCode(), command.by(), clock.instant(), policy);
+        Instant now = clock.instant();
+        LoadPositionCleared cleared = cargo.clear(command.uldCode(), command.by(), now, policy);
         cargos.save(cargo);
         events.publishEvent(cleared);
-        return cargo;
+        return snapshot(cargo, floorPlanOf(cargo), now);
     }
 
     @Transactional(readOnly = true)

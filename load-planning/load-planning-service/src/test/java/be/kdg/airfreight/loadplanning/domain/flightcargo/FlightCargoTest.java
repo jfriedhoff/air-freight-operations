@@ -9,10 +9,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import be.kdg.airfreight.loadplanning.domain.DomainRuleViolationException;
+import be.kdg.airfreight.loadplanning.domain.NotFoundException;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * What FlightCargo returns. The Cucumber scenarios check its state; these tests check what the cargo says about
@@ -105,6 +108,45 @@ class FlightCargoTest {
     }
 
     /** Only the ULDs with a load position are in the load: the CPM lists what is on board. */
+    @Test
+    void placingAUldOnThePositionItAlreadyHasIsAccepted() {
+        cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);
+        cargo.assign(CODE, CL, planner, IN_THE_LOADING_PERIOD, FLOOR_PLAN, POLICY);
+
+        cargo.assign(CODE, CL, planner, IN_THE_LOADING_PERIOD, FLOOR_PLAN, POLICY);
+
+        assertThat(cargo.getLoad()).extracting(Uld::getPosition).containsExactly(CL);
+    }
+
+    @Test
+    void clearingAUldWithoutALoadPositionIsRefused() {
+        cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);
+
+        assertThatThrownBy(() -> cargo.clear(CODE, planner, IN_THE_LOADING_PERIOD, POLICY))
+            .isInstanceOf(DomainRuleViolationException.class)
+            .hasMessage("ULD AKE16689R7 has no load position");
+    }
+
+    @Test
+    void theLoadOfADepartedFlightIsNotChanged() {
+        cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);
+        cargo.updateFlightInfo(cargo.getFlightInfo().asDeparted());
+
+        assertThatThrownBy(() -> cargo.assign(CODE, CL, planner, IN_THE_LOADING_PERIOD, FLOOR_PLAN, POLICY))
+            .isInstanceOf(DomainRuleViolationException.class)
+            .hasMessage("The load can no longer change: the flight has departed");
+        assertThat(cargo.getLoad()).isEmpty();
+    }
+
+    @Test
+    void aUldThatIsNotBookedOnTheFlightIsNotFound() {
+        assertThatThrownBy(() -> cargo.assign(CODE, CL, planner, IN_THE_LOADING_PERIOD, FLOOR_PLAN, POLICY))
+            .isInstanceOf(NotFoundException.class)
+            .hasMessage("ULD [AKE16689R7] is not booked on this flight");
+        assertThatThrownBy(() -> cargo.clear(CODE, planner, IN_THE_LOADING_PERIOD, POLICY))
+            .isInstanceOf(NotFoundException.class);
+    }
+
     @Test
     void finalizingAnnouncesTheLoad() {
         cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);

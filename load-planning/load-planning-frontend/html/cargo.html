@@ -71,12 +71,14 @@
                 </div>
             </div>
             <p id="no-ulds" class="hidden px-4 py-6 text-sm opacity-70">Geen geboekte ULD's.</p>
-            <table id="uld-table" class="table table-sm">
-                <thead class="bg-base-200/50 text-xs">
-                <tr><th>ULD</th><th>Gewicht</th><th>Bestemming</th><th>Laadpositie</th><th>Toegekend door</th></tr>
-                </thead>
-                <tbody id="ulds"></tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table id="uld-table" class="table table-sm">
+                    <thead class="bg-base-200/50 text-xs">
+                    <tr><th>ULD</th><th>Gewicht</th><th>Bestemming</th><th>Laadpositie</th><th>Toegekend door</th></tr>
+                    </thead>
+                    <tbody id="ulds"></tbody>
+                </table>
+            </div>
         </section>
 
         <p id="role-note" class="hidden text-sm opacity-70">Alleen een load planner kan laadposities wijzigen.</p>
