@@ -39,7 +39,7 @@ class InvalidValueTest {
     private static final AirportCode ATH = new AirportCode("ATH");
     private static final LoadPosition CL = new LoadPosition("CL", Side.LEFT);
     private static final LoadPosition CR = new LoadPosition("CR", Side.RIGHT);
-    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfCLAndCR());
+    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfCLAndCR(), CL);
 
     private final LoadPlannerId planner = LoadPlannerId.create();
     private final FlightCargo cargo = FlightCargo.create(

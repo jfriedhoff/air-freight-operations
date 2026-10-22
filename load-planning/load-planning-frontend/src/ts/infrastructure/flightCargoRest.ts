@@ -1,7 +1,7 @@
 import type {FlightCargo} from "../domain/FlightCargo.ts";
 import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import type {FlightsToLoad, FlightToLoad} from "../domain/FlightToLoad.ts";
-import type {FinalizeOutcome} from "../domain/LoadCheckReport.ts";
+import type {FinalizeOutcome, LoadCheckReport} from "../domain/LoadCheckReport.ts";
 import {authorizedFetch} from "./auth.ts";
 import {SERVER_URL, throwResponseError} from "./restUtils.ts";
 
@@ -73,6 +73,15 @@ export async function clearLoadPosition(flightCargoId: string, uldCode: string):
         return response.json();
     }
     return throwResponseError("De laadpositie kon niet leeggemaakt worden", response);
+}
+
+/* Check Load: every check on the load as it is stored now. It changes nothing. */
+export async function checkLoad(flightCargoId: string): Promise<LoadCheckReport> {
+    const response = await authorizedFetch(`${FLIGHT_CARGOS_URL}/${encodeURIComponent(flightCargoId)}/load-check`);
+    if (response.ok) {
+        return response.json();
+    }
+    return throwResponseError("De lading kon niet gecontroleerd worden", response);
 }
 
 /* The server answers with the report both ways: 200 when the load is finalized, 409 with the code

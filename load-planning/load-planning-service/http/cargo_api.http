@@ -92,6 +92,21 @@ Content-Type: application/json
     });
 %}
 
+### Check Load: one result per check; offloading names the ULDs that cannot leave, lateral balance the weight per side
+GET {{api}}/flight-cargos/{{flight-cargo-id}}/load-check
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.test("Every check answers, the hard checks with their findings", function () {
+        const offloading = response.body.results.find(result => result.checkName === "Offloading");
+        const lateral = response.body.results.find(result => result.checkName === "Lateral balance");
+        client.assert(response.status === 200 && response.body.results.length === 3, "Expected 200 with 3 results");
+        client.assert(offloading.passed || offloading.offloading.obstructions.length > 0,
+            "A failed offloading check names what is stuck");
+        client.assert(lateral.lateralBalance.leftKilograms !== undefined, "Lateral balance gives the weight per side");
+    });
+%}
+
 ### The load planner takes the ULD off its load position again (200 within the loading period, otherwise 409)
 DELETE {{api}}/flight-cargos/{{flight-cargo-id}}/ulds/{{uld-code}}/load-position
 Authorization: Bearer {{access_token}}

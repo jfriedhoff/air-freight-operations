@@ -13,7 +13,10 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightInfo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightNumber;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlan;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.Route;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.Side;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class FlightToLoadDtoTest {
     private static final Instant NOW = Instant.parse("2026-01-09T05:00:00Z");
+    private static final LoadPosition DOOR = new LoadPosition("RL", Side.LEFT);
     private static final LoadingPolicy POLICY = new LoadingPolicy(Duration.ofHours(12), Duration.ofMinutes(20));
 
     private final FlightCargo cargo = FlightCargo.create(
@@ -41,7 +45,8 @@ class FlightToLoadDtoTest {
 
     @Test
     void aFinalizedLoadAndADepartedFlightAreMarked() {
-        cargo.finalizeLoad(LoadPlannerId.create(), NOW, List.of(), new FloorPlan(new AircraftType("TEST"), Map.of()),
+        cargo.finalizeLoad(LoadPlannerId.create(), NOW, List.of(), new FloorPlan(new AircraftType("TEST"),
+            Map.of(DOOR, List.of(new Route(List.of()))), DOOR),
             POLICY);
         cargo.updateFlightInfo(cargo.getFlightInfo().asDeparted());
 

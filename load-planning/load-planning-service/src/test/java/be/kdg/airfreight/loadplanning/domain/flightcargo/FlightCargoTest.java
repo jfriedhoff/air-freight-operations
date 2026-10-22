@@ -26,7 +26,7 @@ class FlightCargoTest {
     private static final LoadingPolicy POLICY = new LoadingPolicy(Duration.ofHours(12), Duration.ofMinutes(20));
     private static final AirportCode ATH = new AirportCode("ATH");
     private static final LoadPosition CL = new LoadPosition("CL", Side.LEFT);
-    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfCL());
+    private static final FloorPlan FLOOR_PLAN = new FloorPlan(new AircraftType("TEST"), floorPlanOfCL(), CL);
     private static final Instant IN_THE_LOADING_PERIOD = Instant.parse("2026-01-09T05:00:00Z");
     private static final UldCode CODE = new UldCode("AKE16689R7");
     private static final Weight WEIGHT = new Weight(new BigDecimal("1250"), WeightUnit.KG);
@@ -107,7 +107,6 @@ class FlightCargoTest {
             IN_THE_LOADING_PERIOD));
     }
 
-    /** Only the ULDs with a load position are in the load: the CPM lists what is on board. */
     @Test
     void placingAUldOnThePositionItAlreadyHasIsAccepted() {
         cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);
@@ -147,6 +146,7 @@ class FlightCargoTest {
             .isInstanceOf(NotFoundException.class);
     }
 
+    /** Only the ULDs with a load position are in the load: the CPM lists what is on board. */
     @Test
     void finalizingAnnouncesTheLoad() {
         cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);

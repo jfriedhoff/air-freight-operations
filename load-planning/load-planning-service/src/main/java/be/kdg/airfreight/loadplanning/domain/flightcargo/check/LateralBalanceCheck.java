@@ -7,10 +7,12 @@ import java.util.Objects;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.CheckSeverity;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlan;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LateralBalanceDetails;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LateralBalanceLimit;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheck;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadCheckResult;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Side;
+import org.jspecify.annotations.Nullable;
 
 /** The heaviest side may weigh at most the lightest side plus the limit. Positions without a side do not count. */
 public final class LateralBalanceCheck implements LoadCheck {
@@ -37,11 +39,21 @@ public final class LateralBalanceCheck implements LoadCheck {
         BigDecimal left = kilogramsOn(cargo, Side.LEFT);
         BigDecimal right = kilogramsOn(cargo, Side.RIGHT);
         BigDecimal allowed = left.min(right).multiply(BigDecimal.ONE.add(limit.fraction()));
+        LateralBalanceDetails details = new LateralBalanceDetails(left, right, allowed, heavierOf(left, right));
         if (left.max(right).compareTo(allowed) <= 0) {
-            return LoadCheckResult.pass(NAME, severity());
+            return LoadCheckResult.pass(NAME, severity(), details);
         }
-        return LoadCheckResult.fail(NAME, severity(), "Left carries " + plain(left) + " kg and right "
-            + plain(right) + " kg; the heaviest side may carry at most " + plain(allowed) + " kg");
+        return LoadCheckResult.fail(NAME, severity(), "Left carries " + plain(details.leftKilograms())
+            + " kg and right " + plain(details.rightKilograms()) + " kg; the heaviest side may carry at most "
+            + plain(details.maximumOnTheHeaviestSide()) + " kg", details);
+    }
+
+    private static @Nullable Side heavierOf(BigDecimal left, BigDecimal right) {
+        int comparison = left.compareTo(right);
+        if (comparison == 0) {
+            return null;
+        }
+        return comparison > 0 ? Side.LEFT : Side.RIGHT;
     }
 
     private static BigDecimal kilogramsOn(FlightCargo cargo, Side side) {

@@ -10,14 +10,31 @@ import java.util.Optional;
 import be.kdg.airfreight.loadplanning.domain.InvalidValueException;
 import org.jmolecules.ddd.annotation.ValueObject;
 
-/** The load positions of one aircraft type and, per position, the routes to the cargo door. */
+/**
+ * The load positions of one aircraft type, the cargo door and, per position, the routes to that door. The door is
+ * the load position the cargo leaves by.
+ */
 @ValueObject
-public record FloorPlan(AircraftType aircraftType, Map<LoadPosition, List<Route>> routesByPosition) {
+public record FloorPlan(AircraftType aircraftType, Map<LoadPosition, List<Route>> routesByPosition,
+                        LoadPosition door) {
     public FloorPlan {
         Objects.requireNonNull(aircraftType, "Aircraft type cannot be null");
         Objects.requireNonNull(routesByPosition, "Routes cannot be null");
+        Objects.requireNonNull(door, "Cargo door cannot be null");
         // keeps the order in which the positions were added: nose to tail
         routesByPosition = Collections.unmodifiableMap(new LinkedHashMap<>(routesByPosition));
+        if (!routesByPosition.containsKey(door)) {
+            throw new InvalidValueException("The cargo door of aircraft type " + aircraftType.code()
+                + " must be at one of its load positions, not at " + door.name());
+        }
+        // A ULD on a position without a route could never leave, and the offloading check would have no ULD in its
+        // way to name. The position at the door has one empty route: nothing to pass.
+        routesByPosition.forEach((position, routes) -> {
+            if (routes.isEmpty()) {
+                throw new InvalidValueException("Load position " + position.name() + " of aircraft type "
+                    + aircraftType.code() + " has no route to the cargo door");
+            }
+        });
     }
 
     public boolean contains(LoadPosition position) {

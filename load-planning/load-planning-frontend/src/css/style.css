@@ -26,4 +26,67 @@
     .key-value th {
         @apply w-56 font-medium opacity-70;
     }
+
+    /* The deck of the floor plan: three rows (right side, centre line, left side) and one column per row of the
+       floor plan. Wide enough for a ULD code; on a narrow screen the deck scrolls inside its panel. */
+    .deck {
+        display: grid;
+        grid-template-columns: repeat(var(--deck-columns, 19), minmax(4rem, 1fr));
+        grid-template-rows: repeat(3, 3rem);
+        gap: 0.25rem;
+        min-width: max-content;
+        @apply p-3 border-2 border-base-300 bg-base-200;
+        border-radius: 3rem 0.75rem 0.75rem 3rem;
+    }
+
+    .deck-cell {
+        @apply relative flex flex-col items-center justify-center rounded border text-[0.6rem] leading-tight font-mono;
+    }
+
+    .deck-name {
+        @apply font-semibold opacity-70;
+    }
+
+    .deck-mark {
+        @apply absolute top-0 right-1 text-error font-bold;
+    }
+
+    .deck-free {
+        @apply border-dashed border-base-content/30 bg-base-100;
+    }
+
+    .deck-to-arrival {
+        @apply border-info bg-info/20;
+    }
+
+    .deck-to-other {
+        @apply border-base-content/40 bg-base-300;
+    }
+
+    .deck-stuck {
+        @apply outline-2 outline-offset-[-3px] outline-error;
+    }
+
+    .deck-in-the-way {
+        @apply border-2 border-error bg-error/25;
+    }
+
+    .deck-target {
+        @apply border-solid border-success bg-success/15 cursor-pointer;
+    }
+
+    /* a ring, not an outline: a picked ULD that cannot be offloaded keeps its red outline */
+    .deck-picked {
+        @apply ring-4 ring-warning;
+    }
+
+    /* after the states above: the door stays marked, also on a free position that is a target */
+    .deck-door {
+        @apply border-b-4 border-b-warning;
+        border-bottom-style: solid;
+    }
+
+    .deck-key {
+        @apply inline-flex items-center justify-center w-4 h-4 mr-1 align-middle rounded border text-[0.6rem];
+    }
 }
