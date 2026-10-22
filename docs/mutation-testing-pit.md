@@ -80,6 +80,7 @@ There is no minimum score (`mutationThreshold`) that fails the build yet.
 | 7 October 2026 | Cucumber `@unit` scenarios up to story 13 | 118 | 74 (63 %) | 84 % |
 | 7 October 2026 | + `FlightTest`, `ActualTimeToleranceTest` | 118 | 88 (75 %) | 99 % |
 | 14 October 2026 | Domain rules from JUnit to scenarios (stories 10, 37) | 126 | 99 (79 %) | 99 % |
+| 22 October 2026 | + `Flight.removed` (story 38), no new unit tests | 127 | 99 (78 %) | 99 % |
 
 The first measurement found these gaps; `FlightTest` and `ActualTimeToleranceTest` close them:
 
@@ -101,9 +102,10 @@ left `DelayCodeCatalogTest`.
 It only behaves differently for two `Delay` objects with the same id, and only `hydrate`
 (persistence) creates those. The integration tests cover that.
 
-**No coverage (29):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
-`FlightPlanner` and `RetentionPeriod`. They belong to the integration tests or to stories that
-have no tests yet (2, 38).
+**No coverage (27):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
+`notFound`, `FlightPlanner` and `RetentionPeriod`. They belong to the integration tests or to
+stories that have no unit tests yet (2, 38). The events of `Flight.announced` and `Flight.removed`
+are only checked by the integration scenarios of stories 1 and 38; no unit test reads them.
 
 ### Load planning
 
@@ -116,6 +118,8 @@ have no tests yet (2, 38).
 | 7 October 2026 | + story 18 | 163 | 120 (74 %) | 90 % |
 | 14 October 2026 | Loading period stays closed (story 18) | 165 | 128 (78 %) | 92 % |
 | 14 October 2026 | + stories 15, 20, 21, 37 for the rules without a scenario, `FlightCargoTest`, `UldTest` | 165 | 139 (84 %) | 99 % |
+| 15 October 2026 | Rerun | 180 | 155 (86 %) | 99 % |
+| 22 October 2026 | Rerun | 191 | 166 (87 %) | 99 % |
 
 Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
 through but does not check: `book` and `assign` (stories 15, 18) and the validation of
@@ -163,17 +167,33 @@ scenarios, and `OffloadingCheckTest` moved into them:
   gets slower. Killing it would need a test of how the hash is computed.
 - The negated `while (foundMore)` in `OffloadingCheck.check` loops forever. PIT reports it as
   **timed out**, which counts as killed.
+- `LateralBalanceCheck.heavierOf`: `comparison > 0` becoming `>= 0` is equivalent. The line above
+  already returns `null` when both sides weigh the same, so `comparison` is never 0 there.
+
+**No coverage (23):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
+`notFound`, the `name()` of the checks, `LoadPlanner`, and `FlightInfo.withEstimatedArrival`, which
+only `FlightInfoService` calls.
 
 ### Messaging
 
 | Date | State | Mutants | Killed | Test strength |
 | --- | --- | --- | --- | --- |
 | 7 October 2026 | Cucumber `@unit` scenarios of story 1 | 86 | 12 (14 %) | 100 % |
+| 22 October 2026 | + story 30 (date derivation) | 92 | 32 (35 %) | 100 % |
 
 Every mutant in `FlightSeries` and `SchedulePeriod` is killed, including the arrival at or before the
-departure time (next day) and the last day of the period. The 74 without coverage are in the
-telegram writers and `DateDerivation` (story 30) and in `ReceivedMessage` and `OutgoingMessage`,
-which the integration tests cover.
+departure time (next day) and the last day of the period. Story 30 kills all 12 mutants in
+`DateDerivation`, and there are no survivors.
+
+The 60 without coverage:
+
+- The MVT writers (`MvtWriter`, `EdWriter`, `EaWriter`, `AdWriter`, `AaWriter`, 15 mutants): stories
+  11 and 14 only have `@e2e` scenarios.
+- The validation in `CpmLine`, `UldMessage` and `FormatVersion`: only `@integration` and `@e2e`
+  scenarios reach it (stories 25 and 29), and PIT does not run those. `LoadFinalized.cpmCreated` and
+  `UldMessage.bookingOn` are only called by the application services.
+- `ReceivedMessage` and `OutgoingMessage` (34): mostly getters, `hydrate` and `equals`/`hashCode`,
+  which the integration tests cover.
 
 ## References
 
