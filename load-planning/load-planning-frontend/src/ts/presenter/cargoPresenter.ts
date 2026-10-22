@@ -264,8 +264,6 @@ function choose(next: Pick | null): void {
     }
 }
 
-
-
 /* A ULD on the deck is picked; a free position takes the picked ULD. */
 function clickOnDeck(cargo: FlightCargo, cell: DeckCell): void {
     if (cell.uld !== null) {

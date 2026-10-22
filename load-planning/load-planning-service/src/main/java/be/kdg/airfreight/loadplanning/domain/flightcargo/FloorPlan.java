@@ -27,6 +27,14 @@ public record FloorPlan(AircraftType aircraftType, Map<LoadPosition, List<Route>
             throw new InvalidValueException("The cargo door of aircraft type " + aircraftType.code()
                 + " must be at one of its load positions, not at " + door.name());
         }
+        // A ULD on a position without a route could never leave, and the offloading check would have no ULD in its
+        // way to name. The position at the door has one empty route: nothing to pass.
+        routesByPosition.forEach((position, routes) -> {
+            if (routes.isEmpty()) {
+                throw new InvalidValueException("Load position " + position.name() + " of aircraft type "
+                    + aircraftType.code() + " has no route to the cargo door");
+            }
+        });
     }
 
     public boolean contains(LoadPosition position) {

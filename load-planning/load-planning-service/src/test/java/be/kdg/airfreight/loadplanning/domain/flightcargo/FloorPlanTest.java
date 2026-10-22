@@ -43,4 +43,17 @@ class FloorPlanTest {
             .isInstanceOf(InvalidValueException.class)
             .hasMessage("The cargo door of aircraft type TEST must be at one of its load positions, not at RL");
     }
+
+    @Test
+    void aPositionWithoutARouteToTheDoorIsRefused() {
+        LoadPosition cl = new LoadPosition("CL", Side.LEFT);
+        LoadPosition dl = new LoadPosition("DL", Side.LEFT);
+        Map<LoadPosition, List<Route>> routes = new LinkedHashMap<>();
+        routes.put(cl, List.of(new Route(List.of())));
+        routes.put(dl, List.of());
+
+        assertThatThrownBy(() -> new FloorPlan(new AircraftType("TEST"), routes, cl))
+            .isInstanceOf(InvalidValueException.class)
+            .hasMessage("Load position DL of aircraft type TEST has no route to the cargo door");
+    }
 }

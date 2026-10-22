@@ -107,7 +107,6 @@ class FlightCargoTest {
             IN_THE_LOADING_PERIOD));
     }
 
-    /** Only the ULDs with a load position are in the load: the CPM lists what is on board. */
     @Test
     void placingAUldOnThePositionItAlreadyHasIsAccepted() {
         cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);
@@ -147,6 +146,7 @@ class FlightCargoTest {
             .isInstanceOf(NotFoundException.class);
     }
 
+    /** Only the ULDs with a load position are in the load: the CPM lists what is on board. */
     @Test
     void finalizingAnnouncesTheLoad() {
         cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);
