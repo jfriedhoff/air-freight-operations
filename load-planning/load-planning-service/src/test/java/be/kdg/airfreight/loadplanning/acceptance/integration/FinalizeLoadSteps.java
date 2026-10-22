@@ -1,10 +1,12 @@
 package be.kdg.airfreight.loadplanning.acceptance.integration;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
 import be.kdg.airfreight.loadplanning.TestClock;
 import be.kdg.airfreight.loadplanning.TestHelper;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightCargoId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.WeightUnit;
 import com.jayway.jsonpath.JsonPath;
@@ -23,13 +25,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Story 24 through the REST API: Check Load and Finalize Load on the cargo of HJ221 of 9 January 2026, at 05:00
- * UTC inside its loading period. The unit scenarios of story 24 check the rules on the aggregate; these check
- * what only the API gives: the report in the answer, and the checks running again when the load changed in
- * between. Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
+ * Stories 23 and 24 through the REST API: Check Load and Finalize Load on the cargo of HJ221 of 9 January 2026,
+ * at 05:00 UTC inside its loading period. The unit scenarios check the rules on the aggregate; these check what
+ * only the API gives: the report in the answer, the checks running again when the load changed in between, the
+ * refusal outside the loading period, and that Check Load saves and sends nothing. Cucumber makes a new instance
+ * for every scenario, so the fields are the state of one scenario.
  */
 public class FinalizeLoadSteps {
     private static final String CARGO = "/api/flight-cargos/{id}";
@@ -41,6 +45,8 @@ public class FinalizeLoadSteps {
 
     private FlightCargoId cargoId;
     private MvcResult finalizeAnswer;
+    private FlightCargo loadBefore;
+    private long outboxBefore;
 
     public FinalizeLoadSteps(MockMvc mockMvc, TestHelper testHelper, TestClock clock) {
         this.mockMvc = mockMvc;
@@ -56,6 +62,20 @@ public class FinalizeLoadSteps {
     @Given("it is within the loading period")
     public void itIsWithinTheLoadingPeriod() {
         clock.set(TestHelper.IN_THE_LOADING_PERIOD);
+        cargoId = testHelper.saveCargo().getId();
+    }
+
+    /** The loading period of HJ221 starts on 8 January at 18:30 UTC, 12 hours before the STD. */
+    @Given("the loading period has not started yet")
+    public void theLoadingPeriodHasNotStartedYet() {
+        clock.set(Instant.parse("2026-01-08T18:29:00Z"));
+        cargoId = testHelper.saveCargo().getId();
+    }
+
+    /** It ends at 06:10 UTC, 20 minutes before the STD. The end itself is no longer part of it. */
+    @Given("the loading period is over")
+    public void theLoadingPeriodIsOver() {
+        clock.set(Instant.parse("2026-01-09T06:10:00Z"));
         cargoId = testHelper.saveCargo().getId();
     }
 
@@ -81,6 +101,41 @@ public class FinalizeLoadSteps {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"loadPosition\": \"DR\"}")
                 .with(aLoadPlanner("Another load planner")))
             .andExpect(status().isOk());
+    }
+
+    @When("I click Check Load")
+    public void iClickCheckLoad() throws Exception {
+        loadBefore = testHelper.find(cargoId);
+        outboxBefore = testHelper.outboxCount();
+        checkLoad();
+    }
+
+    /** The page offers Check Load only when the cargo says the load can change (canChangeLoad in FlightCargo.ts). */
+    @Then("I cannot use Check Load")
+    public void iCannotUseCheckLoad() throws Exception {
+        mockMvc.perform(get(CARGO, cargoId.id()).with(aLoadPlanner("Test load planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.loadCanChange").value(false));
+    }
+
+    @Then("the API refuses a check too, with an explanation")
+    public void theApiRefusesACheckToo() throws Exception {
+        mockMvc.perform(get(CARGO + "/load-check", cargoId.id()).with(aLoadPlanner("Test load planner")))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"))
+            .andExpect(jsonPath("$.detail").value("The load can only be checked within the loading period"));
+    }
+
+    /** Field by field, the version too: a check saves nothing, so the version must not go up. */
+    @Then("the load remains unchanged")
+    public void theLoadRemainsUnchanged() {
+        assertThat(testHelper.find(cargoId)).usingRecursiveComparison().isEqualTo(loadBefore);
+    }
+
+    /** Every message to the partners leaves through the outbox, and Check Load puts nothing in it. */
+    @Then("no message is sent")
+    public void noMessageIsSent() {
+        assertThat(testHelper.outboxCount()).isEqualTo(outboxBefore);
     }
 
     @When("I click Finalize Load")

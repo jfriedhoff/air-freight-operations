@@ -140,7 +140,7 @@ De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert 
 | --- | --- | --- |
 | Flight Operations | `flight-operations.events` | `flight-operations.messaging-events` |
 | Load Planning | `load-planning.events` | `load-planning.messaging-events` |
-| Messaging | `messaging.events` (voor de andere services), `messaging.partner-messages` (FLM, MVT, CPM) | `messaging.schedule`, `messaging.bookings`, `messaging.flights`, `messaging.loads` |
+| Messaging | `messaging.events` (voor de andere services), `partner-exchange` (FLM, MVT, CPM) | `messaging.schedule`, `messaging.bookings`, `messaging.flights`, `messaging.loads` |
 
 - De partnerberichten komen in de queue `partners.all`, zolang er geen partner aangesloten is.
 - Een bericht dat een service niet kan verwerken, belandt in haar dead letter queue: `flight-operations.dlq`, `load-planning.dlq` of `messaging.dlq`.

@@ -110,6 +110,8 @@ public class PolicyValueSteps {
         cargo.assign(new UldCode("AKE16690R7"), floorPlan.positionNamed("CR").orElseThrow(), LoadPlannerId.create(),
             withinTheLoadingPeriod, floorPlan, anyPolicy);
         cargos.save(cargo);
+        // Check Load is refused outside the loading period, so the restarted unit needs the time too.
+        restarted.getBean(TestClock.class).set(withinTheLoadingPeriod);
         lateralBalance = restarted.getBean(LoadService.class).checkLoad(cargo.getId()).results().stream()
             .filter(result -> result.checkName().equals("Lateral balance"))
             .findFirst()

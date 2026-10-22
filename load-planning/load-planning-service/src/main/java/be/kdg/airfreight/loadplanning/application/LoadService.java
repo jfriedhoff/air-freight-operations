@@ -105,7 +105,7 @@ public class LoadService {
     @Transactional(readOnly = true)
     public LoadCheckReport checkLoad(FlightCargoId id) {
         FlightCargo cargo = find(id);
-        return cargo.checkLoad(checks, floorPlanOf(cargo));
+        return cargo.checkLoad(checks, floorPlanOf(cargo), clock.instant(), policy);
     }
 
     /**
@@ -117,7 +117,7 @@ public class LoadService {
         FlightCargo cargo = find(command.flightCargoId());
         FloorPlan floorPlan = floorPlanOf(cargo);
         Instant now = clock.instant();
-        LoadCheckReport report = cargo.checkLoad(checks, floorPlan);
+        LoadCheckReport report = cargo.checkLoad(checks, floorPlan, now, policy);
         if (!report.hardChecksPassed()) {
             return new FinalizeOutcome(false, report);
         }

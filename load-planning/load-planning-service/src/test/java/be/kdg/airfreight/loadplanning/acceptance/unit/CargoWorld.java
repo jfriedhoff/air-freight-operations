@@ -189,11 +189,11 @@ public class CargoWorld {
     }
 
     void check(LoadCheck check) {
-        checkResult = cargo.checkLoad(List.of(check), floorPlan).results().getFirst();
+        checkResult = cargo.checkLoad(List.of(check), floorPlan, now, POLICY).results().getFirst();
     }
 
     void checkAll() {
-        report = cargo.checkLoad(CHECKS, floorPlan);
+        report = cargo.checkLoad(CHECKS, floorPlan, now, POLICY);
     }
 
     /** For the When steps: runs the action and keeps its refusal in error. */
