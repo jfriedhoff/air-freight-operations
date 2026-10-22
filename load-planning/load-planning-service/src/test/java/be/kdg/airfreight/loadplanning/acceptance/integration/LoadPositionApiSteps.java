@@ -23,11 +23,10 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.token;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 /**
@@ -114,8 +113,7 @@ public class LoadPositionApiSteps {
         return mockMvc.perform(put("/api/flight-cargos/{id}/ulds/{uldCode}/load-position", cargoId.id(), uld.value())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"loadPosition\": \"" + position + "\"}")
-                .with(jwt().jwt(token -> token.subject(planner.id().toString()))
-                    .authorities(new SimpleGrantedAuthority("ROLE_load-planner"))))
+                .with(token(planner.id(), "load-planner")))
             .andReturn().getResponse();
     }
 }

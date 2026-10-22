@@ -15,17 +15,19 @@ final class Logins {
 
     /** A token for this account with these roles, written as in Keycloak ("load-planner"). */
     static RequestPostProcessor token(UUID subject, String... roles) {
-        SimpleGrantedAuthority[] authorities = Arrays.stream(roles)
-            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-            .toArray(SimpleGrantedAuthority[]::new);
-        return jwt().jwt(token -> token.subject(subject.toString())).authorities(authorities);
+        return jwt().jwt(token -> token.subject(subject.toString())).authorities(authorities(roles));
     }
 
     /** A token that also carries the name Keycloak gives the account, as a real token does. */
     static RequestPostProcessor namedToken(UUID subject, String name, String... roles) {
-        SimpleGrantedAuthority[] authorities = Arrays.stream(roles)
+        return jwt().jwt(token -> token.subject(subject.toString()).claim("name", name))
+            .authorities(authorities(roles));
+    }
+
+    /** Spring Security sees a Keycloak role "load-planner" as the authority "ROLE_load-planner". */
+    private static SimpleGrantedAuthority[] authorities(String... roles) {
+        return Arrays.stream(roles)
             .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
             .toArray(SimpleGrantedAuthority[]::new);
-        return jwt().jwt(token -> token.subject(subject.toString()).claim("name", name)).authorities(authorities);
     }
 }
