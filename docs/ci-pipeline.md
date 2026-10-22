@@ -11,7 +11,9 @@ Every merge request and every push to `main` runs all tests in GitLab. The confi
 - Every job gets its own empty PostgreSQL and RabbitMQ (`services`), the same versions as
   `docker-compose.yml`. The simulator job has no database.
 - A job runs `./gradlew :<module>:test`: unit tests, MockMvc tests and both Cucumber suites.
-  `@e2e` scenarios are not part of the pipeline.
+  `@e2e` and `@ui` scenarios are not part of the pipeline: we run them by hand (see
+  [`cucumber-acceptance-tests.md`](cucumber-acceptance-tests.md)). The logic behind the pages does run
+  here, in the frontend jobs below.
 - One job per frontend: `flight-operations-frontend`, `load-planning-frontend`. They run on a Node image with
   `node --test`, the test runner built into Node, so it needs no JDK, Gradle, database or RabbitMQ.
   The tests only import our own code, so there is no `npm install`. Locally `npm test` in the

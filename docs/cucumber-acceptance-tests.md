@@ -113,8 +113,8 @@ could only drift from it.
 ### Messaging
 
 `be.kdg.airfreight.messaging.acceptance.unit` has no World yet: every step class only reads its own
-state (story 1 in `ScheduleSteps`, story 30 in `DateDerivationSteps`), so they keep it in their own
-fields. A World is added when a second step class needs the same state (see "Adding a story", rule 4).
+state (story 1 in `ScheduleSteps`, story 30 in `DateDerivationSteps`, and the classes for stories 11,
+14, 25, 28 and 29 below), so they keep it in their own fields. A World is added when a second step class needs the same state (see "Adding a story", rule 4).
 `ParameterTypes` is in `acceptance.common`: both suites have it in their glue, because the unit and
 integration steps use the same dates and times.
 
@@ -123,6 +123,10 @@ integration steps use the same dates and times.
 | `ParameterTypes` (`common`) | `{time}` ("06:30" as `LocalTime`), `{hhmm}` ("1200", a telegram time), `{day}` ("09", a day of the month: `{int}` cannot read the leading zero), `{date}` ("9 January 2026"), `{moment}` ("9 January 2026 08:00", UTC), `{weekday}`, `{month}` and `{days}` ("5, 8, 12 and 15"). |
 | `ScheduleSteps` | Story 1. What a scenario does not name gets a default (BRU to ATH, 06:30 and 09:45, SXBAA). A date with a weekday ("Monday 5 January 2026") also checks that the weekday is right, so a typo in the Gherkin cannot make a test pass. |
 | `DateDerivationSteps` | Story 30. Calls `DateDerivation` directly, as `BookingService` does. "The message is invalid" checks the refusal of the derivation: that is what makes `BookingService` set the message aside. The distance scenario also checks the day counts in its Gherkin. |
+| `TelegramSteps` | Stories 11 and 14. "Flight Operations reports ..." builds the flight events and asks every MVT writer whether it writes them, as `FlightEventService` does. Checks the telegram after midnight: the time moves to the next day, the day in the telegram stays that of the scheduled departure date. |
+| `CpmLineSteps` | Story 25. A line of the CPM needs a ULD code, a load position and a weight unit; a refused line makes the whole finalized load invalid. |
+| `OutgoingMessageSteps` | Story 28. A partner message that has been sent cannot be marked as sent again, so the relay can never send it twice. |
+| `IncomingMessageSteps` | Story 29. Builds the values of a ULD message (ULD code, weight and unit, destination, format version) and the airports of an SSM, as the readers do after reading the JSON, and checks which values make the message invalid. |
 
 "The SSM is processed" calls `FlightSeries.flightsScheduled`, the domain logic that
 `ScheduleService` uses after `JsonSsmReader` has read the message. Reading the JSON, the inbox and
@@ -190,12 +194,15 @@ PIT runs both and shows what neither checks (see [`mutation-testing-pit.md`](mut
 
 | Service | Test | What it checks |
 | --- | --- | --- |
-| flight-operations | `FlightTest` | The events of `addDelay`, `changeDelay` (none when only the description changes), `recordFinalizedLoad`, `registerDeparture` and `registerArrival` (the MVT scenarios are `@e2e`), and `isFinalizedLoadReceived`, which `FinalizedLoadService` reads to ignore a second CPM |
+| flight-operations | `FlightTest` | The events of `addDelay`, `changeDelay` (none when only the description changes), `recordFinalizedLoad`, `registerDeparture`, `registerArrival`, `announced` and `removed` (what Messaging turns into an FLM or an MVT), and `isFinalizedLoadReceived`, which `FinalizedLoadService` reads to ignore a second CPM |
 | flight-operations | `InvalidValueTest` | Which exception a refusal is: an invalid value (400) or an action that does not fit the state (409) |
 | flight-operations | `DelayCodeCatalogTest` | What the catalog returns for a known code, and that an entry of the IATA list needs a description |
 | flight-operations | `FlightPlannerIdTest` | The planner id taken from the account, and the message of the refusal for an unregistered planner |
 | load-planning | `FlightCargoTest` | The events of `book`, `assign`, `clear` and `finalizeLoad` (only the ULDs with a position are in the load of the CPM), and `hasBooked` |
 | load-planning | `UldTest` | `equals`: a ULD is identified by its code |
+| messaging | `MvtWriterTest` | Each MVT writer only accepts its own flight event (`FlightEventService` picks the writer with `writes`), and a written message keeps its id, flight, type, format version and creation time until the relay sends it |
+| messaging | `UldMessageTest` | The booking that `bookingOn` returns: the ULD on the flight of the derived date |
+| messaging | `LoadFinalizedTest` | The event that `cpmCreated` returns, which tells Flight Operations the CPM is written |
 
 A JUnit test that needs a package-private constructor (`new Uld(...)` in `UldTest`) is in the same
 package as the class.
@@ -238,6 +245,7 @@ The other services, after stories 2, 3, 26 to 29, 37 and 38:
 | Part | Where | What it does and why |
 | --- | --- | --- |
 | `MessagingTraffic`, `Messages`, `ScenarioTime` | messaging | Plays the senders on their exchanges and reads what Messaging stored: the inbox, the outbox for the other units, the partner messages. `Messages` builds valid messages that a scenario changes or breaks; `ScenarioTime` gives the mocked `Clock` the time of the stories before every scenario. |
+| `MvtSteps`, `CpmSteps` | messaging | Stories 11, 14 and 25: what the `@e2e` scenarios check inside Messaging. A flight event or a finalized load is published on the exchange of its sender; the steps find the MVT or CPM among the partner messages and wait (`awaitSent`) until the relay has marked it as sent. They do not read the partner queue: two telegrams written at the same moment can be sent in either order. `CpmSteps` also checks the message that tells Flight Operations the CPM is written. |
 | Counting before and after | messaging | A queue of the development environment can still hold older messages, which the listeners process first. The steps first let the queue empty (`waitUntilHandled`), then count, so only the message of the scenario can change the count. |
 | Own exchanges and queues | all four services | Every service reads the names of its exchanges and queues from `AmqpProperties` (`<service>.amqp.*`). Production keeps the names in `main/resources/application.properties`; the test profile gives each one the name `<service>-test.` + the production name, such as `load-planning-test.load-planning.messaging-events`. So a service that runs at the same time never takes a test message (load-planning reads with a single active consumer: a running service would get them all), a test event never reaches another service, and the tests never declare the exchanges and queues of a running service. Before, the events of the messaging tests stayed in the queues of Load Planning: the next run of the load-planning tests handled them first, and a service started later treated them as real. |
 | Calling the use case | flight-operations | The tests of Flight Operations read nothing from RabbitMQ (see its test profile), and `DddArchTest` lets only the listener call a use case from infrastructure. So the steps of story 2 call `FlightSchedulingService`, as `MessagingEventListener` does. |
@@ -271,8 +279,8 @@ Implementing a story:
 The `.feature` file is the source of truth for the acceptance criteria. The GitLab issue links to
 it; when a criterion changes, change the file in the same MR.
 
-Stories with only `@ui` or `@e2e` scenarios have a file too, so the issue can link to it; Cucumber
-does not run them. A story that spans several services (7, 34, 36, 37, 39) is split: each service's
+Stories with only `@ui` or `@e2e` scenarios have a file too, so the issue can link to it. Cucumber
+does not run them: we run them by hand (see "Running"). A story that spans several services (7, 34, 36, 37, 39) is split: each service's
 file keeps only the scenarios or Examples rows it answers, and says in a comment where the rest is.
 
 ## Adding a story
@@ -303,7 +311,13 @@ file keeps only the scenarios or Examples rows it answers, and says in a comment
   the whole classpath, finds the Spring configuration and needs a database.
 - `@integration`: run `docker compose up -d`, **stop the service itself** (it would read from the same
   queue), then right-click `IntegrationAcceptanceTest` → Run. While the tests run, the outbox relays
-  really publish on the exchanges. `@e2e` and `@ui` don't run in Cucumber.
+  really publish on the exchanges.
+- `@e2e` and `@ui` scenarios are not automated: Cucumber skips them and the pipeline does not run them.
+  We run them by hand: `docker compose up -d`, start all services, send messages with
+  `simulator/simulator-service/http/simulator.http`, and follow the result in the screens and in the
+  RabbitMQ management UI (:15672). What does run automatically: the logic behind the pages, in the
+  frontend unit tests (see [`frontend-tests.md`](frontend-tests.md)), and what an `@e2e` scenario
+  checks inside one service, as an `@integration` scenario at the boundary of the events.
 - To check whether the scenarios really notice bugs: see
   [`mutation-testing-pit.md`](mutation-testing-pit.md).
 - In GitLab the same suites run in the pipeline, every service with its own database and RabbitMQ:

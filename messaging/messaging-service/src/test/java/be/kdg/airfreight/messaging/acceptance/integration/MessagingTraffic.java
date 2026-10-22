@@ -107,6 +107,17 @@ public class MessagingTraffic {
         return outgoing.findAll().stream().map(JpaOutgoingMessage::toDomain).toList();
     }
 
+    /**
+     * Waits until the relay of the partner outbox has published this partner message and marked it as sent.
+     * Reading it from the partner queue instead would drop the messages before it, and two telegrams written
+     * at the same moment can be sent in either order.
+     */
+    public void awaitSent(UUID messageId) {
+        await().atMost(TIMEOUT).until(() -> outgoing.findById(messageId)
+            .map(message -> message.toDomain().isSent())
+            .orElse(false));
+    }
+
     /** As if Messaging stopped right after publishing the partner message, before it marked it as sent. */
     public void forgetThatItWasSent(UUID messageId) {
         transaction.executeWithoutResult(status -> entityManager

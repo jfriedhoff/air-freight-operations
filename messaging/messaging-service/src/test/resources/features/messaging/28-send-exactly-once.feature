@@ -48,3 +48,10 @@ Feature: Messages are still sent exactly once when the connection is restored
     When Messaging receives the same event about the departure delay of HJ221 twice
     Then one MVT-ED and one MVT-EA are created
     And the duplicate is logged
+
+  @unit
+  Scenario: A message that has been sent is not marked as sent again
+    Given an MVT-ED has been written and sent at 9 January 2026 05:00 UTC
+    When it is marked as sent again at 9 January 2026 05:01 UTC
+    Then that is refused, because the message has already been sent
+    And the message was sent at 9 January 2026 05:00 UTC

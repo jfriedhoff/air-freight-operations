@@ -74,6 +74,38 @@ Feature: Partners receive an MVT-ED and MVT-EA when the expected times change
       EA0345
       """
 
+  @unit
+  Scenario: An ETD and ETA after midnight keep the day of the scheduled departure date
+    When Flight Operations reports an ETD of 10 January 2026 00:30 and an ETA of 10 January 2026 03:45 UTC
+    Then this telegram is written:
+      """
+      MVT
+      HJ221/09.SXBAA.BRU
+      ED0030
+      """
+    And this telegram is written:
+      """
+      MVT
+      HJ221/09.SXBAA.ATH
+      EA0345
+      """
+
+  @integration
+  Scenario: A new ETD and ETA are sent to the partners as an MVT-ED and an MVT-EA
+    When Flight Operations reports an ETD of 9 January 2026 06:45 and an ETA of 9 January 2026 10:00 UTC
+    Then this telegram is sent:
+      """
+      MVT
+      HJ221/09.SXBAA.BRU
+      ED0645
+      """
+    And this telegram is sent:
+      """
+      MVT
+      HJ221/09.SXBAA.ATH
+      EA1000
+      """
+
   @e2e
   Scenario: A telegram contains no delay reason
     When a departure delay with a delay reason is entered

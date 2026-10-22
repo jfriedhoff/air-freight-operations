@@ -48,3 +48,35 @@ Feature: Partners receive an MVT-AD and MVT-AA
       3V11/09.OOTHA.ATH
       AA0140
       """
+
+  @integration
+  Scenario: A registered ATD and ATA are sent to the partners as an MVT-AD and an MVT-AA
+    When Flight Operations reports an ATD of 9 January 2026 06:52 and an ATA of 9 January 2026 10:04 UTC
+    Then this telegram is sent:
+      """
+      MVT
+      HJ221/09.SXBAA.BRU
+      AD0652
+      """
+    And this telegram is sent:
+      """
+      MVT
+      HJ221/09.SXBAA.ATH
+      AA1004
+      """
+
+  @unit
+  Scenario: An ATD and ATA after midnight keep the day of the scheduled departure date
+    When Flight Operations reports an ATD of 10 January 2026 00:28 and an ATA of 10 January 2026 01:40 UTC
+    Then this telegram is written:
+      """
+      MVT
+      HJ221/09.SXBAA.BRU
+      AD0028
+      """
+    And this telegram is written:
+      """
+      MVT
+      HJ221/09.SXBAA.ATH
+      AA0140
+      """

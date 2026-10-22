@@ -1,9 +1,19 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {
-    addDays, brusselsDate, brusselsDateTime, brusselsMidnight, brusselsShortDateTime, brusselsTimeWithZone, brusselsToUtc,
-    longDate, plainDate,
+    addDays, brusselsDate, brusselsDateTime, brusselsDayMonth, brusselsHour, brusselsMidnight, brusselsShortDateTime,
+    brusselsTimeWithZone, brusselsToUtc, longDate, plainDate,
 } from "./brusselsTime.ts";
+
+test("the hours on the timeline are Brussels hours, and on the night the clock goes back 02 appears twice", () => {
+    assert.equal(brusselsHour(new Date("2026-01-09T06:00:00Z")), "07");
+    assert.equal(brusselsHour(new Date("2026-10-25T00:00:00Z")), "02");
+    assert.equal(brusselsHour(new Date("2026-10-25T01:00:00Z")), "02");
+});
+
+test("midnight on the timeline shows the Brussels day and month", () => {
+    assert.equal(brusselsDayMonth(new Date("2026-01-09T23:00:00Z")), "10/01");
+});
 
 test("in winter Brussels is one hour ahead of UTC", () => {
     assert.deepEqual(brusselsToUtc("2026-01-09", "07:50"), {kind: "exact", utc: new Date("2026-01-09T06:50:00Z")});
