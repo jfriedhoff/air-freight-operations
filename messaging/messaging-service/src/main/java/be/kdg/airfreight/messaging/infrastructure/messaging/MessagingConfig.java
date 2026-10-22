@@ -50,7 +50,7 @@ class MessagingConfig {
             bind(bookings, cargoBooking, "cargo-booking.#"),
             bind(flights, flightOperations, "flight-operations.flight.#"),
             bind(loads, loadPlanning, "load-planning.flight-cargo.#"),
-            bind(partners, partnerMessages, "partner.#"),
+            bind(partners, partnerMessages, "#"),
             BindingBuilder.bind(deadLetterQueue).to(deadLetters));
     }
 

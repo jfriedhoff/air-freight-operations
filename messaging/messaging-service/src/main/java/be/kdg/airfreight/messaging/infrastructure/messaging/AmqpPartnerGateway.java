@@ -13,11 +13,14 @@ import org.springframework.stereotype.Component;
 
 /**
  * Sends a partner message as it was written. Its id, creation time and format version travel as AMQP
- * properties: for an MVT, whose body is only the telegram, that is the one place they are.
+ * properties and headers: for an MVT, whose body is only the telegram, that is the one place they are.
+ * Header names and routing keys follow the partner examples.
  */
 @Component
 class AmqpPartnerGateway implements PartnerGateway {
-    static final String FORMAT_VERSION_HEADER = "formatVersion";
+    static final String MESSAGE_ID_HEADER = "message-id";
+    static final String PRODUCED_AT_HEADER = "produced-at";
+    static final String VERSION_HEADER = "version";
 
     private final RabbitTemplate rabbit;
     private final AmqpProperties amqp;
@@ -35,7 +38,9 @@ class AmqpPartnerGateway implements PartnerGateway {
             .setContentEncoding(StandardCharsets.UTF_8.name())
             .setMessageId(message.getId().id().toString())
             .setTimestamp(Date.from(message.getCreatedAt()))
-            .setHeader(FORMAT_VERSION_HEADER, message.getFormatVersion().number())
+            .setHeader(MESSAGE_ID_HEADER, message.getId().id().toString())
+            .setHeader(PRODUCED_AT_HEADER, message.getCreatedAt().toString())
+            .setHeader(VERSION_HEADER, message.getFormatVersion().number())
             .build();
         rabbit.send(amqp.partnerMessagesExchange(), routingKeyOf(message.getType()), amqpMessage);
     }
@@ -49,12 +54,12 @@ class AmqpPartnerGateway implements PartnerGateway {
 
     private static String routingKeyOf(MessageType type) {
         return switch (type) {
-            case FLM -> "partner.flm";
-            case MVT_ED -> "partner.mvt.ed";
-            case MVT_EA -> "partner.mvt.ea";
-            case MVT_AD -> "partner.mvt.ad";
-            case MVT_AA -> "partner.mvt.aa";
-            case CPM -> "partner.cpm";
+            case FLM -> "flm";
+            case MVT_ED -> "mvt.ed";
+            case MVT_EA -> "mvt.ea";
+            case MVT_AD -> "mvt.ad";
+            case MVT_AA -> "mvt.aa";
+            case CPM -> "cpm";
             default -> throw new IllegalArgumentException(type + " is not a partner message");
         };
     }

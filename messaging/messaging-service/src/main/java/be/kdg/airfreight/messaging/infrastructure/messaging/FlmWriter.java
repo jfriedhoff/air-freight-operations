@@ -33,7 +33,7 @@ class FlmWriter implements MessageWriter<FlightEvent> {
     public OutgoingMessage write(FlightEvent flightEvent, MessageId id, Instant createdAt) {
         FlightAnnounced event = (FlightAnnounced) flightEvent;
         FlightId flight = event.flightId();
-        String body = mapper.writeValueAsString(new FlmJson(id.id(), createdAt, FORMAT_VERSION.number(),
+        String body = mapper.writeValueAsString(new FlmJson(id.id(), createdAt, FORMAT_VERSION.number(), "FLM",
             flight.flightNumber().value(), flight.scheduledDepartureDate(), event.std(), event.sta(),
             flight.departureAirport().value(), event.arrivalAirport().value()));
         return OutgoingMessage.create(id, flight, MessageType.FLM, FORMAT_VERSION, createdAt, body);

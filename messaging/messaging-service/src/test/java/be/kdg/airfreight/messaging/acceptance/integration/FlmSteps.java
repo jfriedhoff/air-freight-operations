@@ -89,8 +89,8 @@ public class FlmSteps {
             assertThat(bodies).anySatisfy(body -> assertThat(body)
                 .containsEntry("flightNumber", flight.get("flightNumber"))
                 .containsEntry("scheduledDepartureDate", LocalDate.ofInstant(std, ZoneOffset.UTC).toString())
-                .containsEntry("std", flight.get("std"))
-                .containsEntry("sta", flight.get("sta"))
+                .containsEntry("scheduledTimeOfDeparture", flight.get("std"))
+                .containsEntry("scheduledTimeOfArrival", flight.get("sta"))
                 .containsEntry("departureAirport", flight.get("departureAirport"))
                 .containsEntry("arrivalAirport", flight.get("arrivalAirport")));
         }
@@ -100,7 +100,7 @@ public class FlmSteps {
     public void stdAndStaAreFullUtcTimestamps() {
         for (OutgoingMessage flm : newFlms()) {
             Map<String, Object> body = traffic.readJson(flm.getBody());
-            for (String field : List.of("std", "sta")) {
+            for (String field : List.of("scheduledTimeOfDeparture", "scheduledTimeOfArrival")) {
                 assertThat(String.valueOf(body.get(field))).as(field)
                     .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?Z");
             }
@@ -112,8 +112,8 @@ public class FlmSteps {
         assertThat(newFlms()).singleElement().satisfies(flm -> assertThat(traffic.readJson(flm.getBody()))
             .containsEntry("flightNumber", flightNumber)
             .containsEntry("scheduledDepartureDate", date.toString())
-            .containsEntry("std", std.toString())
-            .containsEntry("sta", sta.toString()));
+            .containsEntry("scheduledTimeOfDeparture", std.toString())
+            .containsEntry("scheduledTimeOfArrival", sta.toString()));
     }
 
     private List<OutgoingMessage> newFlms() {
