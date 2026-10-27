@@ -70,3 +70,9 @@ export function delayKindsToAdd(flight: Flight, isFlightPlanner: boolean): Delay
 export function canRegisterAtd(flight: Flight, isFlightPlanner: boolean): boolean {
     return isFlightPlanner && flight.status === "PLANNED";
 }
+
+/* The page offers the ATA to a flight planner once the flight has departed. The time rules are the server's:
+   it refuses an ATA before the ATD, in the future or too long after the ETA, with the reason. */
+export function canRegisterAta(flight: Flight, isFlightPlanner: boolean): boolean {
+    return isFlightPlanner && flight.status === "DEPARTED";
+}

@@ -73,7 +73,7 @@
             </table>
         </section>
 
-        <p id="role-note" class="hidden text-sm opacity-70">Alleen een flight planner kan vertragingen en het vertrek ingeven.</p>
+        <p id="role-note" class="hidden text-sm opacity-70">Alleen een flight planner kan vertragingen, het vertrek en de aankomst ingeven.</p>
 
         <form id="atd-form" class="hidden panel">
             <div class="panel-header">
@@ -91,6 +91,29 @@
                 <div id="atd-zone-choice" class="hidden flex flex-col gap-1 sm:col-span-2">
                     <label class="text-sm font-medium" for="atd-zone">Welk tijdstip bedoel je?</label>
                     <select id="atd-zone" name="atd-zone" class="select select-sm w-full"></select>
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t border-base-300">
+                <button type="submit" class="btn btn-sm btn-primary">Registreren</button>
+            </div>
+        </form>
+
+        <form id="ata-form" class="hidden panel">
+            <div class="panel-header">
+                <h2 class="text-base font-semibold">Aankomst registreren (ATA)</h2>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4 p-4 max-w-3xl">
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium" for="ata-date">Datum</label>
+                    <input type="date" id="ata-date" name="ata-date" required class="input input-sm w-full"/>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium" for="ata-time">Tijd (Brussel)</label>
+                    <input type="time" id="ata-time" name="ata-time" required class="input input-sm w-full"/>
+                </div>
+                <div id="ata-zone-choice" class="hidden flex flex-col gap-1 sm:col-span-2">
+                    <label class="text-sm font-medium" for="ata-zone">Welk tijdstip bedoel je?</label>
+                    <select id="ata-zone" name="ata-zone" class="select select-sm w-full"></select>
                 </div>
             </div>
             <div class="px-4 py-3 border-t border-base-300">

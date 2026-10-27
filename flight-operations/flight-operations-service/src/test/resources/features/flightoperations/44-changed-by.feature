@@ -32,11 +32,6 @@ Feature: See who changed a flight
     Examples:
       | time |
       | ATD  |
-
-    # Waits for the endpoint to register the ATA
-    @wip
-    Examples:
-      | time |
       | ATA  |
 
   @ui

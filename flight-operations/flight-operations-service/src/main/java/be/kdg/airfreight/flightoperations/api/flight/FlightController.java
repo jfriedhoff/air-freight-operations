@@ -6,6 +6,7 @@ import java.util.UUID;
 import be.kdg.airfreight.flightoperations.application.FlightPlannerService;
 import be.kdg.airfreight.flightoperations.application.FlightService;
 import be.kdg.airfreight.flightoperations.application.command.AddDelayCommand;
+import be.kdg.airfreight.flightoperations.application.command.RegisterArrivalCommand;
 import be.kdg.airfreight.flightoperations.application.command.RegisterDepartureCommand;
 import be.kdg.airfreight.flightoperations.application.query.FlightsQuery;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCatalog;
@@ -94,6 +95,20 @@ public class FlightController {
         log.info("Flight planner {} registers ATD {} for flight {}", flightPlanner.id(), dto.atd(), id);
         RegisterDepartureCommand command = new RegisterDepartureCommand(new FlightId(id), dto.atd(), flightPlanner);
         return ResponseEntity.ok(toDto(flightService.registerDeparture(command)));
+    }
+
+    /**
+     * One ATA per flight: a second registration is refused with 409, so the partners never get a second MVT-AA.
+     * An ATA before the ATD, in the future or too long after the ETA is refused with 409 as well, with the reason.
+     */
+    @PostMapping("/{id}/arrival")
+    public ResponseEntity<FlightDto> registerArrival(@PathVariable("id") UUID id,
+                                                     @Valid @RequestBody RegisterArrivalDto dto,
+                                                     @AuthenticationPrincipal Jwt jwt) {
+        FlightPlannerId flightPlanner = registeredPlanner(jwt);
+        log.info("Flight planner {} registers ATA {} for flight {}", flightPlanner.id(), dto.ata(), id);
+        RegisterArrivalCommand command = new RegisterArrivalCommand(new FlightId(id), dto.ata(), flightPlanner);
+        return ResponseEntity.ok(toDto(flightService.registerArrival(command)));
     }
 
     /** The flight planner of the token. Flight Operations stores their name on their first change. */
