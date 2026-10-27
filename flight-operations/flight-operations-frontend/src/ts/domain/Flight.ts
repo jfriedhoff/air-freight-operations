@@ -64,3 +64,9 @@ export function delayKindsToAdd(flight: Flight, isFlightPlanner: boolean): Delay
     }
     return flight.status === "PLANNED" ? ["DEPARTURE", "ARRIVAL"] : ["ARRIVAL"];
 }
+
+/* The page offers the ATD to a flight planner while the flight is planned. Whether the CPM has been processed
+   is only known to the server: it refuses the ATD with the reason. */
+export function canRegisterAtd(flight: Flight, isFlightPlanner: boolean): boolean {
+    return isFlightPlanner && flight.status === "PLANNED";
+}

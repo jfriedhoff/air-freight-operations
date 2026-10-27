@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {delayKindsToAdd, showsEta, showsEtd} from "./Flight.ts";
+import {canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "./Flight.ts";
 import type {Flight, FlightStatus} from "./Flight.ts";
 
 function flight(status: FlightStatus, changes: Partial<Flight> = {}): Flight {
@@ -29,6 +29,19 @@ test("a landed flight gets no delay form", () => {
 
 test("a load planner gets no delay form", () => {
     assert.deepEqual(delayKindsToAdd(flight("PLANNED"), false), []);
+});
+
+test("a flight planner can register the ATD of a planned flight", () => {
+    assert.equal(canRegisterAtd(flight("PLANNED"), true), true);
+});
+
+test("a departed flight gets no ATD form", () => {
+    assert.equal(canRegisterAtd(flight("DEPARTED"), true), false);
+    assert.equal(canRegisterAtd(flight("LANDED"), true), false);
+});
+
+test("a load planner gets no ATD form", () => {
+    assert.equal(canRegisterAtd(flight("PLANNED"), false), false);
 });
 
 test("an estimated time is only shown when it differs from the scheduled time", () => {

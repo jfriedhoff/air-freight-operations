@@ -11,17 +11,17 @@ Feature: Only flight planners can change flights and only load planners can chan
     Then that is <result>
 
     Examples:
-      | role           | action        | result                     |
-      | flight planner | enter a delay | accepted                   |
-      | load planner   | enter a delay | refused with 403 Forbidden |
+      | role           | action           | result                     |
+      | flight planner | enter a delay    | accepted                   |
+      | load planner   | enter a delay    | refused with 403 Forbidden |
+      | load planner   | register the ATD | refused with 403 Forbidden |
 
-    # Waits for the endpoints to change and remove a delay and to register the ATD and the ATA
+    # Waits for the endpoints to change and remove a delay and to register the ATA
     @wip
     Examples:
       | role         | action           | result                     |
       | load planner | change a delay   | refused with 403 Forbidden |
       | load planner | remove a delay   | refused with 403 Forbidden |
-      | load planner | register the ATD | refused with 403 Forbidden |
       | load planner | register the ATA | refused with 403 Forbidden |
 
   @integration
@@ -50,16 +50,16 @@ Feature: Only flight planners can change flights and only load planners can chan
     Then it is recorded that <user> did that
 
     Examples:
-      | role           | user | action        |
-      | flight planner | anna | enter a delay |
+      | role           | user | action           |
+      | flight planner | anna | enter a delay    |
+      | flight planner | anna | register the ATD |
 
-    # Waits for the endpoints to change and remove a delay and to register the ATD and the ATA
+    # Waits for the endpoints to change and remove a delay and to register the ATA
     @wip
     Examples:
       | role           | user | action           |
       | flight planner | anna | change a delay   |
       | flight planner | anna | remove a delay   |
-      | flight planner | anna | register the ATD |
       | flight planner | anna | register the ATA |
 
   @integration

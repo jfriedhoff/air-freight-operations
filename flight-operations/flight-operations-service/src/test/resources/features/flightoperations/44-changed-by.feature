@@ -23,7 +23,7 @@ Feature: See who changed a flight
     When I change that delay to 40 minutes through the API
     Then the flight shows that Bram last changed the delay
 
-  @integration @wip
+  @integration
   Scenario Outline: The flight shows who registered an actual time
     Given I am logged in as the flight planner Fien
     When I register the <time> of HJ221 through the API
@@ -32,6 +32,11 @@ Feature: See who changed a flight
     Examples:
       | time |
       | ATD  |
+
+    # Waits for the endpoint to register the ATA
+    @wip
+    Examples:
+      | time |
       | ATA  |
 
   @ui
