@@ -6,14 +6,17 @@ import java.util.UUID;
 import be.kdg.airfreight.flightoperations.application.FlightPlannerService;
 import be.kdg.airfreight.flightoperations.application.FlightService;
 import be.kdg.airfreight.flightoperations.application.command.AddDelayCommand;
+import be.kdg.airfreight.flightoperations.application.command.ChangeDelayCommand;
 import be.kdg.airfreight.flightoperations.application.command.RegisterArrivalCommand;
 import be.kdg.airfreight.flightoperations.application.command.RegisterDepartureCommand;
+import be.kdg.airfreight.flightoperations.application.command.RemoveDelayCommand;
 import be.kdg.airfreight.flightoperations.application.query.FlightsQuery;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCodeCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayDuration;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayId;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightNumber;
@@ -24,9 +27,11 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * There is no PUT or PATCH on a flight on purpose: nobody changes scheduled or estimated times directly.
+ * A delay is changed and removed at its own address, /{id}/delays/{delayId}.
  */
 @Slf4j
 @RestController
@@ -81,6 +87,33 @@ public class FlightController {
         AddDelayCommand command = new AddDelayCommand(new FlightId(id), dto.kind(),
                 new DelayDuration(dto.minutes()), new DelayCode(dto.reason()), dto.description(), flightPlanner);
         return ResponseEntity.ok(toDto(flightService.addDelay(command)));
+    }
+
+    /** Only the minutes and the description change; the kind and the delay reason are not in the request. */
+    @PutMapping("/{id}/delays/{delayId}")
+    public ResponseEntity<FlightDto> changeDelay(@PathVariable("id") UUID id, @PathVariable("delayId") UUID delayId,
+                                                 @Valid @RequestBody ChangeDelayDto dto,
+                                                 @AuthenticationPrincipal Jwt jwt) {
+        FlightPlannerId flightPlanner = registeredPlanner(jwt);
+        log.info("Flight planner {} changes delay {} of flight {} to {} minutes", flightPlanner.id(), delayId, id,
+                dto.minutes());
+        ChangeDelayCommand command = new ChangeDelayCommand(new FlightId(id), new DelayId(delayId),
+                new DelayDuration(dto.minutes()), dto.description(), flightPlanner);
+        return ResponseEntity.ok(toDto(flightService.changeDelay(command)));
+    }
+
+    /**
+     * After the removal the delay is gone, so the flight cannot show who removed it. This log line records it,
+     * which is why it is written after the removal succeeded and not before.
+     */
+    @DeleteMapping("/{id}/delays/{delayId}")
+    public ResponseEntity<FlightDto> removeDelay(@PathVariable("id") UUID id, @PathVariable("delayId") UUID delayId,
+                                                 @AuthenticationPrincipal Jwt jwt) {
+        FlightPlannerId flightPlanner = registeredPlanner(jwt);
+        Flight flight = flightService.removeDelay(
+                new RemoveDelayCommand(new FlightId(id), new DelayId(delayId), flightPlanner));
+        log.info("Flight planner {} removed delay {} of flight {}", flightPlanner.id(), delayId, id);
+        return ResponseEntity.ok(toDto(flight));
     }
 
     /**

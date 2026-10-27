@@ -31,6 +31,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories #5, #8, #9, #12, #13, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
+ * Stories #5, #8, #9, #10, #12, #13, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
  * Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
 public class FlightApiSteps {
@@ -58,6 +59,10 @@ public class FlightApiSteps {
     private final Map<String, FlightPlannerId> plannersByName = new HashMap<>();
     /** Where the flight keeps who made the change of this scenario: a delay, the ATD and the ATA record it in different places. */
     private Function<Flight, FlightPlannerId> changedBy = flight -> flight.getDelays().getFirst().getLastChangedBy();
+    /** The delay the scenario changes or removes. */
+    private UUID delayId;
+    /** A removed delay is gone from the flight: then only the log says who removed it. */
+    private boolean delayRemoved;
 
     public FlightApiSteps(MockMvc mockMvc, TestHelper testHelper, LogCapture logs) {
         this.mockMvc = mockMvc;
@@ -294,8 +299,14 @@ public class FlightApiSteps {
     @Then("it is recorded that {word} did that")
     public void itIsRecordedWhoDidThat(String name) throws Exception {
         lastAnswer().andExpect(status().isOk());
+        FlightPlannerId planner = plannersByName.get(name);
+        if (delayRemoved) {
+            // a removed delay is gone from the flight, so only the log line of the controller says who removed it
+            logs.assertLogged(Level.INFO, "Flight planner " + planner.id() + " removed delay " + delayId);
+            return;
+        }
         assertThat(changedBy.apply(testHelper.find(flight())))
-            .as("the flight planner %s", name).isEqualTo(plannersByName.get(name));
+            .as("the flight planner %s", name).isEqualTo(planner);
     }
 
     @Then("it is recorded that {word} entered the delay")
@@ -310,6 +321,32 @@ public class FlightApiSteps {
         lastAnswer().andExpect(status().isOk());
         send(get("/api/flights/{id}", flight().id()));
         lastAnswer().andExpect(status().isOk()).andExpect(jsonPath("$.delays[0].lastChangedBy").value(name));
+    }
+
+    /** The delay is entered by another flight planner first, so the change really shows who made it. */
+    @When("I change a delay through the API")
+    public void iChangeADelay() throws Exception {
+        delayId = testHelper.addDepartureDelay(hj221()).id();
+        changeDelay(40);
+    }
+
+    @When("I change that delay to {int} minutes through the API")
+    public void iChangeThatDelay(int minutes) throws Exception {
+        changeDelay(minutes);
+    }
+
+    @When("I remove a delay through the API")
+    public void iRemoveADelay() throws Exception {
+        delayId = testHelper.addDepartureDelay(hj221()).id();
+        delayRemoved = true;
+        send(delete("/api/flights/{id}/delays/{delayId}", hj221().id(), delayId));
+    }
+
+    @Given("the flight planner {word} entered a departure delay of 25 minutes")
+    public void theFlightPlannerEnteredADelay(String name) {
+        FlightPlannerId planner = testHelper.saveFlightPlanner(name);
+        plannersByName.put(name, planner);
+        delayId = testHelper.addDepartureDelay(flight(), planner).id();
     }
 
     /** The CPM is processed first: without it the ATD is refused, and these steps are about who may register it. */
@@ -360,6 +397,12 @@ public class FlightApiSteps {
         send(post("/api/flights/{id}/delays", flight).contentType(MediaType.APPLICATION_JSON).content("""
             {"kind": "%s", "minutes": %d, "reason": "%s", "description": "Late inbound aircraft"}"""
             .formatted(kind, minutes, reason)));
+    }
+
+    private void changeDelay(int minutes) throws Exception {
+        send(put("/api/flights/{id}/delays/{delayId}", flight().id(), delayId)
+            .contentType(MediaType.APPLICATION_JSON).content("""
+                {"minutes": %d, "description": "Inbound aircraft even later"}""".formatted(minutes)));
     }
 
     private void send(MockHttpServletRequestBuilder request) throws Exception {

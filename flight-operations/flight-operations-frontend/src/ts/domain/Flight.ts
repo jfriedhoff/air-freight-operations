@@ -47,6 +47,12 @@ export interface NewDelay {
     description: string;
 }
 
+/* What a flight planner can change in a delay. The kind and the delay reason stay. */
+export interface ChangedDelay {
+    minutes: number;
+    description: string;
+}
+
 /* An estimated time is only shown when it differs from the scheduled time. */
 export function showsEtd(flight: Flight): boolean {
     return flight.etd !== flight.std;
@@ -63,6 +69,12 @@ export function delayKindsToAdd(flight: Flight, isFlightPlanner: boolean): Delay
         return [];
     }
     return flight.status === "PLANNED" ? ["DEPARTURE", "ARRIVAL"] : ["ARRIVAL"];
+}
+
+/* A flight planner can change or remove a departure delay while the flight is planned and an arrival delay until
+   it has landed: the same rule as adding one. The server checks it again. */
+export function canChangeDelay(flight: Flight, delay: Delay, isFlightPlanner: boolean): boolean {
+    return delayKindsToAdd(flight, isFlightPlanner).includes(delay.kind);
 }
 
 /* The page offers the ATD to a flight planner while the flight is planned. Whether the CPM has been processed

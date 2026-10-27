@@ -2,6 +2,7 @@ package be.kdg.airfreight.flightoperations.api.flight;
 
 import be.kdg.airfreight.flightoperations.TestClock;
 import be.kdg.airfreight.flightoperations.TestHelper;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayId;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flightplanner.FlightPlannerId;
 import org.junit.jupiter.api.AfterEach;
@@ -23,8 +24,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -247,6 +250,59 @@ class FlightControllerTest {
         mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09").with(planner("flight-planner")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.flights.length()").value(1));
+    }
+
+    @Test
+    void aFlightPlannerChangesADelayAndGetsTheFlightWithItsNewEstimates() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+        DelayId delay = testHelper.addDepartureDelay(flight.getId());
+
+        mockMvc.perform(put("/api/flights/{id}/delays/{delayId}", flight.getId().id(), delay.id())
+                .with(registeredFlightPlanner())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"minutes": 40, "description": "Inbound aircraft even later"}"""))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.etd").value("2026-01-09T07:10:00Z"))
+            .andExpect(jsonPath("$.eta").value("2026-01-09T10:25:00Z"))
+            .andExpect(jsonPath("$.delays[0].minutes").value(40))
+            .andExpect(jsonPath("$.delays[0].reason.code").value("93"))
+            .andExpect(jsonPath("$.delays[0].description").value("Inbound aircraft even later"));
+    }
+
+    @Test
+    void aFlightPlannerRemovesTheLastDelayAndTheEstimatesAreTheScheduledTimesAgain() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+        DelayId delay = testHelper.addDepartureDelay(flight.getId());
+
+        mockMvc.perform(delete("/api/flights/{id}/delays/{delayId}", flight.getId().id(), delay.id())
+                .with(registeredFlightPlanner()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.etd").value("2026-01-09T06:30:00Z"))
+            .andExpect(jsonPath("$.eta").value("2026-01-09T09:45:00Z"))
+            .andExpect(jsonPath("$.delays.length()").value(0));
+    }
+
+    /** The delay comes first, because a departed flight takes no departure delay. The ATD at the STD is early, which is allowed. */
+    @Test
+    void aDepartureDelayCannotBeRemovedAfterDepartureWithTheReasonFromTheDomain() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+        DelayId delay = testHelper.addDepartureDelay(flight.getId());
+        testHelper.depart(flight.getId());
+
+        mockMvc.perform(delete("/api/flights/{id}/delays/{delayId}", flight.getId().id(), delay.id())
+                .with(registeredFlightPlanner()))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("rule-refused"));
+    }
+
+    @Test
+    void aDelayThatDoesNotExistIsNotFound() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+
+        mockMvc.perform(delete("/api/flights/{id}/delays/{delayId}", flight.getId().id(), UUID.randomUUID())
+                .with(registeredFlightPlanner()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("not-found"));
     }
 
     @Test

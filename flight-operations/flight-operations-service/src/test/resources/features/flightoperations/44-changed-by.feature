@@ -16,7 +16,7 @@ Feature: See who changed a flight
     When I enter a departure delay of 25 minutes through the API
     Then the flight shows that Jan last changed the delay
 
-  @integration @wip
+  @integration
   Scenario: The flight shows who changed a delay last
     Given the flight planner Fien entered a departure delay of 25 minutes
     And I am logged in as the flight planner Bram

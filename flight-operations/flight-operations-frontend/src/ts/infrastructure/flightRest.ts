@@ -1,4 +1,4 @@
-import type {DelayReason, Flight, NewDelay} from "../domain/Flight.ts";
+import type {ChangedDelay, DelayReason, Flight, NewDelay} from "../domain/Flight.ts";
 import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import type {FlightRow, FlightsOfDay} from "../domain/FlightOverview.ts";
 import {authorizedFetch} from "./auth.ts";
@@ -52,33 +52,39 @@ export async function getDelayReasons(): Promise<DelayReason[]> {
 }
 
 /* The server answers with the whole flight: a delay moves the ETD and the ETA. */
-export async function addDelay(flightId: string, delay: NewDelay): Promise<Flight> {
-    const response = await authorizedFetch(`${FLIGHTS_URL}/${encodeURIComponent(flightId)}/delays`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(delay),
-    });
-    if (response.ok) {
-        return response.json();
-    }
-    return throwResponseError("De vertraging is geweigerd", response);
+export function addDelay(flightId: string, delay: NewDelay): Promise<Flight> {
+    return changeFlight(flightId, "delays", "POST", delay, "De vertraging is geweigerd");
+}
+
+/* Only the minutes and the description of a delay can change. */
+export function changeDelay(flightId: string, delayId: string, change: ChangedDelay): Promise<Flight> {
+    return changeFlight(flightId, `delays/${encodeURIComponent(delayId)}`, "PUT", change,
+        "De wijziging is geweigerd");
+}
+
+export function removeDelay(flightId: string, delayId: string): Promise<Flight> {
+    return changeFlight(flightId, `delays/${encodeURIComponent(delayId)}`, "DELETE", null,
+        "Het verwijderen is geweigerd");
 }
 
 /* The server answers with the whole flight: after the ATD it has departed, after the ATA it has landed. */
 export function registerDeparture(flightId: string, atd: Date): Promise<Flight> {
-    return registerActualTime(flightId, "departure", {atd: atd.toISOString()}, "Het vertrek is geweigerd");
+    return changeFlight(flightId, "departure", "POST", {atd: atd.toISOString()}, "Het vertrek is geweigerd");
 }
 
 export function registerArrival(flightId: string, ata: Date): Promise<Flight> {
-    return registerActualTime(flightId, "arrival", {ata: ata.toISOString()}, "De aankomst is geweigerd");
+    return changeFlight(flightId, "arrival", "POST", {ata: ata.toISOString()}, "De aankomst is geweigerd");
 }
 
-async function registerActualTime(flightId: string, path: string, body: object, refused: string): Promise<Flight> {
-    const response = await authorizedFetch(`${FLIGHTS_URL}/${encodeURIComponent(flightId)}/${path}`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(body),
-    });
+/* Every change answers with the whole flight, because a delay also moves the ETD and the ETA. */
+async function changeFlight(flightId: string, path: string, method: string, body: object | null,
+                            refused: string): Promise<Flight> {
+    const request: RequestInit = {method};
+    if (body !== null) {
+        request.headers = {"Content-Type": "application/json"};
+        request.body = JSON.stringify(body);
+    }
+    const response = await authorizedFetch(`${FLIGHTS_URL}/${encodeURIComponent(flightId)}/${path}`, request);
     if (response.ok) {
         return response.json();
     }

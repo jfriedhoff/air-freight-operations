@@ -107,3 +107,33 @@ Content-Type: application/json
   { "flightNumber": "HJ221", "scheduledDepartureDate": "2026-10-22", "departureAirport": "BRU",
     "uldCode": "PMC12345KL", "weight": 2646, "weightUnit": "LB", "destination": "ATH" }
 ]
+
+###
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  { "periodFrom": "2026-10-27", "periodTo": "2026-10-27", "weekdays": ["TUESDAY"],
+    "departureTime": "17:45", "arrivalTime": "21:00", "flightNumber": "HJ221",
+    "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" }
+]
+###
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  { "periodFrom": "2026-10-27", "periodTo": "2026-10-27", "weekdays": ["TUESDAY"],
+    "departureTime": "18:45", "arrivalTime": "21:00", "flightNumber": "ABC121",
+    "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" }
+]
+
+### ULDs on HJ221 of 22 October: its loading period opens on 21 October at 18:30 UTC (12 h before STD)
+POST http://localhost:8090/api/cargo-bookings
+Content-Type: application/json
+
+[
+  { "flightNumber": "ABC121", "scheduledDepartureDate": "2026-10-27", "departureAirport": "BRU",
+    "uldCode": "AKE16689R7", "weight": 1250.5, "weightUnit": "KG", "destination": "ATH" },
+  { "flightNumber": "ABC121", "scheduledDepartureDate": "2026-10-27", "departureAirport": "BRU",
+    "uldCode": "PMC12345KL", "weight": 2646, "weightUnit": "LB", "destination": "ATH" }
+]
