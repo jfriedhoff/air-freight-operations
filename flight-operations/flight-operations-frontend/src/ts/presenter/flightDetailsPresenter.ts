@@ -1,11 +1,11 @@
-import {canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
+import {canRegisterAta, canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
 import type {Airport, Delay, DelayKind, DelayReason, Flight} from "../domain/Flight.ts";
 import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
 import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import {overviewQuery} from "../domain/FlightOverview.ts";
 import {FLIGHT_PLANNER} from "../infrastructure/auth.ts";
 import {loadPlanningAddress} from "../infrastructure/contexts.ts";
-import {addDelay, findFlight, getDelayReasons, getFlight, registerDeparture} from "../infrastructure/flightRest.ts";
+import {addDelay, findFlight, getDelayReasons, getFlight, registerArrival, registerDeparture} from "../infrastructure/flightRest.ts";
 import {brusselsDate, brusselsDateTime, brusselsToUtc, plainDate} from "./brusselsTime.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
@@ -22,11 +22,28 @@ const kindField = document.getElementById("kind") as HTMLSelectElement;
 const minutesField = document.getElementById("minutes") as HTMLInputElement;
 const reasonField = document.getElementById("reason") as HTMLSelectElement;
 const descriptionField = document.getElementById("description") as HTMLTextAreaElement;
-const atdForm = document.getElementById("atd-form") as HTMLFormElement;
-const atdDateField = document.getElementById("atd-date") as HTMLInputElement;
-const atdTimeField = document.getElementById("atd-time") as HTMLInputElement;
-const atdZoneChoice = document.getElementById("atd-zone-choice")!;
-const atdZoneField = document.getElementById("atd-zone") as HTMLSelectElement;
+
+/* A form that asks for one moment in Brussels time: the ATD form and the ATA form. */
+interface MomentForm {
+    form: HTMLFormElement;
+    date: HTMLInputElement;
+    time: HTMLInputElement;
+    zoneChoice: HTMLElement;
+    zone: HTMLSelectElement;
+}
+
+function momentForm(prefix: string): MomentForm {
+    return {
+        form: document.getElementById(`${prefix}-form`) as HTMLFormElement,
+        date: document.getElementById(`${prefix}-date`) as HTMLInputElement,
+        time: document.getElementById(`${prefix}-time`) as HTMLInputElement,
+        zoneChoice: document.getElementById(`${prefix}-zone-choice`)!,
+        zone: document.getElementById(`${prefix}-zone`) as HTMLSelectElement,
+    };
+}
+
+const atdForm = momentForm("atd");
+const ataForm = momentForm("ata");
 
 const DELAY_KIND = {DEPARTURE: "Vertrek", ARRIVAL: "Aankomst"};
 const DELAY_ADDED = {
@@ -104,13 +121,19 @@ function renderFlight(flight: Flight): void {
     const kinds = delayKindsToAdd(flight, isFlightPlanner);
     kindField.replaceChildren(...kinds.map(kindOption));
     delayForm.classList.toggle("hidden", kinds.length === 0);
-    atdForm.classList.toggle("hidden", !canRegisterAtd(flight, isFlightPlanner));
-    if (!atdDateField.value) {
-        atdDateField.value = brusselsDate(flight.etd);
-    }
+    showMomentForm(atdForm, canRegisterAtd(flight, isFlightPlanner), flight.etd);
+    showMomentForm(ataForm, canRegisterAta(flight, isFlightPlanner), flight.eta);
     // only with a flight on the screen: a load planner reads why there is no form
     document.getElementById("role-note")!.classList.toggle("hidden", isFlightPlanner);
     details.classList.remove("hidden");
+}
+
+/* The date starts at the estimated day, so the planner usually only types the time. */
+function showMomentForm(fields: MomentForm, shown: boolean, estimated: string): void {
+    fields.form.classList.toggle("hidden", !shown);
+    if (!fields.date.value) {
+        fields.date.value = brusselsDate(estimated);
+    }
 }
 
 function renderDelayReasons(reasons: DelayReason[]): void {
@@ -156,9 +179,9 @@ function utcTime(moment: Date): string {
 }
 
 /* Which UTC moment the typed Brussels time means; null while the page still needs an answer from the planner. */
-function typedAtd(): Date | null {
-    const date = atdDateField.value;
-    const time = atdTimeField.value;
+function typedMoment(fields: MomentForm): Date | null {
+    const date = fields.date.value;
+    const time = fields.time.value;
     const input = brusselsToUtc(date, time);
     if (input.kind === "nonexistent") {
         addError(messageBox, `${time} bestaat niet in Brussel op ${plainDate(date)}: de klok springt dan van 02:00 naar 03:00.`);
@@ -167,34 +190,36 @@ function typedAtd(): Date | null {
     if (input.kind === "exact") {
         return input.utc;
     }
-    if (atdZoneChoice.classList.contains("hidden")) {
-        atdZoneField.replaceChildren(
+    if (fields.zoneChoice.classList.contains("hidden")) {
+        fields.zone.replaceChildren(
             zoneOption(`${time} zomertijd (${utcTime(input.summer)} UTC)`, input.summer),
             zoneOption(`${time} wintertijd (${utcTime(input.winter)} UTC)`, input.winter));
-        atdZoneChoice.classList.remove("hidden");
+        fields.zoneChoice.classList.remove("hidden");
         addInfo(messageBox, `${time} bestaat twee keer in Brussel op ${plainDate(date)}. Kies welk tijdstip je bedoelt.`);
         return null;
     }
-    return new Date(atdZoneField.value);
+    return new Date(fields.zone.value);
 }
 
-/* Whether the ATD is allowed is the server's answer: the page only converts the Brussels time to UTC. */
-async function registerAtd(event: Event): Promise<void> {
+/* Whether the time is allowed is the server's answer: the page only converts the Brussels time to UTC. */
+async function registerActualTime(event: Event, fields: MomentForm,
+                                  register: (flightId: string, moment: Date) => Promise<Flight>,
+                                  registered: string): Promise<void> {
     event.preventDefault();
     clearMessages(messageBox);
-    if (!flightId || !atdForm.reportValidity()) {
+    if (!flightId || !fields.form.reportValidity()) {
         return;
     }
-    const atd = typedAtd();
-    if (atd === null) {
+    const moment = typedMoment(fields);
+    if (moment === null) {
         return;
     }
     try {
-        const flight = await registerDeparture(flightId, atd);
-        atdForm.reset();
-        atdZoneChoice.classList.add("hidden");
+        const flight = await register(flightId, moment);
+        fields.form.reset();
+        fields.zoneChoice.classList.add("hidden");
         renderFlight(flight);
-        addInfo(messageBox, "Het vertrek is geregistreerd.");
+        addInfo(messageBox, registered);
     } catch (error) {
         addError(messageBox, (error as Error).message);
     }
@@ -214,10 +239,15 @@ async function flightIdOf(flight: FlightIdentity): Promise<string | null> {
 
 async function init(): Promise<void> {
     delayForm.addEventListener("submit", enterDelay);
-    atdForm.addEventListener("submit", registerAtd);
+    atdForm.form.addEventListener("submit", event =>
+        registerActualTime(event, atdForm, registerDeparture, "Het vertrek is geregistreerd."));
+    ataForm.form.addEventListener("submit", event =>
+        registerActualTime(event, ataForm, registerArrival, "De aankomst is geregistreerd."));
     // a new date or time needs a new answer to "which moment do you mean"
-    for (const field of [atdDateField, atdTimeField]) {
-        field.addEventListener("input", () => atdZoneChoice.classList.add("hidden"));
+    for (const fields of [atdForm, ataForm]) {
+        for (const field of [fields.date, fields.time]) {
+            field.addEventListener("input", () => fields.zoneChoice.classList.add("hidden"));
+        }
     }
     if (!flightId && !identity) {
         addError(messageBox, "Geen vlucht gekozen: kies een vlucht in het overzicht van de vluchten.");

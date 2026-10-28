@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories #5, #8, #9, #12, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
+ * Stories #5, #8, #9, #12, #13, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
  * Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
 public class FlightApiSteps {
@@ -56,7 +56,7 @@ public class FlightApiSteps {
     private FlightId flightId;
     private final List<ResultActions> answers = new ArrayList<>();
     private final Map<String, FlightPlannerId> plannersByName = new HashMap<>();
-    /** Where the flight keeps who made the change of this scenario: a delay and the ATD record it in different places. */
+    /** Where the flight keeps who made the change of this scenario: a delay, the ATD and the ATA record it in different places. */
     private Function<Flight, FlightPlannerId> changedBy = flight -> flight.getDelays().getFirst().getLastChangedBy();
 
     public FlightApiSteps(MockMvc mockMvc, TestHelper testHelper, LogCapture logs) {
@@ -322,11 +322,23 @@ public class FlightApiSteps {
             {"atd": "%s"}""".formatted(TestHelper.STD)));
     }
 
-    @Then("the flight shows that {word} registered the ATD")
-    public void theFlightShowsWhoRegisteredTheAtd(String name) throws Exception {
+    /** The flight departs at its STD first. Its STA is then a valid ATA: after the ATD, in the past, on time. */
+    @When("I register the ATA through the API")
+    @When("I register the ATA of HJ221 through the API")
+    public void iRegisterTheAta() throws Exception {
+        testHelper.depart(hj221());
+        changedBy = Flight::getArrivalRegisteredBy;
+        send(post("/api/flights/{id}/arrival", hj221().id()).contentType(MediaType.APPLICATION_JSON).content("""
+            {"ata": "%s"}""".formatted(TestHelper.STA)));
+    }
+
+    /** The API names the field after the time: atdRegisteredBy or ataRegisteredBy. */
+    @Then("the flight shows that {word} registered the {word}")
+    public void theFlightShowsWhoRegisteredTheActualTime(String name, String time) throws Exception {
         lastAnswer().andExpect(status().isOk());
         send(get("/api/flights/{id}", flight().id()));
-        lastAnswer().andExpect(status().isOk()).andExpect(jsonPath("$.atdRegisteredBy").value(name));
+        lastAnswer().andExpect(status().isOk())
+            .andExpect(jsonPath("$." + time.toLowerCase() + "RegisteredBy").value(name));
     }
 
     /** A flight planner reads and enters a delay; a load planner reads and is refused when entering one. */

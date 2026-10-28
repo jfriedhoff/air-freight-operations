@@ -64,15 +64,23 @@ export async function addDelay(flightId: string, delay: NewDelay): Promise<Fligh
     return throwResponseError("De vertraging is geweigerd", response);
 }
 
-/* The server answers with the whole flight: after the ATD the flight has departed. */
-export async function registerDeparture(flightId: string, atd: Date): Promise<Flight> {
-    const response = await authorizedFetch(`${FLIGHTS_URL}/${encodeURIComponent(flightId)}/departure`, {
+/* The server answers with the whole flight: after the ATD it has departed, after the ATA it has landed. */
+export function registerDeparture(flightId: string, atd: Date): Promise<Flight> {
+    return registerActualTime(flightId, "departure", {atd: atd.toISOString()}, "Het vertrek is geweigerd");
+}
+
+export function registerArrival(flightId: string, ata: Date): Promise<Flight> {
+    return registerActualTime(flightId, "arrival", {ata: ata.toISOString()}, "De aankomst is geweigerd");
+}
+
+async function registerActualTime(flightId: string, path: string, body: object, refused: string): Promise<Flight> {
+    const response = await authorizedFetch(`${FLIGHTS_URL}/${encodeURIComponent(flightId)}/${path}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({atd: atd.toISOString()}),
+        body: JSON.stringify(body),
     });
     if (response.ok) {
         return response.json();
     }
-    return throwResponseError("Het vertrek is geweigerd", response);
+    return throwResponseError(refused, response);
 }

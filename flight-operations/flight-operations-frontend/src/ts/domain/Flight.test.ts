@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "./Flight.ts";
+import {canRegisterAta, canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "./Flight.ts";
 import type {Flight, FlightStatus} from "./Flight.ts";
 
 function flight(status: FlightStatus, changes: Partial<Flight> = {}): Flight {
@@ -42,6 +42,19 @@ test("a departed flight gets no ATD form", () => {
 
 test("a load planner gets no ATD form", () => {
     assert.equal(canRegisterAtd(flight("PLANNED"), false), false);
+});
+
+test("a flight planner can register the ATA of a departed flight", () => {
+    assert.equal(canRegisterAta(flight("DEPARTED"), true), true);
+});
+
+test("a planned or landed flight gets no ATA form", () => {
+    assert.equal(canRegisterAta(flight("PLANNED"), true), false);
+    assert.equal(canRegisterAta(flight("LANDED"), true), false);
+});
+
+test("a load planner gets no ATA form", () => {
+    assert.equal(canRegisterAta(flight("DEPARTED"), false), false);
 });
 
 test("an estimated time is only shown when it differs from the scheduled time", () => {

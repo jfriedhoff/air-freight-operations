@@ -15,14 +15,14 @@ Feature: Only flight planners can change flights and only load planners can chan
       | flight planner | enter a delay    | accepted                   |
       | load planner   | enter a delay    | refused with 403 Forbidden |
       | load planner   | register the ATD | refused with 403 Forbidden |
+      | load planner   | register the ATA | refused with 403 Forbidden |
 
-    # Waits for the endpoints to change and remove a delay and to register the ATA
+    # Waits for the endpoints to change and remove a delay
     @wip
     Examples:
-      | role         | action           | result                     |
-      | load planner | change a delay   | refused with 403 Forbidden |
-      | load planner | remove a delay   | refused with 403 Forbidden |
-      | load planner | register the ATA | refused with 403 Forbidden |
+      | role         | action         | result                     |
+      | load planner | change a delay | refused with 403 Forbidden |
+      | load planner | remove a delay | refused with 403 Forbidden |
 
   @integration
   Scenario: Without login the API responds with 401
@@ -53,14 +53,14 @@ Feature: Only flight planners can change flights and only load planners can chan
       | role           | user | action           |
       | flight planner | anna | enter a delay    |
       | flight planner | anna | register the ATD |
+      | flight planner | anna | register the ATA |
 
-    # Waits for the endpoints to change and remove a delay and to register the ATA
+    # Waits for the endpoints to change and remove a delay
     @wip
     Examples:
-      | role           | user | action           |
-      | flight planner | anna | change a delay   |
-      | flight planner | anna | remove a delay   |
-      | flight planner | anna | register the ATA |
+      | role           | user | action         |
+      | flight planner | anna | change a delay |
+      | flight planner | anna | remove a delay |
 
   @integration
   Scenario: The planner comes from the login, not from the request
