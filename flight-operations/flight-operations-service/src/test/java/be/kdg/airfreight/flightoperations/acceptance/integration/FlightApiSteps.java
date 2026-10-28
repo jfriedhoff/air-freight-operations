@@ -1,5 +1,7 @@
 package be.kdg.airfreight.flightoperations.acceptance.integration;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
+import be.kdg.airfreight.flightoperations.DatabaseFaults;
 import be.kdg.airfreight.flightoperations.TestHelper;
 import be.kdg.airfreight.flightoperations.domain.flight.Delay;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayKind;
@@ -22,6 +25,7 @@ import io.cucumber.java.en.But;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,18 +34,22 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.blankOrNullString;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories #5, #8, #9, #10, #12, #13, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
+ * Stories #5, #8, #9, #10, #12, #13, #33, #35, #36 and #44 through the REST API: who is logged in, what they send and what the API answers.
  * Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
 public class FlightApiSteps {
@@ -51,6 +59,7 @@ public class FlightApiSteps {
     private final MockMvc mockMvc;
     private final TestHelper testHelper;
     private final LogCapture logs;
+    private final DatabaseFaults databaseFaults;
 
     /** Who sends the request; null is nobody: a request without a token. */
     private RequestPostProcessor login;
@@ -64,10 +73,11 @@ public class FlightApiSteps {
     /** A removed delay is gone from the flight: then only the log says who removed it. */
     private boolean delayRemoved;
 
-    public FlightApiSteps(MockMvc mockMvc, TestHelper testHelper, LogCapture logs) {
+    public FlightApiSteps(MockMvc mockMvc, TestHelper testHelper, LogCapture logs, DatabaseFaults databaseFaults) {
         this.mockMvc = mockMvc;
         this.testHelper = testHelper;
         this.logs = logs;
+        this.databaseFaults = databaseFaults;
     }
 
     @After
@@ -147,6 +157,7 @@ public class FlightApiSteps {
     }
 
     @When("I enter a departure delay for a flight that does not exist through the API")
+    @When("I enter a delay for a flight that does not exist through the API")
     public void iEnterADepartureDelayForAnUnknownFlight() throws Exception {
         enterDelay(UUID.randomUUID(), DelayKind.DEPARTURE, 25, "93");
     }
@@ -175,7 +186,6 @@ public class FlightApiSteps {
     }
 
     @Then("the API answers {int}")
-    @Then("the API responds with {int} Not Found")
     public void theApiAnswers(int statusCode) throws Exception {
         lastAnswer().andExpect(status().is(statusCode));
     }
@@ -266,6 +276,7 @@ public class FlightApiSteps {
     /** Logging in happens at Keycloak; here the user arrives with the token. The first request shows the role. */
     @When("that user logs in")
     @When("I request the details and the load of HJ221")
+    @When("I request the details of HJ221")
     public void iRequestTheDetailsOfHj221() throws Exception {
         send(get("/api/flights/{id}", hj221().id()));
     }
@@ -281,9 +292,38 @@ public class FlightApiSteps {
         lastAnswer().andExpect(status().isForbidden());
     }
 
-    @Then("the API responds with 401 Unauthorized")
-    public void theApiRespondsUnauthorized() throws Exception {
-        lastAnswer().andExpect(status().isUnauthorized());
+    @Then("the API responds with {status}")
+    public void theApiRespondsWith(HttpStatus expected) throws Exception {
+        lastAnswer().andExpect(status().is(expected.value()));
+    }
+
+    /** Story #36: the answer is Problem Details with our code and the reason the page shows. */
+    @Then("the response contains a Problem Details body with an error code and an explanation")
+    public void theResponseContainsProblemDetails() throws Exception {
+        int status = lastAnswer().andReturn().getResponse().getStatus();
+        lastAnswer()
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.status").value(status))
+            .andExpect(jsonPath("$.code").value(not(blankOrNullString())))
+            .andExpect(jsonPath("$.detail").value(not(blankOrNullString())));
+    }
+
+    /** Nothing in the answer says how the service is built: no exception, no stack trace, no driver message. */
+    @Then("the API responds with {status}, without a stack trace")
+    public void theApiRespondsWithoutAStackTrace(HttpStatus expected) throws Exception {
+        theApiRespondsWith(expected);
+        theResponseContainsProblemDetails();
+        lastAnswer()
+            .andExpect(jsonPath("$.trace").doesNotExist())
+            .andExpect(jsonPath("$.exception").doesNotExist())
+            .andExpect(content().string(not(containsString("Exception"))))
+            // "Connection refused" is what DatabaseFaults lets the driver say: it belongs in the log, not here
+            .andExpect(content().string(not(containsString("refused"))));
+    }
+
+    @And("the error is logged at error level")
+    public void theErrorIsLoggedAtErrorLevel() {
+        logs.assertLoggedWithCause(Level.ERROR, "Database unavailable for GET /api/flights/");
     }
 
     @But("not with a redirect to the login page")
@@ -384,6 +424,54 @@ public class FlightApiSteps {
         lastAnswer().andExpect(status().isOk());
         iEnterADelay();
         lastAnswer().andExpect(role.equals("flight") ? status().isOk() : status().isForbidden());
+    }
+
+    @When("I enter a delay of {int} minutes through the API")
+    public void iEnterADelayOfMinutes(int minutes) throws Exception {
+        enterDelay(hj221().id(), DelayKind.DEPARTURE, minutes, "93");
+    }
+
+    /** 08 has the form of a delay reason, but the IATA list has no 08. */
+    @When("I enter a delay with a delay reason that is not in the IATA list through the API")
+    public void iEnterADelayWithAnUnknownReason() throws Exception {
+        enterDelay(hj221().id(), DelayKind.DEPARTURE, 25, "08");
+    }
+
+    @When("I enter a departure delay for a departed flight through the API")
+    public void iEnterADepartureDelayForADepartedFlight() throws Exception {
+        testHelper.depart(hj221());
+        enterDelay(hj221().id(), DelayKind.DEPARTURE, 25, "93");
+    }
+
+    /** At the STD, so the only reason to refuse is the missing CPM. */
+    @When("I register an ATD before the finalized load has been received through the API")
+    public void iRegisterAnAtdBeforeTheCpm() throws Exception {
+        registerAtd(TestHelper.STD);
+    }
+
+    /** Six minutes after the ETD, which is the STD: one minute more than the tolerance. */
+    @When("I register an ATD more than 5 minutes after the ETD through the API")
+    public void iRegisterAnAtdTooLate() throws Exception {
+        testHelper.recordFinalizedLoad(hj221());
+        registerAtd(TestHelper.STD.plus(Duration.ofMinutes(6)));
+    }
+
+    /**
+     * Story #36: the flight exists before the database goes away, so the request has something to ask for. The
+     * scenario names no user: a load planner may read, and needs no row in the database to do so.
+     */
+    @Given("the database of Flight Operations is unreachable")
+    public void theDatabaseIsUnreachable() {
+        hj221();
+        if (login == null) {
+            aLoadPlannerIsLoggedIn();
+        }
+        databaseFaults.makeUnreachable();
+    }
+
+    private void registerAtd(Instant atd) throws Exception {
+        send(post("/api/flights/{id}/departure", hj221().id()).contentType(MediaType.APPLICATION_JSON).content("""
+            {"atd": "%s"}""".formatted(atd)));
     }
 
     private FlightId hj221() {
