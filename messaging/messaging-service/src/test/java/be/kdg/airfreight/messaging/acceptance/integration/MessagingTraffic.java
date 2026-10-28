@@ -61,13 +61,21 @@ public class MessagingTraffic {
 
     /** Publishes the message as JSON, as its sender does; its "type" is the routing key. */
     public void send(Stream stream, Map<String, Object> message) {
-        send(stream, String.valueOf(message.get("type")), mapper.writeValueAsString(message));
+        Object messageId = message.get("messageId");
+        send(stream, String.valueOf(message.get("type")), mapper.writeValueAsString(message),
+            messageId == null ? null : messageId.toString());
     }
 
     /** Publishes any body, also one that is not JSON. */
     public void send(Stream stream, String routingKey, String body) {
+        send(stream, routingKey, body, null);
+    }
+
+    /** The senders put the id of the message in its AMQP properties too, as the outboxes of the other units do. */
+    private void send(Stream stream, String routingKey, String body, String messageId) {
         rabbit.send(stream.exchange.apply(amqp), routingKey, MessageBuilder.withBody(body.getBytes(StandardCharsets.UTF_8))
             .setContentType("application/json")
+            .setMessageId(messageId)
             .build());
     }
 

@@ -31,6 +31,11 @@ public class RabbitMqOutageSteps {
         assertThatThrownBy(connectionFactory::createConnection).isInstanceOf(AmqpConnectException.class);
     }
 
+    /** Whether this scenario made RabbitMQ unreachable. */
+    boolean isActive() {
+        return address != null;
+    }
+
     @After
     public void rabbitMqIsReachableAgain() {
         if (address != null) {

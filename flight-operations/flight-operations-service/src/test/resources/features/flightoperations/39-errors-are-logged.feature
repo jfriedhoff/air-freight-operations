@@ -3,8 +3,7 @@ Feature: Unreachable databases and queues and unexpected errors are logged
 
   # Every service logs its own errors: this file is the Flight Operations part of story 39.
 
-  # No step definitions yet
-  @integration @wip
+  @integration
   Scenario Outline: Technical errors are logged
     Given <failure>
     When the system notices it
@@ -17,8 +16,7 @@ Feature: Unreachable databases and queues and unexpected errors are logged
       | RabbitMQ is unreachable                 |
       | a message cannot be put on the queue    |
 
-  # No step definitions yet
-  @integration @wip
+  @integration
   Scenario Outline: Unusual messages and attempts are logged
     When <event>
     Then that is logged at level <level>, with the identification of the message or the flight

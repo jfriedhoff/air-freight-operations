@@ -56,12 +56,12 @@ public class MessagingEvents {
         this.amqp = amqp;
     }
 
-    public void flightAnnounced(FlightId flight) {
+    public UUID flightAnnounced(FlightId flight) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("arrivalAirport", "ATH");
         fields.put("std", utc(flight.scheduledDepartureDate(), STD));
         fields.put("sta", utc(flight.scheduledDepartureDate(), STA));
-        send("messaging.flight.announced", flight, fields);
+        return send("messaging.flight.announced", flight, fields);
     }
 
     public void flightDeparted(FlightId flight) {
@@ -70,6 +70,11 @@ public class MessagingEvents {
 
     public UUID departureEstimateChanged(FlightId flight, Instant etd) {
         return send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", etd.toString()));
+    }
+
+    /** A new ETD that is not a moment: Load Planning cannot read the message. */
+    public UUID departureEstimateChangedWithoutAMoment(FlightId flight) {
+        return send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", "soon"));
     }
 
     /** Messaging has already turned the day of the month into a date: Load Planning gets that date. */
@@ -125,6 +130,7 @@ public class MessagingEvents {
         Message message = MessageBuilder
             .withBody(mapper.writeValueAsString(body).getBytes(StandardCharsets.UTF_8))
             .setContentType("application/json")
+            .setMessageId(messageId.toString())
             .build();
         sent.put(messageId, new Sent(type, message));
         rabbit.send(amqp.messagingEventsExchange(), type, message);
