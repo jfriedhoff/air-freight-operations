@@ -1,11 +1,13 @@
-import {canRegisterAta, canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
+import {canChangeDelay, canRegisterAta, canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "../domain/Flight.ts";
 import type {Airport, Delay, DelayKind, DelayReason, Flight} from "../domain/Flight.ts";
 import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
 import type {FlightIdentity} from "../domain/FlightIdentity.ts";
 import {overviewQuery} from "../domain/FlightOverview.ts";
 import {FLIGHT_PLANNER} from "../infrastructure/auth.ts";
 import {loadPlanningAddress} from "../infrastructure/contexts.ts";
-import {addDelay, findFlight, getDelayReasons, getFlight, registerArrival, registerDeparture} from "../infrastructure/flightRest.ts";
+import {
+    addDelay, changeDelay, findFlight, getDelayReasons, getFlight, registerArrival, registerDeparture, removeDelay
+} from "../infrastructure/flightRest.ts";
 import {brusselsDate, brusselsDateTime, brusselsToUtc, plainDate} from "./brusselsTime.ts";
 import {createElementWithText} from "./htmlUtil.ts";
 import {plannerRoleOrNoAccess} from "./accessPresenter.ts";
@@ -80,13 +82,59 @@ function actualTime(rowId: string, valueId: string, instant: string | null, regi
     }
 }
 
-function delayRow(delay: Delay): HTMLTableRowElement {
+function reasonText(delay: Delay): string {
+    return delay.reason.description ? `${delay.reason.code} – ${delay.reason.description}` : delay.reason.code;
+}
+
+function button(label: string, classes: string, onClick: () => void): HTMLElement {
+    const element = createElementWithText("button", label);
+    element.setAttribute("type", "button");
+    element.className = `btn btn-xs ${classes}`;
+    element.addEventListener("click", onClick);
+    return element;
+}
+
+function cellWith(...elements: HTMLElement[]): HTMLElement {
+    const cell = document.createElement("td");
+    cell.append(...elements);
+    return cell;
+}
+
+/* A flight planner gets the buttons only for a delay that can still change; see canChangeDelay. */
+function delayRow(flight: Flight, delay: Delay): HTMLTableRowElement {
     const row = document.createElement("tr");
-    const reason = delay.reason.description ? `${delay.reason.code} – ${delay.reason.description}` : delay.reason.code;
-    for (const cell of [DELAY_KIND[delay.kind], `${delay.minutes} min`, reason, delay.description,
+    for (const cell of [DELAY_KIND[delay.kind], `${delay.minutes} min`, reasonText(delay), delay.description,
         delay.lastChangedBy ?? "–"]) {
         row.appendChild(createElementWithText("td", cell));
     }
+    row.appendChild(canChangeDelay(flight, delay, isFlightPlanner)
+        ? cellWith(
+            button("Wijzigen", "", () => row.replaceWith(delayEditRow(flight, delay))),
+            button("Verwijderen", "btn-ghost", () => deleteDelay(delay)))
+        : cellWith());
+    return row;
+}
+
+/* The kind and the delay reason of a delay stay: the row only lets the planner change the minutes and the
+   description. Annuleren puts the row back as it was. */
+function delayEditRow(flight: Flight, delay: Delay): HTMLTableRowElement {
+    const minutes = document.createElement("input");
+    minutes.type = "number";
+    minutes.required = true;
+    minutes.value = String(delay.minutes);
+    minutes.className = "input input-xs w-20";
+    const description = document.createElement("input");
+    description.required = true;
+    description.value = delay.description;
+    description.className = "input input-xs w-full";
+
+    const row = document.createElement("tr");
+    row.append(createElementWithText("td", DELAY_KIND[delay.kind]), cellWith(minutes),
+        createElementWithText("td", reasonText(delay)), cellWith(description),
+        createElementWithText("td", delay.lastChangedBy ?? "–"),
+        cellWith(
+            button("Opslaan", "btn-primary", () => saveDelay(delay, minutes, description)),
+            button("Annuleren", "btn-ghost", () => row.replaceWith(delayRow(flight, delay)))));
     return row;
 }
 
@@ -116,7 +164,7 @@ function renderFlight(flight: Flight): void {
     actualTime("atd-row", "atd", flight.atd, flight.atdRegisteredBy);
     actualTime("ata-row", "ata", flight.ata, flight.ataRegisteredBy);
 
-    delayRows.replaceChildren(...flight.delays.map(delayRow));
+    delayRows.replaceChildren(...flight.delays.map(delay => delayRow(flight, delay)));
     noDelays.classList.toggle("hidden", flight.delays.length > 0);
     const kinds = delayKindsToAdd(flight, isFlightPlanner);
     kindField.replaceChildren(...kinds.map(kindOption));
@@ -162,6 +210,38 @@ async function enterDelay(event: Event): Promise<void> {
         delayForm.reset();
         renderFlight(flight);
         addInfo(messageBox, DELAY_ADDED[kind]);
+    } catch (error) {
+        addError(messageBox, (error as Error).message);
+    }
+}
+
+/* Like the delay form, the row only checks that something was entered; whether the change is allowed is the
+   server's answer. */
+async function saveDelay(delay: Delay, minutes: HTMLInputElement, description: HTMLInputElement): Promise<void> {
+    clearMessages(messageBox);
+    if (!flightId || !minutes.reportValidity() || !description.reportValidity()) {
+        return;
+    }
+    try {
+        renderFlight(await changeDelay(flightId, delay.id, {
+            minutes: Number(minutes.value),
+            description: description.value.trim(),
+        }));
+        addInfo(messageBox, "De vertraging is gewijzigd.");
+    } catch (error) {
+        addError(messageBox, (error as Error).message);
+    }
+}
+
+async function deleteDelay(delay: Delay): Promise<void> {
+    clearMessages(messageBox);
+    const kind = DELAY_KIND[delay.kind].toLowerCase();
+    if (!flightId || !window.confirm(`De ${kind}vertraging van ${delay.minutes} min verwijderen?`)) {
+        return;
+    }
+    try {
+        renderFlight(await removeDelay(flightId, delay.id));
+        addInfo(messageBox, "De vertraging is verwijderd.");
     } catch (error) {
         addError(messageBox, (error as Error).message);
     }

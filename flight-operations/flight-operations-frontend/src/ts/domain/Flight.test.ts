@@ -1,7 +1,14 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {canRegisterAta, canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "./Flight.ts";
-import type {Flight, FlightStatus} from "./Flight.ts";
+import {canChangeDelay, canRegisterAta, canRegisterAtd, delayKindsToAdd, showsEta, showsEtd} from "./Flight.ts";
+import type {Delay, DelayKind, Flight, FlightStatus} from "./Flight.ts";
+
+function delay(kind: DelayKind): Delay {
+    return {
+        id: "d1", kind, minutes: 25, reason: {code: "93", description: null},
+        description: "Late inbound aircraft", lastChangedBy: null,
+    };
+}
 
 function flight(status: FlightStatus, changes: Partial<Flight> = {}): Flight {
     return {
@@ -29,6 +36,21 @@ test("a landed flight gets no delay form", () => {
 
 test("a load planner gets no delay form", () => {
     assert.deepEqual(delayKindsToAdd(flight("PLANNED"), false), []);
+});
+
+test("a departure delay can be changed while the flight is planned, not after departure", () => {
+    assert.equal(canChangeDelay(flight("PLANNED"), delay("DEPARTURE"), true), true);
+    assert.equal(canChangeDelay(flight("DEPARTED"), delay("DEPARTURE"), true), false);
+});
+
+test("an arrival delay can be changed after departure, not after landing", () => {
+    assert.equal(canChangeDelay(flight("DEPARTED"), delay("ARRIVAL"), true), true);
+    assert.equal(canChangeDelay(flight("LANDED"), delay("ARRIVAL"), true), false);
+});
+
+test("a load planner cannot change a delay", () => {
+    assert.equal(canChangeDelay(flight("PLANNED"), delay("DEPARTURE"), false), false);
+    assert.equal(canChangeDelay(flight("DEPARTED"), delay("ARRIVAL"), false), false);
 });
 
 test("a flight planner can register the ATD of a planned flight", () => {

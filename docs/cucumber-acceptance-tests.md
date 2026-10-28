@@ -188,7 +188,8 @@ same limits: no Spring, database or mocks. Which of the two a test is follows on
 
 A Then step checks the state of the aggregate, not the event it returned. The one exception is
 "it is recorded that I removed the delay" (story 10): after removing, the delay is gone, so the event
-is the only place that says who removed it.
+is the only place that says who removed it. Through the API (story 33) the log line of the controller
+records who removed a delay.
 
 PIT runs both and shows what neither checks (see [`mutation-testing-pit.md`](mutation-testing-pit.md)).
 

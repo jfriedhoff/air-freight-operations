@@ -14,6 +14,7 @@ import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCodeCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayDuration;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayId;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayKind;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
 import be.kdg.airfreight.flightoperations.domain.flight.FlightId;
@@ -99,12 +100,19 @@ public class TestHelper {
         return jpaFlights.count();
     }
 
-    /** A departure delay of 25 minutes, reason 93 (late inbound aircraft). */
-    public void addDepartureDelay(FlightId id) {
+    /** A departure delay of 25 minutes, reason 93 (late inbound aircraft), entered by a new flight planner. */
+    public DelayId addDepartureDelay(FlightId id) {
+        return addDepartureDelay(id, saveFlightPlanner());
+    }
+
+    /** The same delay, entered by this flight planner. */
+    public DelayId addDepartureDelay(FlightId id, FlightPlannerId by) {
         Flight flight = find(id);
         flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(25), new DelayCode("93"), "Late inbound aircraft",
-            saveFlightPlanner(), STD, delayCodes);
+            by, STD, delayCodes);
         flights.save(flight);
+        // addDelay appends, so the new delay is the last one
+        return flight.getDelays().getLast().getId();
     }
 
     /** Lands the departed flight at its STA. */
