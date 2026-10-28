@@ -279,10 +279,10 @@ Content-Type: application/json
 
 [
   {"periodFrom":"2026-10-28","periodTo":"2026-10-28","weekdays":["WEDNESDAY"],
-   "departureTime":"{{e-std}}","arrivalTime":"{{e-sta}}","flightNumber":"HJ502",
+   "departureTime":"{{e-std}}","arrivalTime":"{{e-sta}}","flightNumber":"HJ500",
    "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"},
   {"periodFrom":"2026-10-28","periodTo":"2026-10-28","weekdays":["WEDNESDAY"],
-   "departureTime":"{{e-std}}","arrivalTime":"{{e-sta}}","flightNumber":"HJ504",
+   "departureTime":"{{e-std}}","arrivalTime":"{{e-sta}}","flightNumber":"HJ501",
    "departureAirport":"BRU","arrivalAirport":"ATH","registration":"OOTHA"}
 ]
 
