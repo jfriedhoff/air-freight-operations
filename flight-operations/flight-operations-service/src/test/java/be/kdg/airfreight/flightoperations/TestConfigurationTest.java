@@ -1,18 +1,17 @@
 package be.kdg.airfreight.flightoperations;
 
-import be.kdg.airfreight.flightoperations.infrastructure.messaging.OutboxRelay;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class TestConfigurationTest {
     @Autowired
-    private ObjectProvider<OutboxRelay> relay;
+    private ApplicationContext context;
 
     @Value("${spring.datasource.url}")
     private String databaseUrl;
@@ -22,8 +21,9 @@ class TestConfigurationTest {
         assertThat(databaseUrl).endsWith("/flight_operations_test");
     }
 
+    /** The bean of OutboxRelayScheduler, which is package-private in infrastructure.messaging. */
     @Test
-    void testsPublishNothing() {
-        assertThat(relay.getIfAvailable()).isNull();
+    void testsPublishNothingOnTheirOwn() {
+        assertThat(context.containsBean("outboxRelayScheduler")).isFalse();
     }
 }

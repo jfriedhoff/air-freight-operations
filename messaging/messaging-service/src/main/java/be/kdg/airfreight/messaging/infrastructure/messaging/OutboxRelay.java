@@ -2,6 +2,7 @@ package be.kdg.airfreight.messaging.infrastructure.messaging;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.Duration;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -16,10 +17,14 @@ import org.springframework.transaction.annotation.Transactional;
  * exchange, in the order they were stored, and stops at the first one RabbitMQ does not take, so
  * nothing overtakes. After an outage the next run sends what was waiting. A crash between sending
  * and marking sends an event again, with the same message id.
+ * A run that fails before it can publish, such as on a database that cannot be reached, is logged as an error by
+ * Spring's scheduler, with its stack trace; the next run tries again.
  */
 @Slf4j
 @Component
 public class OutboxRelay {
+    private static final Duration CONFIRM_TIMEOUT = Duration.ofSeconds(5);
+
     private final OutboxEventRepository outbox;
     private final RabbitTemplate rabbit;
     private final Clock clock;
@@ -41,14 +46,27 @@ public class OutboxRelay {
                 .setMessageId(event.getMessageId().toString())
                 .build();
             try {
-                rabbit.send(amqp.eventsExchange(), event.getType(), message);
+                publish(event.getType(), message);
             } catch (RuntimeException e) {
-                log.warn("Event {} ({}) could not be published and stays in the outbox: {}",
-                    event.getMessageId(), event.getType(), e.getMessage());
+                log.error("Event {} ({}) could not be published and stays in the outbox",
+                    event.getMessageId(), event.getType(), e);
                 return;
             }
             event.markSent(clock.instant());
             log.info("Event {} ({}) published", event.getMessageId(), event.getType());
         }
+    }
+
+    /**
+     * Waits until RabbitMQ confirms it took the message. Without the confirm a message to an exchange that does not
+     * exist would count as sent and be lost; now it stays in the outbox and the next run tries again. An exchange
+     * that exists but has no queue bound yet still confirms: whoever follows the events has not subscribed yet.
+     */
+    private void publish(String routingKey, Message message) {
+        rabbit.invoke(operations -> {
+            operations.send(amqp.eventsExchange(), routingKey, message);
+            operations.waitForConfirmsOrDie(CONFIRM_TIMEOUT.toMillis());
+            return null;
+        });
     }
 }

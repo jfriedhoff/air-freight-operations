@@ -30,8 +30,8 @@ public class PartnerMessageRelay {
             try {
                 partners.send(message);
             } catch (RuntimeException e) {
-                log.warn("Partner message {} ({}) could not be sent and stays in the outbox: {}",
-                    message.getId().id(), message.getType(), e.getMessage());
+                log.error("Partner message {} ({}) could not be sent and stays in the outbox",
+                    message.getId().id(), message.getType(), e);
                 return;
             }
             message.markSent(clock.instant());
