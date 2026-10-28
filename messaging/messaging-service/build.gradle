@@ -48,6 +48,17 @@ tasks.named('test') {
     useJUnitPlatform()
     finalizedBy 'jacocoTestReport'
 }
+
+// The example messages of the events between the services (contracts/ in the root of the repository), for
+// the contract tests. Explanation: docs/contract-tests.md
+sourceSets {
+    test {
+        resources {
+            srcDir rootProject.file('contracts')
+        }
+    }
+}
+
 // OWASP dependency-check: ./gradlew dependencyCheckAnalyze, report in build/reports
 dependencyCheck {
     nvd {
