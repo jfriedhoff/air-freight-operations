@@ -1,0 +1,309 @@
+# Hand checks for the @e2e scenarios (docs/e2e-hand-checks.md).
+# Work from top to bottom. Run with environment "dev" (needed for the logins).
+# Before you start: click "Clear view" in the partner service (http://localhost:8000).
+# Load Planning runs with --load-planning.policy.loading-opens-before-departure=48h.
+# The dates are those of 28 October 2026: change them to coming dates when you run this again.
+
+# Block 1d only: the ATD as a UTC moment in the past.
+@round1-atd = 2026-10-28T11:10:00Z
+
+# Block 2C3 only: STD = now in UTC + 25 minutes, STA = STD + 3 h. Brussels is UTC+1.
+@c3-std = 12:35
+@c3-sta = 15:35
+
+# Block 2E only: STD = now in UTC + 25 minutes, STA = STD + 3 h.
+@e-std = 13:15
+@e-sta = 16:15
+
+#######################################################################################################
+# 1. First round: MVT-ED/EA, AD/AA and the CPM without cargo (#11, #14, #25, #12, #1, #3, #31, #27)
+#######################################################################################################
+
+### 1a: HJ221 and 3V11 on 29 October
+# Expect: 2 FLMs. 3V11 has STA 2026-10-30T01:45:00Z, its departure date stays 2026-10-29 (#3).
+# Expect: id, produced-at and version 1 in the body and in the AMQP headers (#27).
+# Then in Flight Operations, flight details of HJ221 (29/10), one step at a time (#11):
+#   1. Departure delay 15 min                  -> ED0645 + EA1000
+#   2. Change that delay to 30 min             -> ED0700 + EA1015
+#   3. Change only its description             -> nothing
+#   4. Remove it                               -> ED0630 + EA0945
+#   5. Arrival delay 10 min                    -> only EA0955
+#   6. Remove it                               -> only EA0945
+#   Every delay has a reason code; no telegram body contains it.
+# Then HJ221 departs (#25, #14, #11):
+#   7. Load Planning: Finalize Load on HJ221   -> CPM with "ulds": []
+#   8. Flight Operations: ATD with TODAY's date and the current time (the form fills in 29/10)
+#                                              -> accepted, AD with that time in UTC
+#   9. Arrival delay 20 min                    -> only EA1005
+#  10. ATA with today's date, later than the ATD -> AA
+# Then 3V11 (#11, #14):
+#  11. Departure delay 120 min                 -> 3V11/29.OOTHA.BRU ED0030 + 3V11/29.OOTHA.ATH EA0345
+#  12. Finalize Load, then ATD and ATA as in 7, 8 and 10 -> CPM, AD, AA, all with day 29
+# Then 1b to 1d for the same ATD twice (#12).
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-29","periodTo":"2026-10-29","weekdays":["THURSDAY"],
+   "departureTime":"06:30","arrivalTime":"09:45","flightNumber":"HJ221",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"},
+  {"periodFrom":"2026-10-29","periodTo":"2026-10-29","weekdays":["THURSDAY"],
+   "departureTime":"22:30","arrivalTime":"01:45","flightNumber":"3V11",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"OOTHA"}
+]
+
+### 1b: log in as the flight planner, through the client of Flight Operations
+POST {{keycloak}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=flight-operations-service&client_secret={{flight-operations-client-secret}}&username={{flight-planner}}&password={{flight-planner-password}}&scope=openid
+
+> {%
+    client.global.set("fo_token", response.body.access_token);
+%}
+
+### 1c: 3V11 of 29 October in Flight Operations; keeps its id
+GET http://localhost:8080/api/flights?scheduledDepartureDate=2026-10-29&flightNumber=3V11&departureAirport=BRU
+Authorization: Bearer {{fo_token}}
+
+> {%
+    client.global.set("fo_flight_id", response.body.flights[0].id);
+%}
+
+### 1d: the same ATD again after step 12 (#12)
+# Expect: 409 "The departure of this flight has already been registered", still one AD for 3V11.
+# Before step 12 the first run is accepted (200) and the second refused (409).
+POST http://localhost:8080/api/flights/{{fo_flight_id}}/departure
+Authorization: Bearer {{fo_token}}
+Content-Type: application/json
+
+{"atd": "{{round1-atd}}"}
+
+#######################################################################################################
+# 2A. Flights (#2, #31, #1)
+#######################################################################################################
+
+### 2A1: HJ300 from BRU on 30 October
+# Expect: 1 FLM for HJ300 2026-10-30.
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-30","periodTo":"2026-10-30","weekdays":["FRIDAY"],
+   "departureTime":"06:30","arrivalTime":"09:45","flightNumber":"HJ300",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"}
+]
+
+### 2A2: exactly the same SSM again
+# Expect: no new FLM.
+# Expect in the Flight Operations log: "Flight HJ300 of 2026-10-30 from BRU already exists: not created again".
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-30","periodTo":"2026-10-30","weekdays":["FRIDAY"],
+   "departureTime":"06:30","arrivalTime":"09:45","flightNumber":"HJ300",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"}
+]
+
+### 2A3: 30 Oct (exists) and 2 Nov, with another STD and registration
+# Expect: 1 FLM, for 2026-11-02 with STD 2026-11-02T07:00:00Z.
+# Expect in the Flight Operations log: 30 October "already exists: not created again".
+# Then check in Flight Operations (date 30/10): HJ300 still has STD 07:30 CET (06:30 UTC) and SXBAA.
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-30","periodTo":"2026-11-02","weekdays":["FRIDAY","MONDAY"],
+   "departureTime":"07:00","arrivalTime":"10:15","flightNumber":"HJ300",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAB"}
+]
+
+### 2A4: two records in one request
+# Expect: the response has 2 messageIds, and 2 FLMs arrive (HJ300 from ATH, HJ301).
+# Then check in Flight Operations (date 30/10): HJ300 from BRU and HJ300 from ATH both exist.
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-30","periodTo":"2026-10-30","weekdays":["FRIDAY"],
+   "departureTime":"12:00","arrivalTime":"15:15","flightNumber":"HJ300",
+   "departureAirport":"ATH","arrivalAirport":"BRU","registration":"SXBAA"},
+  {"periodFrom":"2026-10-30","periodTo":"2026-10-30","weekdays":["FRIDAY"],
+   "departureTime":"08:00","arrivalTime":"11:15","flightNumber":"HJ301",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"OOTHA"}
+]
+
+#######################################################################################################
+# 2B. Bookings and load positions (#32, #15, #18), 2C1 (#26)
+#######################################################################################################
+
+### B: three bookings
+# Expect: the response has 3 messageIds (#32).
+# Then in Load Planning, flights to load of 30/10 (#15, #26 2C1):
+#   HJ300 (BRU) has AKE16689R7 and PMC12345KL, HJ301 has AKE22222R7, all without a load position.
+# Then place AKE16689R7 on CL in Load Planning (#18). Expect: no new message in the partner service.
+POST http://localhost:8090/api/cargo-bookings
+Content-Type: application/json
+
+[
+  {"flightNumber":"HJ300","scheduledDepartureDate":"2026-10-30","departureAirport":"BRU",
+   "uldCode":"AKE16689R7","weight":1250,"weightUnit":"KG","destination":"ATH"},
+  {"flightNumber":"HJ300","scheduledDepartureDate":"2026-10-30","departureAirport":"BRU",
+   "uldCode":"PMC12345KL","weight":2646,"weightUnit":"LB","destination":"ATH"},
+  {"flightNumber":"HJ301","scheduledDepartureDate":"2026-10-30","departureAirport":"BRU",
+   "uldCode":"AKE22222R7","weight":980,"weightUnit":"KG","destination":"ATH"}
+]
+
+#######################################################################################################
+# 2C. Load Planning follows the flight (#26)
+#######################################################################################################
+
+### 2C2: a booking on HJ221 of 29 October, which has departed
+# Expect in the Load Planning log: "Message ... rejected and set aside on load-planning.dlq".
+# Expect in RabbitMQ (http://localhost:15672): load-planning.dlq has one more message.
+# Then in Load Planning, flights to load of 29/10: HJ221 and 3V11 are not listed.
+POST http://localhost:8090/api/cargo-bookings
+Content-Type: application/json
+
+[
+  {"flightNumber":"HJ221","scheduledDepartureDate":"2026-10-29","departureAirport":"BRU",
+   "uldCode":"AKE33333R7","weight":500,"weightUnit":"KG","destination":"ATH"}
+]
+
+### 2C3a: a flight of today that departs in about 25 minutes
+# First fill in @c3-std and @c3-sta at the top of this file. Do 2C3a to 2C3c in one go (about 10 minutes).
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-28","periodTo":"2026-10-28","weekdays":["WEDNESDAY"],
+   "departureTime":"{{c3-std}}","arrivalTime":"{{c3-sta}}","flightNumber":"HJ400",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"}
+]
+
+### 2C3b: a ULD on HJ400
+# Then, right away: enter a departure delay of 25 minutes on HJ400 in Flight Operations.
+#   It must be entered while the loading period is still open: a closed period stays closed.
+# 2C3c: wait until 20 minutes before the original STD has passed (about 5 minutes).
+#   Then place AKE44444R7 on CL in Load Planning. Expect: accepted.
+POST http://localhost:8090/api/cargo-bookings
+Content-Type: application/json
+
+[
+  {"flightNumber":"HJ400","scheduledDepartureDate":"2026-10-28","departureAirport":"BRU",
+   "uldCode":"AKE44444R7","weight":800,"weightUnit":"KG","destination":"ATH"}
+]
+
+#######################################################################################################
+# 2D. Outages (#28) and finalizing twice (#24): no requests in 2D1 and 2D2
+#######################################################################################################
+
+# 2D1: Messaging not running
+#   1. Stop the Messaging service (Ctrl+C).
+#   2. Flight Operations: departure delay of 15 minutes on HJ301 (30/10).
+#   3. RabbitMQ: the queue messaging.flights holds the event.
+#   4. Start Messaging again. Expect: one ED0815 and one EA1130 for HJ301.
+#
+# 2D2: RabbitMQ unreachable, changes in order
+#   1. In the repo folder: docker compose stop app_rabbitmq
+#   2. Flight Operations: departure delay of 15 minutes on HJ300 BRU (30/10), then change it to 30.
+#      Both are accepted.
+#   3. docker compose start app_rabbitmq
+#   4. Expect, in this order and each once: ED0645, EA1000, ED0700, EA1015.
+#      Partner service not "connected" again? docker compose restart partner-service,
+#      and compare with the queue partners.all.
+#
+# 2D3: CPM not lost, and finalizing twice
+#   1. docker compose stop app_rabbitmq
+#   2. Load Planning: Finalize Load on HJ300 from ATH (30/10, no cargo). It is accepted.
+#   3. docker compose start app_rabbitmq. Expect: exactly one CPM for HJ300 ATH.
+#   4. Run the three requests below (environment "dev").
+#   5. Flight Operations: register the ATD of HJ300 ATH with today's date and the current time.
+#      Expect: accepted.
+
+### 2D3a: log in as the load planner
+POST {{keycloak}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id={{client-id}}&client_secret={{client-secret}}&username={{load-planner}}&password={{password}}&scope=openid
+
+> {%
+    client.global.set("access_token", response.body.access_token);
+%}
+
+### 2D3b: the flights of 30 October; keeps the id of HJ300 from ATH
+GET {{api}}/flight-cargos?scheduledDepartureDate=2026-10-30&includeDeparted=true
+Authorization: Bearer {{access_token}}
+
+> {%
+    const flight = response.body.flights.find(f => f.flightNumber === "HJ300" && f.departureAirport === "ATH");
+    client.global.set("cargo_id", flight.id);
+    client.log("HJ300 ATH: " + flight.id + ", finalized: " + flight.finalized);
+%}
+
+### 2D3c: finalize again
+# Expect: 409 refused, and still one CPM for HJ300 ATH (#24).
+POST {{api}}/flight-cargos/{{cargo_id}}/finalize
+Authorization: Bearer {{access_token}}
+
+#######################################################################################################
+# 2E. The last scenarios (#1, #12, #25)
+#######################################################################################################
+
+### 2E1: a period with new start and end dates (#1)
+# Monday 2 Nov to Monday 9 Nov, on Mondays and Thursdays: 2, 5 and 9 November.
+# Expect: 3 FLMs for HJ600 (2026-11-02, 2026-11-05, 2026-11-09), so start and end date are included.
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-11-02","periodTo":"2026-11-09","weekdays":["MONDAY","THURSDAY"],
+   "departureTime":"08:00","arrivalTime":"11:15","flightNumber":"HJ600",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"}
+]
+
+### 2E2: two flights of today that depart in about 25 minutes (fill in @e-std and @e-sta first)
+# Expect: 2 FLMs (HJ500, HJ501).
+# Right away, while their loading period is still open (until STD - 20 min):
+#   Load Planning: Finalize Load on HJ501 (no cargo). Expect: a CPM for HJ501.
+# 2E3, finalizing and departing right away (#12), on HJ500:
+#   1. Load Planning: Finalize Load on HJ500, and straight after that
+#   2. Flight Operations: register the ATD of HJ500 with today's date and the current time.
+#   Expect one of the two:
+#   - accepted: HJ500 has departed, exactly one AD;
+#   - refused with "The departure can only be registered once the load is finalized (CPM received)":
+#     HJ500 is still planned and no AD is sent. Register the ATD again after the CPM: accepted, one AD.
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-28","periodTo":"2026-10-28","weekdays":["WEDNESDAY"],
+   "departureTime":"{{e-std}}","arrivalTime":"{{e-sta}}","flightNumber":"HJ502",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"},
+  {"periodFrom":"2026-10-28","periodTo":"2026-10-28","weekdays":["WEDNESDAY"],
+   "departureTime":"{{e-std}}","arrivalTime":"{{e-sta}}","flightNumber":"HJ504",
+   "departureAirport":"BRU","arrivalAirport":"ATH","registration":"OOTHA"}
+]
+
+### 2E4: a second ULD on HJ301 of 30 October, for a CPM with ULDs (#25)
+# Then in Load Planning, HJ301 (30/10):
+#   1. Put AKE22222R7 on B1 and AKE55555R7 on X. These positions have no side, so the lateral balance passes.
+#   2. Finalize Load.
+# Expect: one CPM for HJ301 with both ULDs, each with its load position (B1, X) and weight with unit.
+POST http://localhost:8090/api/cargo-bookings
+Content-Type: application/json
+
+[
+  {"flightNumber":"HJ301","scheduledDepartureDate":"2026-10-30","departureAirport":"BRU",
+   "uldCode":"AKE55555R7","weight":600,"weightUnit":"KG","destination":"ATH"}
+]
+
+###
+# 2E5: a late departure, first a delay, then the ATD (#12), on HJ501. No request.
+#   1. Wait until more than 5 minutes after the STD of HJ501 (STD + 6 min).
+#   2. Flight Operations: register the ATD of HJ501 with today's date and the current time.
+#      Expect: refused, "The ATD is more than 5 minutes after the ETD: enter a departure delay first".
+#   3. Enter a departure delay of 10 minutes.
+#      Expect: an ED with STD + 10 min and an EA with STA + 10 min (in UTC, day 28).
+#   4. Register the same ATD again. Expect: accepted, and an AD with that time in UTC.

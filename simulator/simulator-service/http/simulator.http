@@ -137,3 +137,29 @@ Content-Type: application/json
   { "flightNumber": "ABC121", "scheduledDepartureDate": "2026-10-27", "departureAirport": "BRU",
     "uldCode": "PMC12345KL", "weight": 2646, "weightUnit": "LB", "destination": "ATH" }
 ]
+
+###
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  {"periodFrom":"2026-10-29","periodTo":"2026-10-29","weekdays":["THURSDAY"],
+    "departureTime":"06:30","arrivalTime":"09:45","flightNumber":"HJ221",
+    "departureAirport":"BRU","arrivalAirport":"ATH","registration":"SXBAA"},
+  {"periodFrom":"2026-10-29","periodTo":"2026-10-29","weekdays":["THURSDAY"],
+    "departureTime":"22:30","arrivalTime":"01:45","flightNumber":"3V11",
+    "departureAirport":"BRU","arrivalAirport":"ATH","registration":"OOTHA"}
+]
+
+###
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  { "periodFrom": "2026-10-28", "periodTo": "2026-10-28", "weekdays": ["WEDNESDAY"],
+    "departureTime": "12:00", "arrivalTime": "15:15", "flightNumber": "HJ221",
+    "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" },
+  { "periodFrom": "2026-10-29", "periodTo": "2026-10-29", "weekdays": ["THURSDAY"],
+    "departureTime": "20:00", "arrivalTime": "23:15", "flightNumber": "HJ999",
+    "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" }
+]
