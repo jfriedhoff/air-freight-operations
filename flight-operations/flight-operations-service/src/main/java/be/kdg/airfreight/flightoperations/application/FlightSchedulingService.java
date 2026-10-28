@@ -24,12 +24,15 @@ public class FlightSchedulingService {
         this.clock = clock;
     }
 
-    /** A flight from the schedule. One that already exists is not created again and not overwritten. */
+    /**
+     * A flight from the schedule. One that already exists is not created again and not overwritten. That is the
+     * normal answer to a repeated SSM, not a fault, so it is logged as info (story 39).
+     */
     @Transactional
     public void scheduleFlight(ScheduleFlightCommand command) {
         LocalDate date = command.scheduled().departureDate();
         if (flights.findByFlight(command.flightNumber(), date, command.departureAirport()).isPresent()) {
-            log.warn("Flight {} of {} from {} already exists: not created again",
+            log.info("Flight {} of {} from {} already exists: not created again",
                 command.flightNumber().value(), date, command.departureAirport().value());
             return;
         }

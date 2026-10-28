@@ -118,13 +118,13 @@ public class FlightScheduleSteps {
 
     @Then("the duplicate of {int} {month} is logged with flight number, date and departure airport")
     public void theDuplicateIsLoggedWithFlightNumberDateAndDepartureAirport(int day, Month month) {
-        logs.assertLogged(Level.WARN, flightNumber, LocalDate.of(YEAR, month, day).toString(), departureAirport,
+        logs.assertLogged(Level.INFO, flightNumber, LocalDate.of(YEAR, month, day).toString(), departureAirport,
             ALREADY_EXISTS);
     }
 
     @Then("the duplicate is logged")
     public void theDuplicateIsLogged() {
-        logs.assertLogged(Level.WARN, ALREADY_EXISTS);
+        logs.assertLogged(Level.INFO, ALREADY_EXISTS);
     }
 
     @Then("the flight still has STD {time} UTC and registration {word}")
