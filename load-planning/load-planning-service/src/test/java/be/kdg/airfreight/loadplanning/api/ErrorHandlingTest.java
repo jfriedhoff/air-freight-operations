@@ -6,12 +6,16 @@ import be.kdg.airfreight.loadplanning.domain.NotFoundException;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.UnknownLoadPlannerException;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ProblemDetail;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ErrorHandlingTest {
+    private static final MockHttpServletRequest REQUEST = new MockHttpServletRequest("GET", "/api/42");
+
     private final ErrorHandling errorHandling = new ErrorHandling();
 
     @Test
@@ -56,7 +60,7 @@ class ErrorHandlingTest {
     @Test
     void anUnreachableDatabaseIsServiceUnavailableWithoutInternalDetails() {
         ProblemDetail problem = errorHandling.databaseUnavailable(
-            new DataAccessResourceFailureException("Connection to localhost:5443 refused"));
+            new DataAccessResourceFailureException("Connection to localhost:5443 refused"), REQUEST);
 
         assertProblem(problem, 503, "database-unavailable", "The service is temporarily unavailable: try again later");
     }
@@ -67,6 +71,21 @@ class ErrorHandlingTest {
         assertThat(ErrorHandling.onOneLine("Load position CL\r\n2026-01-09 INFO forged log line is not on the floor plan"))
             .isEqualTo("Load position CL__2026-01-09 INFO forged log line is not on the floor plan");
         assertThat(ErrorHandling.onOneLine(null)).isEmpty();
+    }
+
+    @Test
+    void anotherDatabaseErrorIsAnInternalErrorWithoutInternalDetails() {
+        ProblemDetail problem = errorHandling.databaseError(
+            new DataIntegrityViolationException("duplicate key value violates unique constraint \"uk_flight\""), REQUEST);
+
+        assertProblem(problem, 500, "database-error", "The service could not complete the request: try again later");
+    }
+
+    @Test
+    void anUnexpectedErrorIsAnInternalErrorWithoutInternalDetails() {
+        ProblemDetail problem = new UnexpectedErrorHandling().unexpected(new NullPointerException("flight is null"), REQUEST);
+
+        assertProblem(problem, 500, "unexpected-error", "Something went wrong on our side: try again later");
     }
 
     private static void assertProblem(ProblemDetail problem, int status, String code, String detail) {

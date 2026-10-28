@@ -6,9 +6,11 @@ import be.kdg.airfreight.flightoperations.domain.DomainRuleViolationException;
 import be.kdg.airfreight.flightoperations.domain.InvalidValueException;
 import be.kdg.airfreight.flightoperations.domain.NotFoundException;
 import be.kdg.airfreight.flightoperations.domain.flightplanner.UnknownFlightPlannerException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -77,10 +79,18 @@ class ErrorHandling {
     }
 
     @ExceptionHandler({CannotCreateTransactionException.class, DataAccessResourceFailureException.class})
-    ProblemDetail databaseUnavailable(RuntimeException e) {
-        log.error("Database unavailable", e);
+    ProblemDetail databaseUnavailable(RuntimeException e, HttpServletRequest request) {
+        log.error("Database unavailable for {} {}", request.getMethod(), request.getRequestURI(), e);
         return problem(HttpStatus.SERVICE_UNAVAILABLE, "database-unavailable",
             "The service is temporarily unavailable: try again later");
+    }
+
+    /** Any other database error is ours, not the caller's: the cause goes to the log, not into the answer. */
+    @ExceptionHandler(DataAccessException.class)
+    ProblemDetail databaseError(DataAccessException e, HttpServletRequest request) {
+        log.error("Database operation failed for {} {}", request.getMethod(), request.getRequestURI(), e);
+        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "database-error",
+            "The service could not complete the request: try again later");
     }
 
     private static ProblemDetail problem(HttpStatusCode status, String code, String detail) {
