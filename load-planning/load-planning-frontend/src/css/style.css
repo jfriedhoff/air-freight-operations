@@ -27,16 +27,42 @@
         @apply w-56 font-medium opacity-70;
     }
 
-    /* The deck of the floor plan: three rows (right side, centre line, left side) and one column per row of the
-       floor plan. Wide enough for a ULD code; on a narrow screen the deck scrolls inside its panel. */
+    /* The deck of the floor plan, drawn as the fuselage seen from above: the right side on top, a narrow centre
+       line, the left side below. Positions on the centre line (nose and tail) span all three rows. The columns have
+       a fixed width so the aircraft keeps its shape on a wide screen; on a narrow screen the deck scrolls inside
+       its panel. */
     .deck {
         display: grid;
-        grid-template-columns: repeat(var(--deck-columns, 19), minmax(4rem, 1fr));
-        grid-template-rows: repeat(3, 3rem);
+        grid-template-columns: repeat(var(--deck-columns, 19), 4.5rem);
+        grid-template-rows: 3.5rem 0.25rem 3.5rem;
         gap: 0.25rem;
-        min-width: max-content;
-        @apply p-3 border-2 border-base-300 bg-base-200;
-        border-radius: 3rem 0.75rem 0.75rem 3rem;
+        width: max-content;
+        position: relative;
+        margin: 3.5rem auto;
+        @apply py-3 pl-16 pr-8 border-2 border-base-300 bg-base-200;
+        /* a round nose on the left, a blunter tail on the right */
+        border-radius: 6rem 3rem 3rem 6rem / 50%;
+    }
+
+    /* The two wings, swept back. Only a picture: absolutely positioned, so they take no cell of the grid. */
+    .deck::before,
+    .deck::after {
+        content: "";
+        position: absolute;
+        left: 35%;
+        width: 16rem;
+        height: 3rem;
+        @apply bg-base-content/20;
+    }
+
+    .deck::before {
+        bottom: 100%;
+        clip-path: polygon(0 100%, 60% 100%, 100% 0, 75% 0);
+    }
+
+    .deck::after {
+        top: 100%;
+        clip-path: polygon(0 0, 60% 0, 100% 100%, 75% 100%);
     }
 
     .deck-cell {
