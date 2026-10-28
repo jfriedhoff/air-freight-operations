@@ -56,14 +56,16 @@ public class CpmSteps {
     }
 
     @Then("the CPM contains {word} with {word}, {int} kg and {word}")
+    @SuppressWarnings("unchecked")
     public void theCpmContains(String uld, String position, int kilograms, String destination) {
         assertThat(ulds()).singleElement().satisfies(line -> {
             assertThat(line)
-                .containsEntry("uldCode", uld)
+                .containsEntry("code", uld)
                 .containsEntry("position", position)
-                .containsEntry("weightUnit", "KG")
                 .containsEntry("destination", destination);
-            assertThat(((Number) line.get("weight")).intValue()).isEqualTo(kilograms);
+            Map<String, Object> weight = (Map<String, Object>) line.get("weight");
+            assertThat(weight).containsEntry("unit", "KGM");
+            assertThat(((Number) weight.get("amount")).intValue()).isEqualTo(kilograms);
         });
     }
 
