@@ -44,6 +44,26 @@ class FlightCargoTest {
     }
 
     @Test
+    void checkLoadIsRefusedOutsideTheLoadingPeriod() {
+        Instant justBeforeTheStart = Instant.parse("2026-01-08T18:29:00Z");
+        Instant theEnd = Instant.parse("2026-01-09T06:10:00Z");
+
+        assertThatThrownBy(() -> cargo.checkLoad(List.of(), FLOOR_PLAN, justBeforeTheStart, POLICY))
+            .isInstanceOf(DomainRuleViolationException.class)
+            .hasMessage("The load can only be checked within the loading period");
+        assertThatThrownBy(() -> cargo.checkLoad(List.of(), FLOOR_PLAN, theEnd, POLICY))
+            .isInstanceOf(DomainRuleViolationException.class)
+            .hasMessage("The load can only be checked within the loading period");
+    }
+
+    /** The start belongs to the loading period, the end does not (see the test above). */
+    @Test
+    void checkLoadWorksFromTheStartOfTheLoadingPeriod() {
+        assertThat(cargo.checkLoad(List.of(), FLOOR_PLAN, Instant.parse("2026-01-08T18:30:00Z"), POLICY).results())
+            .isEmpty();
+    }
+
+    @Test
     void aFinalizedLoadCannotChange() {
         cargo.book(CODE, WEIGHT, ATH, IN_THE_LOADING_PERIOD);
         cargo.assign(CODE, CL, planner, IN_THE_LOADING_PERIOD, FLOOR_PLAN, POLICY);

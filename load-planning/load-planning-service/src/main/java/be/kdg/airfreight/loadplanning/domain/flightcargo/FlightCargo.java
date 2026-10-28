@@ -109,17 +109,22 @@ public class FlightCargo {
         return new LoadPositionCleared(id, flightId, code, position, by, now);
     }
 
-    public LoadCheckReport checkLoad(List<LoadCheck> checks, FloorPlan floorPlan) {
-        return new LoadCheckReport(checks.stream()
-            .map(check -> check.check(this, floorPlan))
-            .toList());
+    /**
+     * Check Load: every check on the load as it stands. It changes nothing. A load planner may only ask it within
+     * the loading period (case, "Load checks").
+     */
+    public LoadCheckReport checkLoad(List<LoadCheck> checks, FloorPlan floorPlan, Instant now, LoadingPolicy policy) {
+        if (!loadingPeriod(policy).contains(now)) {
+            throw new DomainRuleViolationException("The load can only be checked within the loading period");
+        }
+        return runChecks(checks, floorPlan);
     }
 
     /** Runs the checks again: the load may have changed since the last report. */
     public LoadFinalized finalizeLoad(LoadPlannerId by, Instant now, List<LoadCheck> checks, FloorPlan floorPlan,
                                       LoadingPolicy policy) {
         requireLoadCanChange(now, policy);
-        if (!checkLoad(checks, floorPlan).hardChecksPassed()) {
+        if (!runChecks(checks, floorPlan).hardChecksPassed()) {
             throw new DomainRuleViolationException("The load cannot be finalized: a hard load check fails");
         }
         finalized = true;
@@ -201,6 +206,12 @@ public class FlightCargo {
             return Optional.of("The load can only change within the loading period");
         }
         return Optional.empty();
+    }
+
+    private LoadCheckReport runChecks(List<LoadCheck> checks, FloorPlan floorPlan) {
+        return new LoadCheckReport(checks.stream()
+            .map(check -> check.check(this, floorPlan))
+            .toList());
     }
 
     private Uld uldWith(UldCode code) {

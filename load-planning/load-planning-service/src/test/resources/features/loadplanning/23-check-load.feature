@@ -13,8 +13,8 @@ Feature: Check the load with Check Load
       | Offloading           | passed |                                                                                     | hard |
       | Not all cargo loaded | failed | AKE30111HJ has no load position                                                     | soft |
 
-  # Needs the REST endpoint for Check Load, which load-planning does not have yet. checkLoad also works outside the loading period (REFLECTIE.md)
-  @ui @integration @wip
+  # "I cannot use Check Load": the page offers it only when the cargo says loadCanChange (canChangeLoad in FlightCargo.ts).
+  @ui @integration
   Scenario Outline: Not outside the loading period
     Given the loading period <state>
     Then I cannot use Check Load
@@ -25,10 +25,10 @@ Feature: Check the load with Check Load
       | has not started yet |
       | is over             |
 
-  # Needs the REST endpoint for Check Load, which load-planning does not have yet
-  @integration @wip
+  @integration
   Scenario: Check Load changes nothing
     Given it is within the loading period
+    And the lateral balance fails
     When I click Check Load
     Then the load remains unchanged
     And no message is sent

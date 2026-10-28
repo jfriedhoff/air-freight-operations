@@ -26,7 +26,8 @@ public class LoadCheckSteps {
     public void allHardChecksPass() {
         world.loadWeightOn("CL", CargoWorld.ANY_WEIGHT);
         world.loadWeightOn("CR", CargoWorld.ANY_WEIGHT);
-        assertThat(world.cargo.checkLoad(CargoWorld.CHECKS, world.floorPlan).hardChecksPassed())
+        assertThat(world.cargo.checkLoad(CargoWorld.CHECKS, world.floorPlan, world.now, CargoWorld.POLICY)
+                .hardChecksPassed())
             .as("all hard checks pass").isTrue();
     }
 

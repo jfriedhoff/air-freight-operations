@@ -25,7 +25,8 @@ public class LateralBalanceSteps {
         world.loadWeightOn("CL", "1000 kg");
         world.loadWeightOn("CR", "1200 kg");
         assertThat(world.cargo.checkLoad(List.of(new LateralBalanceCheck(CargoWorld.LATERAL_BALANCE_LIMIT)),
-            world.floorPlan).hardChecksPassed()).as("the lateral balance passes").isFalse();
+                world.floorPlan, world.now, CargoWorld.POLICY).hardChecksPassed())
+            .as("the lateral balance passes").isFalse();
         world.expectedRefusal = HARD_CHECK_FAILS;
     }
 

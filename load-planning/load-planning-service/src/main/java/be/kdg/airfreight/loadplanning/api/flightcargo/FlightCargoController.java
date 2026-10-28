@@ -102,7 +102,10 @@ public class FlightCargoController {
         return ResponseEntity.ok(toDto(cargo));
     }
 
-    /** Check Load: every check on the load as it stands. It changes nothing; only a load planner may ask it. */
+    /**
+     * Check Load: every check on the load as it stands. It changes nothing; only a load planner may ask it, within
+     * the loading period.
+     */
     @GetMapping("/{id}/load-check")
     public ResponseEntity<LoadCheckReportDto> checkLoad(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(LoadCheckReportDto.from(loadService.checkLoad(new FlightCargoId(id))));
