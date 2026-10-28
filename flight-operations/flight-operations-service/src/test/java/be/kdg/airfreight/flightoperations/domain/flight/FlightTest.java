@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,6 +102,34 @@ class FlightTest {
         assertThat(event.flightId()).isEqualTo(flight.getId());
         assertThat(event.ata()).isEqualTo(STA);
         assertThat(event.registeredBy()).isEqualTo(planner);
+    }
+
+    /** FlightSchedulingService publishes this event for every new flight. Messaging writes the FLM from it. */
+    @Test
+    void aNewFlightIsAnnouncedWithItsIdentityAndScheduledTimes() {
+        FlightAnnounced event = flight.announced(NOW);
+
+        assertThat(event.flightId()).isEqualTo(flight.getId());
+        assertThat(event.flightNumber()).isEqualTo(new FlightNumber("HJ221"));
+        assertThat(event.scheduledDepartureDate()).isEqualTo(LocalDate.of(2026, 1, 9));
+        assertThat(event.departureAirport()).isEqualTo(new AirportCode("BRU"));
+        assertThat(event.arrivalAirport()).isEqualTo(new AirportCode("ATH"));
+        assertThat(event.registration()).isEqualTo(new AircraftRegistration("SXBAA"));
+        assertThat(event.std()).isEqualTo(STD);
+        assertThat(event.sta()).isEqualTo(STA);
+        assertThat(event.occurredOn()).isEqualTo(NOW);
+    }
+
+    /** FlightRetentionService publishes this event when it deletes an old flight (story 38). */
+    @Test
+    void aRemovedFlightIsAnnouncedWithItsIdentity() {
+        FlightRemoved event = flight.removed(NOW);
+
+        assertThat(event.flightId()).isEqualTo(flight.getId());
+        assertThat(event.flightNumber()).isEqualTo(new FlightNumber("HJ221"));
+        assertThat(event.scheduledDepartureDate()).isEqualTo(LocalDate.of(2026, 1, 9));
+        assertThat(event.departureAirport()).isEqualTo(new AirportCode("BRU"));
+        assertThat(event.occurredOn()).isEqualTo(NOW);
     }
 
     private DelayId addDepartureDelay(int minutes) {

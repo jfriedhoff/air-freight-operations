@@ -81,6 +81,7 @@ There is no minimum score (`mutationThreshold`) that fails the build yet.
 | 7 October 2026 | + `FlightTest`, `ActualTimeToleranceTest` | 118 | 88 (75 %) | 99 % |
 | 14 October 2026 | Domain rules from JUnit to scenarios (stories 10, 37) | 126 | 99 (79 %) | 99 % |
 | 22 October 2026 | + `Flight.removed` (story 38), no new unit tests | 127 | 99 (78 %) | 99 % |
+| 22 October 2026 | + the events of `announced` and `removed` in `FlightTest` | 127 | 101 (80 %) | 99 % |
 
 The first measurement found these gaps; `FlightTest` and `ActualTimeToleranceTest` close them:
 
@@ -102,10 +103,9 @@ left `DelayCodeCatalogTest`.
 It only behaves differently for two `Delay` objects with the same id, and only `hydrate`
 (persistence) creates those. The integration tests cover that.
 
-**No coverage (27):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
+**No coverage (25):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
 `notFound`, `FlightPlanner` and `RetentionPeriod`. They belong to the integration tests or to
-stories that have no unit tests yet (2, 38). The events of `Flight.announced` and `Flight.removed`
-are only checked by the integration scenarios of stories 1 and 38; no unit test reads them.
+stories that have no unit tests yet (2, 38).
 
 ### Load planning
 
@@ -180,20 +180,25 @@ only `FlightInfoService` calls.
 | --- | --- | --- | --- | --- |
 | 7 October 2026 | Cucumber `@unit` scenarios of story 1 | 86 | 12 (14 %) | 100 % |
 | 22 October 2026 | + story 30 (date derivation) | 92 | 32 (35 %) | 100 % |
+| 22 October 2026 | + `@unit` scenarios of stories 11, 14, 25, 28 and 29, `MvtWriterTest`, `UldMessageTest`, `LoadFinalizedTest` | 92 | 68 (74 %) | 100 % |
 
 Every mutant in `FlightSeries` and `SchedulePeriod` is killed, including the arrival at or before the
 departure time (next day) and the last day of the period. Story 30 kills all 12 mutants in
 `DateDerivation`, and there are no survivors.
 
-The 60 without coverage:
+On 22 October 2026 the MVT writers, the validation of a ULD message, a CPM line and the format
+version, and `markSent` got their tests:
 
-- The MVT writers (`MvtWriter`, `EdWriter`, `EaWriter`, `AdWriter`, `AaWriter`, 15 mutants): stories
-  11 and 14 only have `@e2e` scenarios.
-- The validation in `CpmLine`, `UldMessage` and `FormatVersion`: only `@integration` and `@e2e`
-  scenarios reach it (stories 25 and 29), and PIT does not run those. `LoadFinalized.cpmCreated` and
-  `UldMessage.bookingOn` are only called by the application services.
-- `ReceivedMessage` and `OutgoingMessage` (34): mostly getters, `hydrate` and `equals`/`hashCode`,
-  which the integration tests cover.
+| What had no coverage | Now killed by |
+| --- | --- |
+| The MVT writers (15 mutants): stories 11 and 14 only had `@e2e` scenarios | The `@unit` scenarios after midnight in stories 11 and 14, and `MvtWriterTest` for `writes` |
+| The validation of `UldMessage` and `FormatVersion` | Story 29, "A ULD message with an invalid value is invalid" (replaces `IncomingMessageRulesTest`, which held the same rules as JUnit) |
+| The validation of `CpmLine` | Story 25, "A ULD line in the CPM needs a ULD code, a load position and a weight unit" |
+| `OutgoingMessage.markSent` and `isSent` | Story 28, "A message that has been sent is not marked as sent again", and `MvtWriterTest` |
+| `UldMessage.bookingOn`, `LoadFinalized.cpmCreated` | `UldMessageTest`, `LoadFinalizedTest` |
+
+**No coverage (24):** `ReceivedMessage` (17), and `hydrate`, `equals` and `hashCode` of
+`OutgoingMessage`, which the integration tests cover.
 
 ## References
 

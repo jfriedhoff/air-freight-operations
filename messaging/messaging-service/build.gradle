@@ -48,7 +48,6 @@ tasks.named('test') {
     useJUnitPlatform()
     finalizedBy 'jacocoTestReport'
 }
-
 // OWASP dependency-check: ./gradlew dependencyCheckAnalyze, report in build/reports
 dependencyCheck {
     nvd {

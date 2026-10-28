@@ -21,3 +21,27 @@ Feature: Partners receive a CPM when the load has been finalized
     Given the CPM of HJ221 has been sent
     When Flight Operations has processed the CPM
     Then the flight planner can register the ATD of HJ221
+
+  @integration
+  Scenario: A finalized load is sent to the partners as a CPM and releases the departure
+    When Load Planning reports the finalized load of HJ221 with AKE16689R7 on CL, 1250 kg, destination ATH
+    Then a CPM is sent with flight number HJ221, scheduled departure date 9 January 2026 and departure airport BRU
+    And the CPM contains AKE16689R7 with CL, 1250 kg and ATH
+    And Flight Operations is told that the CPM of HJ221 of 9 January 2026 from BRU has been written
+
+  @integration
+  Scenario: A finalized load without cargo is sent as a CPM without ULDs
+    When Load Planning reports the finalized load of HJ221 without ULDs
+    Then a CPM is sent with an empty list of ULDs
+
+  @unit
+  Scenario Outline: A ULD line in the CPM needs a ULD code, a load position and a weight unit
+    When Load Planning reports a finalized load with a ULD line <line>
+    Then the finalized load is <result>
+
+    Examples:
+      | line                    | result  |
+      | AKE16689R7 on CL in KG  | valid   |
+      | without a ULD code      | invalid |
+      | without a load position | invalid |
+      | without a weight unit   | invalid |
