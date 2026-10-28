@@ -55,7 +55,7 @@ function classesOf(cell: DeckCell): string {
 }
 
 /* One button per load position on a grid of three rows: right side on top, the centre line, left side below. A
-   click is only passed on when the cell can be clicked; otherwise the button is there to be read. */
+   position on the centre line (nose and tail) spans all three rows. A click is only passed on when the cell can be clicked; otherwise the button is there to be read. */
 export function drawDeck(cells: DeckCell[], clickable: (cell: DeckCell) => boolean,
                          onClick: (cell: DeckCell) => void): void {
     const columns = Math.max(0, ...cells.map(cell => cell.column));
@@ -67,7 +67,7 @@ export function drawDeck(cells: DeckCell[], clickable: (cell: DeckCell) => boole
         button.dataset.position = cell.name;
         button.className = classesOf(cell);
         button.style.gridColumn = String(cell.column);
-        button.style.gridRow = cell.row === "top" ? "1" : cell.row === "middle" ? "2" : "3";
+        button.style.gridRow = cell.row === "top" ? "1" : cell.row === "middle" ? "1 / 4" : "3";
         button.setAttribute("aria-label", labelOf(cell));
         button.appendChild(createElementWithText("span", cell.name)).className = "deck-name";
         if (cell.uld !== null) {
