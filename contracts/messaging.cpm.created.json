@@ -1,0 +1,9 @@
+{
+  "messageId": "0b6f2a7e-3c41-4d8e-9a52-1f0c6d7e8a06",
+  "type": "messaging.cpm.created",
+  "version": 1,
+  "occurredOn": "2026-01-09T06:00:01Z",
+  "flightNumber": "HJ221",
+  "scheduledDepartureDate": "2026-01-09",
+  "departureAirport": "BRU"
+}
