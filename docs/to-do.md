@@ -10,12 +10,13 @@ One section per team member. Remove an item when its merge request is merged.
 
 ## Romeo
 
-### Step "it is recorded that … did that" for #10, #12 and #13
+### Step "it is recorded that … did that" for #10 and #13
 
-The Flight Operations step behind this sentence of story 33 checks the planner recorded on the only delay
-of the flight. When the `@wip` rows of #33 get their endpoints (change and remove a delay: #10; ATD: #12;
-ATA: #13), the step must look at what each action records: the delay that was changed, the planner of the
-ATD or the ATA. Who removed a delay is a design question for #10, because the delay itself is gone.
+The Flight Operations step behind this sentence of story 33 checks the planner that the action of the
+scenario recorded: the action step sets `changedBy` in `FlightApiSteps` (a delay by default, the ATD since #12).
+When the `@wip` rows of #33 get their endpoints (change and remove a delay: #10; ATA: #13), their action
+steps must set it too: the delay that was changed, the planner of the ATA. Who removed a delay is a design
+question for #10, because the delay itself is gone.
 
 ## Jonas
 

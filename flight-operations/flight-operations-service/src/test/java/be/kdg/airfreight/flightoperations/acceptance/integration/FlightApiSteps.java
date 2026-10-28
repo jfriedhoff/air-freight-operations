@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 
 import be.kdg.airfreight.flightoperations.TestHelper;
 import be.kdg.airfreight.flightoperations.domain.flight.Delay;
@@ -39,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories #5, #8, #9, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
+ * Stories #5, #8, #9, #12, #33, #35 and #44 through the REST API: who is logged in, what they send and what the API answers.
  * Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
 public class FlightApiSteps {
@@ -55,6 +56,8 @@ public class FlightApiSteps {
     private FlightId flightId;
     private final List<ResultActions> answers = new ArrayList<>();
     private final Map<String, FlightPlannerId> plannersByName = new HashMap<>();
+    /** Where the flight keeps who made the change of this scenario: a delay and the ATD record it in different places. */
+    private Function<Flight, FlightPlannerId> changedBy = flight -> flight.getDelays().getFirst().getLastChangedBy();
 
     public FlightApiSteps(MockMvc mockMvc, TestHelper testHelper, LogCapture logs) {
         this.mockMvc = mockMvc;
@@ -289,6 +292,12 @@ public class FlightApiSteps {
     }
 
     @Then("it is recorded that {word} did that")
+    public void itIsRecordedWhoDidThat(String name) throws Exception {
+        lastAnswer().andExpect(status().isOk());
+        assertThat(changedBy.apply(testHelper.find(flight())))
+            .as("the flight planner %s", name).isEqualTo(plannersByName.get(name));
+    }
+
     @Then("it is recorded that {word} entered the delay")
     public void itIsRecordedWhoEnteredTheDelay(String name) throws Exception {
         lastAnswer().andExpect(status().isOk());
@@ -301,6 +310,23 @@ public class FlightApiSteps {
         lastAnswer().andExpect(status().isOk());
         send(get("/api/flights/{id}", flight().id()));
         lastAnswer().andExpect(status().isOk()).andExpect(jsonPath("$.delays[0].lastChangedBy").value(name));
+    }
+
+    /** The CPM is processed first: without it the ATD is refused, and these steps are about who may register it. */
+    @When("I register the ATD through the API")
+    @When("I register the ATD of HJ221 through the API")
+    public void iRegisterTheAtd() throws Exception {
+        testHelper.recordFinalizedLoad(hj221());
+        changedBy = Flight::getDepartureRegisteredBy;
+        send(post("/api/flights/{id}/departure", hj221().id()).contentType(MediaType.APPLICATION_JSON).content("""
+            {"atd": "%s"}""".formatted(TestHelper.STD)));
+    }
+
+    @Then("the flight shows that {word} registered the ATD")
+    public void theFlightShowsWhoRegisteredTheAtd(String name) throws Exception {
+        lastAnswer().andExpect(status().isOk());
+        send(get("/api/flights/{id}", flight().id()));
+        lastAnswer().andExpect(status().isOk()).andExpect(jsonPath("$.atdRegisteredBy").value(name));
     }
 
     /** A flight planner reads and enters a delay; a load planner reads and is refused when entering one. */

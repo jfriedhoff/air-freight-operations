@@ -6,6 +6,7 @@ import java.util.UUID;
 import be.kdg.airfreight.flightoperations.application.FlightPlannerService;
 import be.kdg.airfreight.flightoperations.application.FlightService;
 import be.kdg.airfreight.flightoperations.application.command.AddDelayCommand;
+import be.kdg.airfreight.flightoperations.application.command.RegisterDepartureCommand;
 import be.kdg.airfreight.flightoperations.application.query.FlightsQuery;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
@@ -30,7 +31,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** There is no PUT or PATCH on a flight on purpose: nobody changes scheduled or estimated times directly. */
+/**
+ * There is no PUT or PATCH on a flight on purpose: nobody changes scheduled or estimated times directly.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/flights")
@@ -54,12 +57,12 @@ public class FlightController {
      */
     @GetMapping
     public ResponseEntity<FlightsOfDayDto> flightsOf(
-        @RequestParam(required = false) @Nullable LocalDate scheduledDepartureDate,
-        @RequestParam(required = false) @Nullable String flightNumber,
-        @RequestParam(required = false) @Nullable String departureAirport) {
+            @RequestParam(required = false) @Nullable LocalDate scheduledDepartureDate,
+            @RequestParam(required = false) @Nullable String flightNumber,
+            @RequestParam(required = false) @Nullable String departureAirport) {
         FlightsQuery query = new FlightsQuery(scheduledDepartureDate,
-            flightNumber == null ? null : new FlightNumber(flightNumber),
-            departureAirport == null ? null : new AirportCode(departureAirport));
+                flightNumber == null ? null : new FlightNumber(flightNumber),
+                departureAirport == null ? null : new AirportCode(departureAirport));
         return ResponseEntity.ok(FlightsOfDayDto.from(flightService.flightsOf(query)));
     }
 
@@ -71,26 +74,47 @@ public class FlightController {
     @PostMapping("/{id}/delays")
     public ResponseEntity<FlightDto> addDelay(@PathVariable("id") UUID id, @Valid @RequestBody AddDelayDto dto,
                                               @AuthenticationPrincipal Jwt jwt) {
-        FlightPlannerId flightPlanner = FlightPlannerId.fromAccount(jwt.getSubject());
-        flightPlannerService.register(flightPlanner, nameOf(jwt));
+        FlightPlannerId flightPlanner = registeredPlanner(jwt);
         log.info("Flight planner {} enters a {} delay of {} minutes for flight {}", flightPlanner.id(),
-            dto.kind(), dto.minutes(), id);
+                dto.kind(), dto.minutes(), id);
         AddDelayCommand command = new AddDelayCommand(new FlightId(id), dto.kind(),
-            new DelayDuration(dto.minutes()), new DelayCode(dto.reason()), dto.description(), flightPlanner);
+                new DelayDuration(dto.minutes()), new DelayCode(dto.reason()), dto.description(), flightPlanner);
         return ResponseEntity.ok(toDto(flightService.addDelay(command)));
     }
 
-    private FlightDto toDto(Flight flight) {
-        return FlightDto.from(flight, airports, delayCodes,
-            flightPlannerService.namesOf(FlightDto.plannersOf(flight)));
+    /**
+     * One ATD per flight: a second registration is refused with 409, so the partners never get a second MVT-AD.
+     * Before the CPM has been processed the ATD is refused with 409 as well, with the reason.
+     */
+    @PostMapping("/{id}/departure")
+    public ResponseEntity<FlightDto> registerDeparture(@PathVariable("id") UUID id,
+                                                       @Valid @RequestBody RegisterDepartureDto dto,
+                                                       @AuthenticationPrincipal Jwt jwt) {
+        FlightPlannerId flightPlanner = registeredPlanner(jwt);
+        log.info("Flight planner {} registers ATD {} for flight {}", flightPlanner.id(), dto.atd(), id);
+        RegisterDepartureCommand command = new RegisterDepartureCommand(new FlightId(id), dto.atd(), flightPlanner);
+        return ResponseEntity.ok(toDto(flightService.registerDeparture(command)));
     }
 
-    /** The name Keycloak gives the account. A token without one falls back to the user name, then to the id. */
+    /** The flight planner of the token. Flight Operations stores their name on their first change. */
+    private FlightPlannerId registeredPlanner(Jwt jwt) {
+        FlightPlannerId flightPlanner = FlightPlannerId.fromAccount(jwt.getSubject());
+        flightPlannerService.register(flightPlanner, nameOf(jwt));
+        return flightPlanner;
+    }
+
+    private FlightDto toDto(Flight flight) {
+        return FlightDto.from(flight, airports, delayCodes, flightPlannerService.namesOf(FlightDto.plannersOf(flight)));
+    }
+
+    /**
+     * The name Keycloak gives the account. A token without one falls back to the username, then to the id.
+     */
     private static String nameOf(Jwt jwt) {
         String name = jwt.getClaimAsString("name");
         if (name == null || name.isBlank()) {
             name = jwt.getClaimAsString("preferred_username");
         }
-        return name == null || name.isBlank() ? jwt.getSubject() : name;
+        return name == null || name.isBlank() ? String.valueOf(jwt.getSubject()) : name;
     }
 }

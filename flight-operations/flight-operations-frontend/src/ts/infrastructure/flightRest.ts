@@ -63,3 +63,16 @@ export async function addDelay(flightId: string, delay: NewDelay): Promise<Fligh
     }
     return throwResponseError("De vertraging is geweigerd", response);
 }
+
+/* The server answers with the whole flight: after the ATD the flight has departed. */
+export async function registerDeparture(flightId: string, atd: Date): Promise<Flight> {
+    const response = await authorizedFetch(`${FLIGHTS_URL}/${encodeURIComponent(flightId)}/departure`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({atd: atd.toISOString()}),
+    });
+    if (response.ok) {
+        return response.json();
+    }
+    return throwResponseError("Het vertrek is geweigerd", response);
+}

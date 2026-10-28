@@ -73,7 +73,30 @@
             </table>
         </section>
 
-        <p id="role-note" class="hidden text-sm opacity-70">Alleen een flight planner kan vertragingen ingeven.</p>
+        <p id="role-note" class="hidden text-sm opacity-70">Alleen een flight planner kan vertragingen en het vertrek ingeven.</p>
+
+        <form id="atd-form" class="hidden panel">
+            <div class="panel-header">
+                <h2 class="text-base font-semibold">Vertrek registreren (ATD)</h2>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4 p-4 max-w-3xl">
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium" for="atd-date">Datum</label>
+                    <input type="date" id="atd-date" name="atd-date" required class="input input-sm w-full"/>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium" for="atd-time">Tijd (Brussel)</label>
+                    <input type="time" id="atd-time" name="atd-time" required class="input input-sm w-full"/>
+                </div>
+                <div id="atd-zone-choice" class="hidden flex flex-col gap-1 sm:col-span-2">
+                    <label class="text-sm font-medium" for="atd-zone">Welk tijdstip bedoel je?</label>
+                    <select id="atd-zone" name="atd-zone" class="select select-sm w-full"></select>
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t border-base-300">
+                <button type="submit" class="btn btn-sm btn-primary">Registreren</button>
+            </div>
+        </form>
 
         <form id="delay-form" class="hidden panel">
             <div class="panel-header">
