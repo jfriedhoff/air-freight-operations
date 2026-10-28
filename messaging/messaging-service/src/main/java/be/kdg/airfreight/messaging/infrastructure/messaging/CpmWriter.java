@@ -31,9 +31,9 @@ class CpmWriter implements MessageWriter<LoadFinalized> {
     @Override
     public OutgoingMessage write(LoadFinalized event, MessageId id, Instant createdAt) {
         FlightId flight = event.flightId();
-        String body = mapper.writeValueAsString(new CpmJson(id.id(), createdAt, FORMAT_VERSION.number(),
+        String body = mapper.writeValueAsString(new CpmJson(id.id(), createdAt, FORMAT_VERSION.number(), "CPM",
             flight.flightNumber().value(), flight.scheduledDepartureDate(), flight.departureAirport().value(),
-            event.load().stream().map(UldLineJson::from).toList()));
+            event.load().stream().map(CpmUldJson::from).toList()));
         return OutgoingMessage.create(id, flight, MessageType.CPM, FORMAT_VERSION, createdAt, body);
     }
 }

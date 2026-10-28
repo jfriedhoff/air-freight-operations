@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class PartnerMessageSteps {
     private static final int FORMAT_VERSION = 1;
-    private static final String FORMAT_VERSION_HEADER = "formatVersion";
+    private static final String VERSION_HEADER = "version";
 
     private final MessagingTraffic traffic;
 
@@ -79,8 +79,9 @@ public class PartnerMessageSteps {
         if (message.getType() == MessageType.FLM || message.getType() == MessageType.CPM) {
             Map<String, Object> body = traffic.readJson(message.getBody());
             assertThat(body).containsEntry("messageId", message.getId().id().toString())
-                .containsEntry("createdAt", ScenarioTime.NOW.toString())
-                .containsEntry("formatVersion", FORMAT_VERSION);
+                .containsEntry("producedAt", ScenarioTime.NOW.toString())
+                .containsEntry("version", FORMAT_VERSION)
+                .containsEntry("type", message.getType().name());
         }
     }
 
@@ -95,7 +96,9 @@ public class PartnerMessageSteps {
         MessageProperties properties = traffic.nextPartnerMessage(message.getId().id()).getMessageProperties();
         assertThat(properties.getMessageId()).isEqualTo(message.getId().id().toString());
         assertThat(properties.getTimestamp()).isEqualTo(Date.from(message.getCreatedAt()));
-        assertThat(properties.<Integer>getHeader(FORMAT_VERSION_HEADER)).isEqualTo(FORMAT_VERSION);
+        assertThat(properties.<Integer>getHeader(VERSION_HEADER)).isEqualTo(FORMAT_VERSION);
+        assertThat(properties.<String>getHeader("message-id")).isEqualTo(message.getId().id().toString());
+        assertThat(properties.<String>getHeader("produced-at")).isEqualTo(message.getCreatedAt().toString());
     }
 
     @Then("their identifications differ")
