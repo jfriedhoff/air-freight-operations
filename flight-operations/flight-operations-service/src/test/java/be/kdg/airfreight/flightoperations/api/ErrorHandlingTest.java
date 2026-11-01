@@ -5,13 +5,17 @@ import be.kdg.airfreight.flightoperations.domain.InvalidValueException;
 import be.kdg.airfreight.flightoperations.domain.NotFoundException;
 import be.kdg.airfreight.flightoperations.domain.flightplanner.UnknownFlightPlannerException;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ProblemDetail;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.transaction.CannotCreateTransactionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ErrorHandlingTest {
+    private static final MockHttpServletRequest REQUEST = new MockHttpServletRequest("GET", "/api/42");
+
     private final ErrorHandling errorHandling = new ErrorHandling();
 
     @Test
@@ -54,9 +58,24 @@ class ErrorHandlingTest {
     @Test
     void anUnreachableDatabaseIsServiceUnavailableWithoutInternalDetails() {
         ProblemDetail problem = errorHandling.databaseUnavailable(
-            new CannotCreateTransactionException("Connection to localhost:5443 refused"));
+            new CannotCreateTransactionException("Connection to localhost:5443 refused"), REQUEST);
 
         assertProblem(problem, 503, "database-unavailable", "The service is temporarily unavailable: try again later");
+    }
+
+    @Test
+    void anotherDatabaseErrorIsAnInternalErrorWithoutInternalDetails() {
+        ProblemDetail problem = errorHandling.databaseError(
+            new DataIntegrityViolationException("duplicate key value violates unique constraint \"uk_flight\""), REQUEST);
+
+        assertProblem(problem, 500, "database-error", "The service could not complete the request: try again later");
+    }
+
+    @Test
+    void anUnexpectedErrorIsAnInternalErrorWithoutInternalDetails() {
+        ProblemDetail problem = new UnexpectedErrorHandling().unexpected(new NullPointerException("flight is null"), REQUEST);
+
+        assertProblem(problem, 500, "unexpected-error", "Something went wrong on our side: try again later");
     }
 
     private static void assertProblem(ProblemDetail problem, int status, String code, String detail) {
