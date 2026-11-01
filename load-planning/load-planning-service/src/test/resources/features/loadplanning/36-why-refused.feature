@@ -4,8 +4,7 @@ Feature: See why an action was refused
   # Story 36 is split over the services, like story 37: this file keeps the rows that Load Planning
   # answers. The rows about delays and the ATD, and the screen scenario, belong to Flight Operations.
 
-  # No step definitions yet
-  @integration @wip
+  @integration
   Scenario Outline: The API responds to an error according to REST
     Given I am logged in as a <role>
     When I <action> through the API

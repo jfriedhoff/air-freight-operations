@@ -2,6 +2,7 @@ package be.kdg.airfreight.loadplanning.acceptance.common;
 
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import io.cucumber.java.ParameterType;
+import org.springframework.http.HttpStatus;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -54,5 +55,15 @@ public class ParameterTypes {
                 Month.valueOf(month.toUpperCase(Locale.ROOT)), Integer.parseInt(day),
                 Integer.parseInt(hour), Integer.parseInt(minute))
             .toInstant(ZoneOffset.UTC);
+    }
+
+    /** "400 Bad Request": the code and its reason phrase must belong together, so a typo cannot make a test pass. */
+    @ParameterType("(\\d{3}) ([A-Z][A-Za-z]*(?: [A-Z][A-Za-z]*)*)")
+    public HttpStatus status(String code, String reasonPhrase) {
+        HttpStatus status = HttpStatus.valueOf(Integer.parseInt(code));
+        if (!status.getReasonPhrase().equals(reasonPhrase)) {
+            throw new IllegalArgumentException(code + " is " + status.getReasonPhrase() + ", not " + reasonPhrase);
+        }
+        return status;
     }
 }

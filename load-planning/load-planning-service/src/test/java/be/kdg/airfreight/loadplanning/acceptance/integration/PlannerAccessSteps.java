@@ -1,5 +1,6 @@
 package be.kdg.airfreight.loadplanning.acceptance.integration;
 
+import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -13,6 +14,7 @@ import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -22,15 +24,18 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.namedToken;
 import static be.kdg.airfreight.loadplanning.acceptance.integration.Logins.token;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.blankOrNullString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Stories 33, 35 and 44 through the REST API of Load Planning: who is logged in, what they ask and what the API
+ * Stories 33, 35, 36 and 44 through the REST API of Load Planning: who is logged in, what they ask and what the API
  * answers. The cargo is that of HJ221 of 9 January 2026 with one booked ULD, at 05:00 UTC, inside its loading
  * period. Cucumber makes a new instance for every scenario, so the fields are the state of one scenario.
  */
@@ -179,9 +184,54 @@ public class PlannerAccessSteps {
             .andExpect(role.equals("load") ? status().isOk() : status().isForbidden());
     }
 
+    /** Story #36: Z9 has the form of a load position, but the floor plan of the 747-400F has none. */
+    @When("I place a ULD on position Z9 through the API")
+    public void iPlaceAUldOnZ9() throws Exception {
+        answer = mockMvc.perform(assignTo("Z9").with(login));
+    }
+
+    /** Thirteen hours before the STD: the loading period opens twelve hours before it. */
+    @When("I assign a load position outside the loading period through the API")
+    public void iAssignOutsideTheLoadingPeriod() throws Exception {
+        cargoOfHj221();
+        clock.set(TestHelper.STD.minus(Duration.ofHours(13)));
+        answer = mockMvc.perform(assignToCl().with(login));
+    }
+
+    /**
+     * My page still shows CL free, but another load planner put another ULD there in the meantime. The request
+     * carries no version, so the rule of the cargo stops it: one ULD per load position.
+     */
+    @When("I change a load position that someone else changed in the meantime through the API")
+    public void iChangeALoadPositionSomeoneElseChanged() throws Exception {
+        testHelper.book(cargoOfHj221(), "PMC12345R7", "900", WeightUnit.KG, "ATH");
+        testHelper.place(cargoOfHj221(), "PMC12345R7", "CL");
+        answer = mockMvc.perform(assignToCl().with(login));
+    }
+
+    @Then("the API responds with {status}")
+    public void theApiRespondsWith(HttpStatus expected) throws Exception {
+        answer.andExpect(status().is(expected.value()));
+    }
+
+    /** Story #36: the answer is Problem Details with our code and the reason the page shows. */
+    @Then("the response contains a Problem Details body with an error code and an explanation")
+    public void theResponseContainsProblemDetails() throws Exception {
+        int status = answer.andReturn().getResponse().getStatus();
+        answer
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.status").value(status))
+            .andExpect(jsonPath("$.code").value(not(blankOrNullString())))
+            .andExpect(jsonPath("$.detail").value(not(blankOrNullString())));
+    }
+
     private MockHttpServletRequestBuilder assignToCl() {
+        return assignTo("CL");
+    }
+
+    private MockHttpServletRequestBuilder assignTo(String loadPosition) {
         return put("/api/flight-cargos/{id}/ulds/{uldCode}/load-position", cargoOfHj221().id(), ULD)
-            .contentType(MediaType.APPLICATION_JSON).content("{\"loadPosition\": \"CL\"}");
+            .contentType(MediaType.APPLICATION_JSON).content("{\"loadPosition\": \"" + loadPosition + "\"}");
     }
 
     private FlightCargoId cargoOfHj221() {

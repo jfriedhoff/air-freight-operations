@@ -12,8 +12,7 @@ Feature: See why an action was refused
     Then the flight remains planned
     And I see that I have to enter a delay first
 
-  # No step definitions yet
-  @integration @wip
+  @integration
   Scenario Outline: The API responds to an error according to REST
     Given I am logged in as a <role>
     When I <action> through the API
@@ -29,8 +28,7 @@ Feature: See why an action was refused
       | flight planner | register an ATD before the finalized load has been received    | 409 Conflict    |
       | flight planner | register an ATD more than 5 minutes after the ETD              | 409 Conflict    |
 
-  # No step definitions yet
-  @integration @wip
+  @integration
   Scenario: An unreachable database leaks no internal details
     Given the database of Flight Operations is unreachable
     When I request the details of HJ221

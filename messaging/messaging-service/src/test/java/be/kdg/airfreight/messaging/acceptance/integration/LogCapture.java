@@ -32,6 +32,14 @@ public class LogCapture {
             .anyMatch(event -> event.getLevel() == level && containsAll(event.getFormattedMessage(), fragments));
     }
 
+    /** A line at this level that carries its exception, so the stack trace shows where it went wrong. */
+    void assertLoggedWithCause(Level level, String... fragments) {
+        assertThat(appender.list)
+            .as("%s log lines with an exception, containing %s", level, String.join(", ", fragments))
+            .anyMatch(event -> event.getLevel() == level && event.getThrowableProxy() != null
+                && containsAll(event.getFormattedMessage(), fragments));
+    }
+
     private static boolean containsAll(String message, String... fragments) {
         for (String fragment : fragments) {
             if (!message.contains(fragment)) {
