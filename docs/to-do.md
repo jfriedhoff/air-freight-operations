@@ -7,10 +7,17 @@ One section per team member. Remove an item when its merge request is merged.
 
 - Jonas: steps for the scenario that lost `@to-confirm` on 14/10/2026 (#15); it is `@wip` until the steps exist.
 - Jonas: ask the coach what happens to a load that is not finalized in time (#18).
+- Romeo: the `@ui` scenario of #36 by hand, and analysis question 16 for the coach (#36, #39).
 
 ## Romeo
 
-Nothing open.
+### Stories 36 and 39: what is left by hand
+
+- The `@ui` scenario of #36 ("The screen shows the reason for a refusal"): register an ATD 6 minutes after the ETD
+  on the details page and check that the page says a delay is needed first.
+- Ask the coach analysis question 16 (a message that fails while the database is down: dead letter queue or back
+  in the queue) and the question about the duplicate row of Load Planning (`REFLECTIE.md`, Zelfreflectie 3,
+  Vragen). Tag the coach with `@` on GitLab.
 
 ## Jonas
 
