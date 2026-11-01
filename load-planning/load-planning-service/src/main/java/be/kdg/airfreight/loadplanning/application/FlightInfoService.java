@@ -36,11 +36,11 @@ public class FlightInfoService {
         this.clock = clock;
     }
 
-    /** A new flight gets an empty cargo. One that already has a cargo keeps it. */
+    /** A new flight gets an empty cargo. One that already has a cargo keeps it: a repeated announcement, not a fault. */
     public void flightAnnounced(AnnounceFlightCommand command) {
         FlightId flightId = command.flightId();
         if (cargos.findByFlightId(flightId).isPresent()) {
-            log.warn("Flight {} of {} already has a cargo: not created again", flightId.flightNumber().value(),
+            log.info("Flight {} of {} already has a cargo: not created again", flightId.flightNumber().value(),
                 flightId.scheduledDepartureDate());
             return;
         }

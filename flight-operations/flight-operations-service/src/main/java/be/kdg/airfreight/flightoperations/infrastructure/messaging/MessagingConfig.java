@@ -6,6 +6,7 @@ import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.retry.MessageRecoverer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,5 +39,11 @@ class MessagingConfig {
             BindingBuilder.bind(queue).to(messagingEvents).with(FLIGHT_SCHEDULED),
             BindingBuilder.bind(queue).to(messagingEvents).with(CPM_CREATED),
             BindingBuilder.bind(deadLetterQueue).to(deadLetters));
+    }
+
+    /** Spring Boot gives this recoverer to the listener: it decides what happens after the last retry. */
+    @Bean
+    MessageRecoverer setAsideRecoverer(AmqpProperties amqp) {
+        return new SetAsideRecoverer(amqp.deadLetterQueue());
     }
 }
