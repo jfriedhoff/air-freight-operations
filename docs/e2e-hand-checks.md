@@ -114,7 +114,7 @@ All 15 messages of the second round: 0 with remarks, 0 duplicates.
 | --- | --- | --- |
 | #14 departure or arrival after midnight | The ATD and ATA cannot be in the future, so by day they are never after midnight | `@unit` scenario of #14 "An ATD and ATA after midnight keep the day of the scheduled departure date" |
 | #12 the same ATD twice "in quick succession" | The HTTP client sends the requests one after the other, not at the same moment | `@unit` scenario of #12 "A registered ATD cannot be changed" |
-| #38 removing old flights | The job runs at 00:00 UTC | `@integration` scenarios of #38 (Flight Operations only) |
+| #38 removing old flights | The job runs at 00:00 UTC | `@integration` scenarios of #38 in all three services: Flight Operations removes the flight, Load Planning its cargo, Messaging its messages |
 | #28 an FLM is not lost | RabbitMQ would have to go down in the second between creating the flight and sending its event | The same outbox relay as the delays and the CPM, checked above |
 
 ## References
