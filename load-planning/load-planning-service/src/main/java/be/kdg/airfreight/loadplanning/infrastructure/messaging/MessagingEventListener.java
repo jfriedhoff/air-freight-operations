@@ -29,11 +29,15 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Inbound adapter: a controller, but for messages. Reads what Messaging tells this context, translates
  * it into this context's own terms and calls the use case. A message that can never work is rejected at
- * once and ends on the dead letter queue; anything unexpected is left to the retries.
+ * once and ends on the dead letter queue; anything unexpected is left to the retries. A missing field is checked
+ * here, by name, so that a NullPointerException from a bug is not mistaken for an invalid message.
  */
 @Slf4j
 @Component
 class MessagingEventListener {
+    /** The version of the messaging.flight.* and messaging.uld-booking.received contracts this listener understands. */
+    private static final int VERSION = 1;
+
     private final JsonMapper mapper;
     private final FlightInfoService flightInfo;
     private final BookingService bookings;
@@ -54,14 +58,15 @@ class MessagingEventListener {
         try {
             Envelope envelope = mapper.readValue(body, Envelope.class);
             messageId = envelope.messageId();
+            requireKnownVersion(envelope);
             String type = String.valueOf(envelope.type());
             if (type.equals(MessagingConfig.ULD_BOOKING_RECEIVED)) {
                 bookings.bookUld(toCommand(mapper.readValue(body, UldBookingReceivedJson.class)));
             } else {
                 handleFlightEvent(type, mapper.readValue(body, FlightEventJson.class));
             }
-        } catch (JacksonException | DomainRuleViolationException | NotFoundException | NullPointerException
-                 | DateTimeException | IllegalArgumentException e) {
+        } catch (JacksonException | DomainRuleViolationException | NotFoundException | DateTimeException
+                 | IllegalArgumentException e) {
             String reason = e.getMessage() == null ? "a required field is missing"
                 : e.getMessage().lines().findFirst().orElse("");
             log.warn("Message {} rejected and set aside on {}: {}", messageId, amqp.deadLetterQueue(), reason);
@@ -69,10 +74,19 @@ class MessagingEventListener {
         }
     }
 
+    /** A newer version of a contract may mean something else with the same fields: it is refused, not guessed. */
+    private static void requireKnownVersion(Envelope envelope) {
+        int version = required(envelope.version(), "version");
+        if (version != VERSION) {
+            throw new DomainRuleViolationException("Version " + version + " of '" + envelope.type()
+                + "' is unknown: expected version " + VERSION);
+        }
+    }
+
     private void handleFlightEvent(String type, FlightEventJson json) {
-        FlightId flightId = new FlightId(new FlightNumber(json.flightNumber()),
+        FlightId flightId = new FlightId(new FlightNumber(required(json.flightNumber(), "flightNumber")),
             required(json.scheduledDepartureDate(), "scheduledDepartureDate"),
-            new AirportCode(json.departureAirport()));
+            new AirportCode(required(json.departureAirport(), "departureAirport")));
         switch (type) {
             case MessagingConfig.FLIGHT_ANNOUNCED -> flightInfo.flightAnnounced(new AnnounceFlightCommand(flightId,
                 new AirportCode(required(json.arrivalAirport(), "arrivalAirport")), required(json.std(), "std"),
@@ -93,12 +107,13 @@ class MessagingEventListener {
     /** An unknown weight unit makes WeightUnit.valueOf throw IllegalArgumentException: rejected like the rest. */
     private static BookUldCommand toCommand(UldBookingReceivedJson json) {
         return new BookUldCommand(
-            new FlightId(new FlightNumber(json.flightNumber()),
+            new FlightId(new FlightNumber(required(json.flightNumber(), "flightNumber")),
                 required(json.scheduledDepartureDate(), "scheduledDepartureDate"),
-                new AirportCode(json.departureAirport())),
-            new UldCode(json.uldCode()),
-            new Weight(json.weight(), WeightUnit.valueOf(required(json.weightUnit(), "weightUnit"))),
-            new AirportCode(json.destination()));
+                new AirportCode(required(json.departureAirport(), "departureAirport"))),
+            new UldCode(required(json.uldCode(), "uldCode")),
+            new Weight(required(json.weight(), "weight"),
+                WeightUnit.valueOf(required(json.weightUnit(), "weightUnit"))),
+            new AirportCode(required(json.destination(), "destination")));
     }
 
     private static <V> V required(@Nullable V value, String field) {
@@ -109,6 +124,6 @@ class MessagingEventListener {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Envelope(@Nullable UUID messageId, @Nullable String type) {
+    record Envelope(@Nullable UUID messageId, @Nullable String type, @Nullable Integer version) {
     }
 }
