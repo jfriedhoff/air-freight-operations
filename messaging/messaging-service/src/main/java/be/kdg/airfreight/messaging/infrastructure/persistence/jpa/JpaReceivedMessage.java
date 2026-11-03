@@ -45,7 +45,7 @@ public class JpaReceivedMessage {
     @Column(columnDefinition = "text")
     private @Nullable String rejectionReason;
 
-    @Column(length = 6)
+    @Column(length = 7)
     private @Nullable String flightNumber;
 
     private @Nullable LocalDate scheduledDepartureDate;

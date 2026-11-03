@@ -35,7 +35,7 @@ public class JpaFlightCargo {
     @Version
     private @Nullable Long version;
 
-    @Column(name = "flight_number", nullable = false, length = 6)
+    @Column(name = "flight_number", nullable = false, length = 7)
     private String flightNumber;
 
     @Column(name = "scheduled_departure_date", nullable = false)

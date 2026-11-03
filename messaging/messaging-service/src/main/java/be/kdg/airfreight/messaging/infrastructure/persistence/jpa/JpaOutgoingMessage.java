@@ -25,7 +25,7 @@ public class JpaOutgoingMessage {
     @Id
     private UUID id;
 
-    @Column(nullable = false, length = 6)
+    @Column(nullable = false, length = 7)
     private String flightNumber;
 
     @Column(nullable = false)

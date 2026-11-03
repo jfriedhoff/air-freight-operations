@@ -20,6 +20,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
 
+import java.time.LocalTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -63,5 +65,13 @@ class DbFlightCargoRepositoryTest {
         assertThatThrownBy(() -> cargos.save(second)).isInstanceOf(OptimisticLockingFailureException.class);
         assertThat(cargos.findById(id).orElseThrow().getLoad()).extracting(Uld::getCode)
             .containsExactly(new UldCode("AKE16689R7"));
+    }
+
+    /** Seven characters (a three-letter airline code and four digits) is the longest flight number. */
+    @Test
+    void aCargoWithAFlightNumberOfSevenCharactersIsSavedAndFoundByItsFlight() {
+        FlightCargo cargo = testHelper.saveCargo("ABC1234", TestHelper.DATE, LocalTime.of(6, 30));
+
+        assertThat(cargos.findByFlightId(cargo.getFlightId())).map(FlightCargo::getId).contains(cargo.getId());
     }
 }
