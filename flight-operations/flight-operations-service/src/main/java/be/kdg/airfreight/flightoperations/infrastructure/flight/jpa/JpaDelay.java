@@ -37,7 +37,7 @@ public class JpaDelay {
     @Column(nullable = false, length = 2)
     private String reason;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = Delay.MAX_DESCRIPTION_LENGTH)
     private String description;
 
     @Column(nullable = false)

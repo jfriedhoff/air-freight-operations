@@ -10,6 +10,9 @@ import org.jspecify.annotations.Nullable;
 
 @Entity
 public class Delay {
+    /** JpaDelay sizes the description column with this value, so a description the domain accepts always fits. */
+    public static final int MAX_DESCRIPTION_LENGTH = 255;
+
     @Identity
     private final DelayId id;
     private final DelayKind kind;
@@ -34,8 +37,10 @@ public class Delay {
     }
 
     void change(DelayDuration minutes, String description, FlightPlannerId by) {
+        // checked before anything is assigned, so a refused change leaves the delay as it was
+        String checkedDescription = requireDescription(description);
         this.minutes = Objects.requireNonNull(minutes, "Minutes cannot be null");
-        this.description = requireDescription(description);
+        this.description = checkedDescription;
         this.lastChangedBy = Objects.requireNonNull(by, "Flight planner cannot be null");
     }
 
@@ -67,6 +72,10 @@ public class Delay {
         Objects.requireNonNull(description, "Description cannot be null");
         if (description.isBlank()) {
             throw new InvalidValueException("The description of a delay cannot be blank");
+        }
+        if (description.length() > MAX_DESCRIPTION_LENGTH) {
+            throw new InvalidValueException(
+                "The description of a delay is at most " + MAX_DESCRIPTION_LENGTH + " characters long");
         }
         return description;
     }
