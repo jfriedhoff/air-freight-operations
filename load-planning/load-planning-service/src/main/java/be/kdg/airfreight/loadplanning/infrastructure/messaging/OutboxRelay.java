@@ -3,10 +3,16 @@ package be.kdg.airfreight.loadplanning.infrastructure.messaging;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.connection.CorrelationData.Confirm;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -58,15 +64,30 @@ public class OutboxRelay {
     }
 
     /**
-     * Waits until RabbitMQ confirms it took the message. Without the confirm a message to an exchange that does not
-     * exist would count as sent and be lost; now it stays in the outbox and the next run tries again. An exchange
-     * that exists but has no queue bound yet still confirms: whoever follows the events has not subscribed yet.
+     * Waits for RabbitMQ's confirm of this one message. Without it a message to an exchange that does not exist
+     * would count as sent and be lost; now it stays in the outbox and the next run tries again. The confirm is
+     * correlated: when RabbitMQ refuses the message by closing the channel, Spring answers the waiting future with
+     * a nack. A simple waitForConfirmsOrDie could miss that close, because Spring replaces a closed channel with a
+     * new one, and on the new channel there is nothing left to wait for. An exchange that exists but has no queue
+     * bound yet still confirms: whoever follows the events has not subscribed yet.
      */
     private void publish(String routingKey, Message message) {
-        rabbit.invoke(operations -> {
-            operations.send(amqp.eventsExchange(), routingKey, message);
-            operations.waitForConfirmsOrDie(CONFIRM_TIMEOUT.toMillis());
-            return null;
-        });
+        CorrelationData confirmation = new CorrelationData(message.getMessageProperties().getMessageId());
+        rabbit.send(amqp.eventsExchange(), routingKey, message, confirmation);
+        Confirm confirm = awaitConfirm(confirmation);
+        if (!confirm.ack()) {
+            throw new AmqpException("RabbitMQ did not take the message: " + confirm.reason());
+        }
+    }
+
+    private static Confirm awaitConfirm(CorrelationData confirmation) {
+        try {
+            return confirmation.getFuture().get(CONFIRM_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new AmqpException("Interrupted while waiting for the confirm of RabbitMQ", e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new AmqpException("RabbitMQ did not confirm the message in time", e);
+        }
     }
 }

@@ -1,7 +1,6 @@
 package be.kdg.airfreight.messaging.infrastructure.messaging;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Date;
 
 import be.kdg.airfreight.messaging.domain.MessageType;
@@ -22,7 +21,6 @@ class AmqpPartnerGateway implements PartnerGateway {
     static final String MESSAGE_ID_HEADER = "message-id";
     static final String PRODUCED_AT_HEADER = "produced-at";
     static final String VERSION_HEADER = "version";
-    private static final Duration CONFIRM_TIMEOUT = Duration.ofSeconds(5);
 
     private final RabbitTemplate rabbit;
     private final AmqpProperties amqp;
@@ -44,12 +42,8 @@ class AmqpPartnerGateway implements PartnerGateway {
             .setHeader(PRODUCED_AT_HEADER, message.getCreatedAt().toString())
             .setHeader(VERSION_HEADER, message.getFormatVersion().number())
             .build();
-        // Wait for RabbitMQ's confirm: a message it did not take must stay in the outbox, not count as sent
-        rabbit.invoke(operations -> {
-            operations.send(amqp.partnerMessagesExchange(), routingKeyOf(message.getType()), amqpMessage);
-            operations.waitForConfirmsOrDie(CONFIRM_TIMEOUT.toMillis());
-            return null;
-        });
+        // Waits for RabbitMQ's confirm: a message it did not take must stay in the outbox, not count as sent
+        ConfirmedSend.send(rabbit, amqp.partnerMessagesExchange(), routingKeyOf(message.getType()), amqpMessage);
     }
 
     private static String contentTypeOf(MessageType type) {
