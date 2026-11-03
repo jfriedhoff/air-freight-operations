@@ -59,10 +59,11 @@ public class PolicyValueSteps {
         };
     }
 
+    /** The test profile creates the schema and drops it on close: the restarted unit must leave it alone. */
     @Given("the unit has been restarted without a new build")
     public void theUnitHasBeenRestarted() {
         restarted = new SpringApplicationBuilder(FlightOperationsApplication.class, TestClock.class)
-            .run(property, "--server.port=0");
+            .run(property, "--server.port=0", "--spring.jpa.hibernate.ddl-auto=none");
     }
 
     /** The load is finalized (a CPM was processed) and it is a minute after the ATD. */
