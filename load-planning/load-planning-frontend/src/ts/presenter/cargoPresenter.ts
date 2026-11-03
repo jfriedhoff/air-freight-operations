@@ -4,6 +4,7 @@ import {canChangeLoad, holderOf, stateOf, withoutLoadPosition} from "../domain/F
 import type {FlightCargo, Uld} from "../domain/FlightCargo.ts";
 import {identityIn, identityQuery} from "../domain/FlightIdentity.ts";
 import type {FlightIdentity} from "../domain/FlightIdentity.ts";
+import {canFinalize} from "../domain/LoadCheckReport.ts";
 import type {LoadCheckReport} from "../domain/LoadCheckReport.ts";
 import {listQuery, showsEta, showsEtd} from "../domain/FlightToLoad.ts";
 import {flightOperationsAddress} from "../infrastructure/contexts.ts";
@@ -30,6 +31,7 @@ const uldTable = document.getElementById("uld-table")!;
 const uldRows = document.getElementById("ulds")!;
 const loadActions = document.getElementById("load-actions")!;
 const finalizeButton = document.getElementById("finalize-btn") as HTMLButtonElement;
+const finalizeNote = document.getElementById("finalize-note")!;
 const checkLoadButton = document.getElementById("check-load-btn") as HTMLButtonElement;
 
 /* The page opens with the id of the cargo, or with the identity of the flight when Vluchtdetails links to it. */
@@ -245,11 +247,21 @@ async function showDeck(cargo: FlightCargo, load: number): Promise<void> {
 /* Deck, tray and the line about the picked ULD, from what the deck shows now. A pick needs no new answer. */
 function redrawDeck(cargo: FlightCargo, report: LoadCheckReport | null): void {
     shown = {cargo, report};
+    updateFinalizeButton();
     const changeable = canChangeLoad(cargo, isLoadPlanner);
     const cells = deckCells(cargo, report, pick?.code ?? null, changeable);
     drawDeck(cells, cell => changeable && (cell.uld !== null || pick !== null), cell => clickOnDeck(cargo, cell));
     drawTray(cargo, changeable, pick, uld => choose({code: uld.code, position: null}));
     drawPick(pick, () => clear(cargo.id, pick!.code), () => choose(null));
+}
+
+/* Finalize Load waits while a request to finalize is on its way, and while the report of the load as it stands has a
+   failed hard check. The button comes back with the next report: after a change of a load position, a reload or
+   Check Load. */
+function updateFinalizeButton(): void {
+    const allowed = canFinalize(shown?.report ?? null);
+    finalizeButton.disabled = finalizing || !allowed;
+    finalizeNote.classList.toggle("hidden", allowed);
 }
 
 /* Picking the picked ULD again drops it; picking another one changes the pick. A ULD picked from the tray puts the
@@ -346,7 +358,7 @@ async function finalize(): Promise<void> {
     }
     clearMessages(messageBox);
     finalizing = true;
-    finalizeButton.disabled = true;
+    updateFinalizeButton();
     try {
         const outcome = await finalizeLoad(flightCargoId!);
         showReport(outcome.report);
@@ -363,7 +375,7 @@ async function finalize(): Promise<void> {
         addError(messageBox, refusal);
     } finally {
         finalizing = false;
-        finalizeButton.disabled = false;
+        updateFinalizeButton();
     }
 }
 
