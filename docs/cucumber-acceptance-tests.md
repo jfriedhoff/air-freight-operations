@@ -135,7 +135,7 @@ storing the message belong to the integration tests.
 ### Simulator
 
 The simulator has no domain, so no `@unit` scenarios: its unit tests are plain JUnit
-(`ScheduleRecordTest`, `BookingRecordTest`, `SimulatorServiceTest`). The `@integration` scenarios run
+(`SsmMessageTest`, `UldMessageTest`, `SimulatorServiceTest`). The `@integration` scenarios run
 through the API with MockMvc and read the sent message back from a real RabbitMQ.
 
 | Class | Contents |
@@ -212,8 +212,7 @@ package as the class.
 
 An `@integration` scenario tests one deployment unit from its entry point to its database: a REST
 endpoint (through MockMvc) or, for a message, its queue. It runs with `IntegrationAcceptanceTest`
-and `SpringCucumberConfig` (`@SpringBootTest` + `@AutoConfigureMockMvc`). So far this is set up in
-messaging (story 30) and load-planning (story 15); flight-operations follows the same pattern.
+and `SpringCucumberConfig` (`@SpringBootTest` + `@AutoConfigureMockMvc`), in every service.
 
 | Part | What it does | Why |
 | --- | --- | --- |

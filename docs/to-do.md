@@ -5,9 +5,8 @@ One section per team member. Remove an item when its merge request is merged.
 
 ## In short
 
-- Jonas: steps for the scenario that lost `@to-confirm` on 14/10/2026 (#15); it is `@wip` until the steps exist.
-- Jonas: ask the coach what happens to a load that is not finalized in time (#18).
 - Romeo: the `@ui` scenario of #36 by hand, and analysis question 16 for the coach (#36, #39).
+- Jonas: the leftovers of the `@to-confirm` answers on GitLab and in `REFLECTIE.md` (#15, #18, #26, #30).
 
 ## Romeo
 
@@ -17,41 +16,25 @@ One section per team member. Remove an item when its merge request is merged.
   on the details page and check that the page says a delay is needed first.
 - Ask the coach analysis question 16 (a message that fails while the database is down: dead letter queue or back
   in the queue) and the question about the duplicate row of Load Planning (`REFLECTIE.md`, Zelfreflectie 3,
-  Vragen). Tag the coach with `@` on GitLab.
+  Vragen). Ask on Teams.
 
 ## Jonas
 
-### Steps for the scenarios that lost `@to-confirm`
+### Leftovers of the `@to-confirm` answers
 
-The coach answered all five `@to-confirm` questions on 14/10/2026 (`REFLECTIE.md`, Zelfreflectie 2,
-Post coaching). The tags are removed in #15, #18, #26 and #30, and in #26 the step "And the duplicate
-is logged" is gone (no inbox in Load Planning). The runners used to skip these scenarios
-(`"... and not @to-confirm and not @wip"`), so the steps of the scenario below do not exist yet.
-It is tagged `@wip` until they do, so the build stays green; implementing one starts by removing
-`@wip`. The `@to-confirm` tags of #4 and #6 are gone too: the coach answered question 9 on 15/10/2026.
+The coach answered the `@to-confirm` questions on 14/10/2026 and 15/10/2026. The scenarios have their
+steps now and no `@wip` is left. What remains is outside the code:
 
-| File | Change |
-| --- | --- |
-| `load-planning/.../features/loadplanning/15-booked-ulds-on-flight.feature` (line 59, `@unit`) | New steps: "the load of {flight} has been finalized, but the flight has not departed yet", "no load position can be assigned to it anymore", "the finalized load remains unchanged" ("... is booked without a load position" exists in `BookingSteps`) |
+- Remove the label `to-confirm` from issues #15, #18, #26 and #30 on GitLab and update their Gherkin.
+- Turn the line "*Scenario's met `@to-confirm`: ...*" in `REFLECTIE.md` (Zelfreflectie 2, Vragen) into
+  "*Beantwoord op 14/10/2026.*".
 
-**After the code:**
-
-- Remove `@wip` from the scenario, then run `UnitAcceptanceTest` and `IntegrationAcceptanceTest`
-  in load-planning.
-- Remove the label `to-confirm` from issues #15, #18, #26 and #30 on GitLab and update their
-  Gherkin.
-- Remove the line "*Scenario's met `@to-confirm`: ...*" in `REFLECTIE.md` (Zelfreflectie 2, Vragen),
-  or turn it into "*Beantwoord op 14/10/2026.*".
-
-### Question for the coach: a load that is not finalized in time (#18)
-
-Since a loading period stays closed once it has ended, a load that is not finalized in time can
-never be finalized, and Flight Operations refuses an ATD without a finalized load. So that flight can
-never depart. Question 8 of the analysis named reopening as the only way out. Add the question to
-`REFLECTIE.md` (Zelfreflectie 2, Vragen) and tag the coach with `@` when asking on GitLab.
+A load that is not finalized in time is not an open question: the loading period stays closed once it
+has ended (coach, 13/10/2026), so the load can no longer be finalized and Flight Operations keeps refusing
+the ATD.
 
 ## References
 
 - `REFLECTIE.md`, Zelfreflectie 2, Post coaching: the answers of 13/10 and 14/10/2026.
-- `architecture/analyse.md` §8, question 8: reopening the loading period.
+- `architecture/analyse.md` §8, question 8: the loading period after a delay (once closed, always closed).
 - `docs/cucumber-acceptance-tests.md`: the tags and the step conventions.

@@ -152,8 +152,8 @@ De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert 
 De databanken worden niet meer leeggemaakt bij elke start (`spring.jpa.hibernate.ddl-auto=update`). Wie al een lokale omgeving had van vóór deze wijziging, doet één keer:
 
 ```bash
-docker compose exec rabbitmq rabbitmqctl delete_queue messaging.flights
-docker compose exec postgres psql -U load_planning -d load_planning -c 'DROP TABLE IF EXISTS ulds, flight_cargos'
+docker compose exec app_rabbitmq rabbitmqctl delete_queue messaging.flights
+docker compose exec app_postgres psql -U load_planning -d load_planning -c 'DROP TABLE IF EXISTS ulds, flight_cargos'
 ```
 
 Verandert een mapping later op een manier die `update` niet kan volgen (een kolom die verdwijnt of van type verandert), verwijder dan de tabel of de map `postgresql/` en start opnieuw.

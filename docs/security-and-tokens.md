@@ -69,8 +69,8 @@ frontend module, built into its own service:
   that session and returns at once with a code for the second client. The user does not type the
   password again.
 - **Each frontend gets its own token.** A token carries the audience of its own service, and
-  flight-operations only accepts its own audience; load-planning will do the same once it is
-  secured. A token from one frontend is then useless against the other service, which is another
+  each service only accepts its own audience (`flight-operations-service`,
+  `load-planning-service`). A token from one frontend is then useless against the other service, which is another
   reason not to call across.
 - **Logout** ends the Keycloak session, so both frontends need a new login. A tab of the other
   frontend that is still open keeps its access token until it expires; refreshing it then fails.
@@ -104,8 +104,8 @@ Configured in `SecurityConfig`:
 - A user with both planner roles gets no access.
 - `hasRole` in the frontend only decides which buttons are shown. The server checks again.
 - `FlightController` takes the subject of the token (`jwt.getSubject()`) as the id of the flight
-  planner who enters a delay. The planners in `flight-operations.planners` use the id of their
-  Keycloak account for that reason.
+  planner who enters a delay. Flight Operations registers that planner, with the name from the
+  token, on their first change.
 - No session and no cookie, so CSRF protection is off: there is nothing a forged request could reuse.
 - No CORS configuration: in development Vite forwards `/api` to the service, and the built frontend is
   served by the service itself.
