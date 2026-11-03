@@ -2,7 +2,6 @@ package be.kdg.airfreight.messaging.infrastructure.messaging;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.time.Duration;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -23,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Component
 public class OutboxRelay {
-    private static final Duration CONFIRM_TIMEOUT = Duration.ofSeconds(5);
 
     private final OutboxEventRepository outbox;
     private final RabbitTemplate rabbit;
@@ -58,15 +56,11 @@ public class OutboxRelay {
     }
 
     /**
-     * Waits until RabbitMQ confirms it took the message. Without the confirm a message to an exchange that does not
-     * exist would count as sent and be lost; now it stays in the outbox and the next run tries again. An exchange
-     * that exists but has no queue bound yet still confirms: whoever follows the events has not subscribed yet.
+     * Waits for RabbitMQ's confirm (ConfirmedSend), so a message to an exchange that does not exist stays in the
+     * outbox and the next run tries again. An exchange that exists but has no queue bound yet still confirms:
+     * whoever follows the events has not subscribed yet.
      */
     private void publish(String routingKey, Message message) {
-        rabbit.invoke(operations -> {
-            operations.send(amqp.eventsExchange(), routingKey, message);
-            operations.waitForConfirmsOrDie(CONFIRM_TIMEOUT.toMillis());
-            return null;
-        });
+        ConfirmedSend.send(rabbit, amqp.eventsExchange(), routingKey, message);
     }
 }
