@@ -1,6 +1,5 @@
 package be.kdg.airfreight.loadplanning.application;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.util.function.UnaryOperator;
 
@@ -26,14 +25,11 @@ public class FlightInfoService {
     private final FlightCargoRepository cargos;
     private final AircraftType aircraftType;
     private final LoadingPolicy policy;
-    private final Clock clock;
 
-    public FlightInfoService(FlightCargoRepository cargos, AircraftType aircraftType, LoadingPolicy policy,
-                             Clock clock) {
+    public FlightInfoService(FlightCargoRepository cargos, AircraftType aircraftType, LoadingPolicy policy) {
         this.cargos = cargos;
         this.aircraftType = aircraftType;
         this.policy = policy;
-        this.clock = clock;
     }
 
     /** A new flight gets an empty cargo. One that already has a cargo keeps it: a repeated announcement, not a fault. */
@@ -50,10 +46,13 @@ public class FlightInfoService {
             flightId.scheduledDepartureDate());
     }
 
-    /** A new ETD moves the end of the loading period, as long as it has not ended. */
-    public void departureEstimateChanged(FlightId flightId, Instant etd) {
+    /**
+     * A new ETD moves the end of the loading period, as long as it had not ended when the ETD changed in Flight
+     * Operations (changedAt, the occurredOn of the event). Not our own clock: the event may arrive late.
+     */
+    public void departureEstimateChanged(FlightId flightId, Instant etd, Instant changedAt) {
         FlightCargo cargo = cargos.findByFlightId(flightId).orElseThrow(flightId::cargoNotFound);
-        cargo.changeEstimatedDeparture(etd, clock.instant(), policy);
+        cargo.changeEstimatedDeparture(etd, changedAt, policy);
         cargos.save(cargo);
     }
 

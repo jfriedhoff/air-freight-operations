@@ -78,7 +78,8 @@ class MessagingEventListener {
                 new AirportCode(required(json.arrivalAirport(), "arrivalAirport")), required(json.std(), "std"),
                 required(json.sta(), "sta")));
             case MessagingConfig.DEPARTURE_ESTIMATE_CHANGED ->
-                flightInfo.departureEstimateChanged(flightId, required(json.etd(), "etd"));
+                flightInfo.departureEstimateChanged(flightId, required(json.etd(), "etd"),
+                    required(json.occurredOn(), "occurredOn"));
             case MessagingConfig.ARRIVAL_ESTIMATE_CHANGED ->
                 flightInfo.arrivalEstimateChanged(flightId, required(json.eta(), "eta"));
             case MessagingConfig.FLIGHT_DEPARTED -> flightInfo.flightDeparted(flightId);

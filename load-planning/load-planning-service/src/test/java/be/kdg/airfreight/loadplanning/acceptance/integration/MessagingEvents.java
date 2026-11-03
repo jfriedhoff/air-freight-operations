@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,16 +45,18 @@ public class MessagingEvents {
     private final JsonMapper mapper;
     private final FlightCargoRepository cargos;
     private final AmqpProperties amqp;
+    private final Clock clock;
     private final AtomicInteger followUps = new AtomicInteger();
     /** Every message sent so far, by its identification, so that a scenario can send one of them again. */
     private final Map<UUID, Sent> sent = new ConcurrentHashMap<>();
 
     public MessagingEvents(RabbitTemplate rabbit, JsonMapper mapper, FlightCargoRepository cargos,
-                           AmqpProperties amqp) {
+                           AmqpProperties amqp, Clock clock) {
         this.rabbit = rabbit;
         this.mapper = mapper;
         this.cargos = cargos;
         this.amqp = amqp;
+        this.clock = clock;
     }
 
     public UUID flightAnnounced(FlightId flight) {
@@ -69,7 +72,12 @@ public class MessagingEvents {
     }
 
     public UUID departureEstimateChanged(FlightId flight, Instant etd) {
-        return send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", etd.toString()));
+        return departureEstimateChanged(flight, etd, clock.instant());
+    }
+
+    /** A new ETD that was entered in Flight Operations at occurredOn, which may be long before it arrives. */
+    public UUID departureEstimateChanged(FlightId flight, Instant etd, Instant occurredOn) {
+        return send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", etd.toString()), occurredOn);
     }
 
     /** A new ETD that is not a moment: Load Planning cannot read the message. */
@@ -116,13 +124,18 @@ public class MessagingEvents {
         });
     }
 
+    /** An event that happened in Flight Operations at the time of the test clock. */
     private UUID send(String type, FlightId flight, Map<String, Object> fields) {
+        return send(type, flight, fields, clock.instant());
+    }
+
+    private UUID send(String type, FlightId flight, Map<String, Object> fields, Instant occurredOn) {
         UUID messageId = UUID.randomUUID();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("messageId", messageId.toString());
         body.put("type", type);
         body.put("version", 1);
-        body.put("occurredOn", Instant.now().toString());
+        body.put("occurredOn", occurredOn.toString());
         body.put("flightNumber", flight.flightNumber().value());
         body.put("scheduledDepartureDate", flight.scheduledDepartureDate().toString());
         body.put("departureAirport", flight.departureAirport().value());

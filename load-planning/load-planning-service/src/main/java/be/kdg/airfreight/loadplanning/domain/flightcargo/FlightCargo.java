@@ -57,9 +57,11 @@ public class FlightCargo {
     /**
      * A new ETD moves the end of the loading period, but only while the period has not ended:
      * once closed, always closed (analysis question 8). Removing a delay can close it.
+     * changedAt is the moment the ETD changed in Flight Operations, not the moment this context hears of it:
+     * a delay entered while the period was open still extends it when its event arrives late.
      */
-    public void changeEstimatedDeparture(Instant etd, Instant now, LoadingPolicy policy) {
-        if (now.isBefore(loadingClosesAt)) {
+    public void changeEstimatedDeparture(Instant etd, Instant changedAt, LoadingPolicy policy) {
+        if (changedAt.isBefore(loadingClosesAt)) {
             loadingClosesAt = etd.minus(policy.closesBeforeEstimatedDeparture());
         }
         flightInfo = flightInfo.withEstimatedDeparture(etd);
