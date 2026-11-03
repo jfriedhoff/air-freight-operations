@@ -152,11 +152,16 @@ Authorization: Bearer {{access_token}}
     });
 %}
 
-### 3V11 of 29 October: its id goes into flight_id
+### 3V11 of 29 October: its id goes into flight_id. Schedule it first (simulator.http, "HJ221 and 3V11 of 29 October");
+### the ATD below is only accepted once its load is finalized (load-planning e2e-hand-checks.http, round 1)
 GET {{api}}/flights?scheduledDepartureDate=2026-10-29&flightNumber=3V11&departureAirport=BRU
 Authorization: Bearer {{access_token}}
 
 > {%
+    client.test("3V11 of 29 October exists", function () {
+        client.assert(response.status === 200 && response.body.flights.length === 1,
+            "Expected one flight, got " + response.status);
+    });
     client.global.set("flight_id", response.body.flights[0].id);
 %}
 
@@ -167,9 +172,22 @@ Content-Type: application/json
 
 {"atd": "2026-10-28T11:10:00Z"}
 
+> {%
+    client.test("The first ATD is registered", function () {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+%}
+
 ### Same ATD again: 409 "The departure of this flight has already been registered"
 POST {{api}}/flights/{{flight_id}}/departure
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 
 {"atd": "2026-10-28T11:10:00Z"}
+
+> {%
+    client.test("A second ATD is refused with the reason", function () {
+        client.assert(response.status === 409 && response.body.code === "rule-refused",
+            "Expected 409 rule-refused, got " + response.status);
+    });
+%}
