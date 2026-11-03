@@ -16,6 +16,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightId;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightInfo;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FlightNumber;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.FloorPlan;
+import be.kdg.airfreight.loadplanning.domain.flightcargo.LateralBalanceLimit;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadPosition;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.LoadingPolicy;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Route;
@@ -23,6 +24,7 @@ import be.kdg.airfreight.loadplanning.domain.flightcargo.Side;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.UldCode;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.Weight;
 import be.kdg.airfreight.loadplanning.domain.flightcargo.WeightUnit;
+import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlanner;
 import be.kdg.airfreight.loadplanning.domain.loadplanner.LoadPlannerId;
 import org.junit.jupiter.api.Test;
 
@@ -71,6 +73,23 @@ class InvalidValueTest {
         assertThatThrownBy(() -> cargo.assign(new UldCode("AKE16689R7"), new LoadPosition("Z9", null), planner, NOW,
             FLOOR_PLAN, POLICY))
             .isInstanceOf(InvalidValueException.class).hasMessage(reason);
+    }
+
+    @Test
+    void aNegativePolicyValueIsAnInvalidValue() {
+        assertThatThrownBy(() -> new LoadingPolicy(Duration.ofHours(-1), Duration.ofMinutes(20)))
+            .isInstanceOf(InvalidValueException.class);
+        assertThatThrownBy(() -> new LoadingPolicy(Duration.ofHours(12), Duration.ofMinutes(-1)))
+            .isInstanceOf(InvalidValueException.class);
+        assertThatThrownBy(() -> new LateralBalanceLimit(new BigDecimal("-0.01")))
+            .isInstanceOf(InvalidValueException.class);
+    }
+
+    @Test
+    void aLoadPlannerWithABlankNameIsAnInvalidValue() {
+        assertThatThrownBy(() -> new LoadPlanner(LoadPlannerId.create(), " "))
+            .isInstanceOf(InvalidValueException.class)
+            .hasMessage("The name of a load planner cannot be blank");
     }
 
     @Test
