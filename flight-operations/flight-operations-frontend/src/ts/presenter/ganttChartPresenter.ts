@@ -133,16 +133,24 @@ function render(flightsOfDay: FlightsOfDay, flightsOfDayBefore: FlightRow[]): vo
 }
 
 /* Asks the flights again; on failure what is on the screen stays and the reason is shown. The day itself comes
-   first: without a day in the address the server chooses it, and the day before follows from it. */
+   first: without a day in the address the server chooses it, and the day before follows from it. As on the
+   overview, an answer for a day the user has left in the meantime is dropped, so a late automatic reload cannot
+   put the old day back. */
 async function reload(): Promise<boolean> {
+    const askedDay = day;
     try {
-        const flightsOfDay = await getFlights(day);
+        const flightsOfDay = await getFlights(askedDay);
         const dayBefore = await getFlights(addDays(flightsOfDay.scheduledDepartureDate, -1));
+        if (day !== askedDay) {
+            return false;
+        }
         render(flightsOfDay, dayBefore.flights);
         return true;
     } catch (error) {
-        clearMessages(messageBox);
-        addError(messageBox, (error as Error).message);
+        if (day === askedDay) {
+            clearMessages(messageBox);
+            addError(messageBox, (error as Error).message);
+        }
         return false;
     }
 }

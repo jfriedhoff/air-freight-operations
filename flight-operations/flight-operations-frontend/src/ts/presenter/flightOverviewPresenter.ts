@@ -62,14 +62,23 @@ function render(flightsOfDay: FlightsOfDay): void {
     overview.classList.remove("hidden");
 }
 
-/* Asks the list again; on failure what is on the screen stays and the reason is shown. */
+/* Asks the list again; on failure what is on the screen stays and the reason is shown. An answer for a day the
+   user has left in the meantime is dropped: an automatic reload that was still on its way when the user picked
+   another day would otherwise arrive last and put the old day back in the date field. */
 async function reload(): Promise<boolean> {
+    const askedDay = day;
     try {
-        render(await getFlights(day));
+        const flightsOfDay = await getFlights(askedDay);
+        if (day !== askedDay) {
+            return false;
+        }
+        render(flightsOfDay);
         return true;
     } catch (error) {
-        clearMessages(messageBox);
-        addError(messageBox, (error as Error).message);
+        if (day === askedDay) {
+            clearMessages(messageBox);
+            addError(messageBox, (error as Error).message);
+        }
         return false;
     }
 }

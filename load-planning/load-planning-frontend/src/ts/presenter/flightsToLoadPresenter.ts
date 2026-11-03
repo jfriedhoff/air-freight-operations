@@ -77,14 +77,25 @@ function render(flightsToLoad: FlightsToLoad): void {
     section.classList.remove("hidden");
 }
 
-/* Asks the list again; on failure what is on the screen stays and the reason is shown. */
+/* Asks the list again; on failure what is on the screen stays and the reason is shown. An answer for a choice
+   the user has changed in the meantime is dropped: an automatic reload that was still on its way when the user
+   picked another day would otherwise arrive last and put the old day back in the date field. */
 async function reload(): Promise<boolean> {
+    const askedDay = day;
+    const askedIncludeDeparted = includeDeparted;
+    const stillAsked = () => day === askedDay && includeDeparted === askedIncludeDeparted;
     try {
-        render(await getFlightsToLoad(day, includeDeparted));
+        const flightsToLoad = await getFlightsToLoad(askedDay, askedIncludeDeparted);
+        if (!stillAsked()) {
+            return false;
+        }
+        render(flightsToLoad);
         return true;
     } catch (error) {
-        clearMessages(messageBox);
-        addError(messageBox, (error as Error).message);
+        if (stillAsked()) {
+            clearMessages(messageBox);
+            addError(messageBox, (error as Error).message);
+        }
         return false;
     }
 }
