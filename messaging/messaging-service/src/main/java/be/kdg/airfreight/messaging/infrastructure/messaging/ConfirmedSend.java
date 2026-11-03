@@ -17,6 +17,9 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
  * correlated: when RabbitMQ refuses the message by closing the channel (an exchange that does not exist),
  * Spring answers the waiting future with a nack. A simple waitForConfirmsOrDie could miss that close, because
  * Spring replaces a closed channel with a new one, and on the new channel there is nothing left to wait for.
+ * The wait happens inside invoke, so this thread keeps the channel until the confirm is in: otherwise Spring
+ * would put the channel back in its cache with the confirm still open and wait for it on a background thread,
+ * which fails there once RabbitMQ closed the channel.
  */
 final class ConfirmedSend {
     private static final Duration CONFIRM_TIMEOUT = Duration.ofSeconds(5);
@@ -26,8 +29,10 @@ final class ConfirmedSend {
 
     static void send(RabbitTemplate rabbit, String exchange, String routingKey, Message message) {
         CorrelationData confirmation = new CorrelationData(message.getMessageProperties().getMessageId());
-        rabbit.send(exchange, routingKey, message, confirmation);
-        Confirm confirm = awaitConfirm(confirmation);
+        Confirm confirm = rabbit.invoke(operations -> {
+            operations.send(exchange, routingKey, message, confirmation);
+            return awaitConfirm(confirmation);
+        });
         if (!confirm.ack()) {
             throw new AmqpException("RabbitMQ did not take the message: " + confirm.reason());
         }
