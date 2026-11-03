@@ -68,13 +68,18 @@ public class OutboxRelay {
      * would count as sent and be lost; now it stays in the outbox and the next run tries again. The confirm is
      * correlated: when RabbitMQ refuses the message by closing the channel, Spring answers the waiting future with
      * a nack. A simple waitForConfirmsOrDie could miss that close, because Spring replaces a closed channel with a
-     * new one, and on the new channel there is nothing left to wait for. An exchange that exists but has no queue
-     * bound yet still confirms: whoever follows the events has not subscribed yet.
+     * new one, and on the new channel there is nothing left to wait for. The wait happens inside invoke, so this
+     * thread keeps the channel until the confirm is in: otherwise Spring would put the channel back in its cache
+     * with the confirm still open and wait for it on a background thread, which fails there once RabbitMQ closed
+     * the channel. An exchange that exists but has no queue bound yet still confirms: whoever follows the events
+     * has not subscribed yet.
      */
     private void publish(String routingKey, Message message) {
         CorrelationData confirmation = new CorrelationData(message.getMessageProperties().getMessageId());
-        rabbit.send(amqp.eventsExchange(), routingKey, message, confirmation);
-        Confirm confirm = awaitConfirm(confirmation);
+        Confirm confirm = rabbit.invoke(operations -> {
+            operations.send(amqp.eventsExchange(), routingKey, message, confirmation);
+            return awaitConfirm(confirmation);
+        });
         if (!confirm.ack()) {
             throw new AmqpException("RabbitMQ did not take the message: " + confirm.reason());
         }
