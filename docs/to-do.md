@@ -16,7 +16,7 @@ One section per team member. Remove an item when its merge request is merged.
   on the details page and check that the page says a delay is needed first.
 - Ask the coach analysis question 16 (a message that fails while the database is down: dead letter queue or back
   in the queue) and the question about the duplicate row of Load Planning (`REFLECTIE.md`, Zelfreflectie 3,
-  Vragen). Ask on Teams.
+  Vragen). Ask on Teams and tag the coach with `@`.
 
 ## Jonas
 
