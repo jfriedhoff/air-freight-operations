@@ -1,0 +1,12 @@
+{
+  "messageId": "0b6f2a7e-3c41-4d8e-9a52-1f0c6d7e8a09",
+  "type": "messaging.flight.scheduled",
+  "version": 1,
+  "occurredOn": "2026-01-02T08:59:59Z",
+  "flightNumber": "HJ221",
+  "departureAirport": "BRU",
+  "arrivalAirport": "ATH",
+  "registration": "SXBAA",
+  "std": "2026-01-09T06:30:00Z",
+  "sta": "2026-01-09T09:45:00Z"
+}
