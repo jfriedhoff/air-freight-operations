@@ -19,8 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Finalizing has no endpoint yet, so the use case is called directly. It is the one change that cannot be
- * undone: it must record a load planner that exists, like assigning and clearing.
+ * The use case is called directly: through the API the controller registers the load planner first, so a
+ * planner that does not exist can only be passed here. Finalizing is the one change that cannot be undone:
+ * it must record a load planner that exists, like assigning and clearing.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
