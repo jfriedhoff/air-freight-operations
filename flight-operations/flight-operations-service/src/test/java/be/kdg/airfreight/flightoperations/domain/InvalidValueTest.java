@@ -5,6 +5,7 @@ import be.kdg.airfreight.flightoperations.domain.flight.AirportCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCode;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayCodeCatalog;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayDuration;
+import be.kdg.airfreight.flightoperations.domain.flight.DelayId;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayKind;
 import be.kdg.airfreight.flightoperations.domain.flight.DelayReason;
 import be.kdg.airfreight.flightoperations.domain.flight.Flight;
@@ -45,6 +46,47 @@ class InvalidValueTest {
 
         assertThatThrownBy(() -> flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(15), ROTATION, " ",
             FlightPlannerId.create(), NOW, DELAY_CODES)).isInstanceOf(InvalidValueException.class);
+    }
+
+    @Test
+    void aDescriptionOf255CharactersIsAccepted() {
+        Flight flight = plannedFlight();
+        String longest = "x".repeat(255);
+
+        flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(15), ROTATION, longest,
+            FlightPlannerId.create(), NOW, DELAY_CODES);
+
+        assertThat(flight.getDelays().getFirst().getDescription()).isEqualTo(longest);
+    }
+
+    @Test
+    void aDescriptionOf256CharactersIsAnInvalidValue() {
+        Flight flight = plannedFlight();
+
+        assertThatThrownBy(() -> flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(15), ROTATION,
+            "x".repeat(256), FlightPlannerId.create(), NOW, DELAY_CODES))
+            .isInstanceOf(InvalidValueException.class)
+            .hasMessage("The description of a delay is at most 255 characters long");
+        assertThat(flight.getDelays()).isEmpty();
+    }
+
+    @Test
+    void aDescriptionCanBeChangedTo255CharactersButNot256() {
+        Flight flight = plannedFlight();
+        flight.addDelay(DelayKind.DEPARTURE, new DelayDuration(15), ROTATION, "Late aircraft",
+            FlightPlannerId.create(), NOW, DELAY_CODES);
+        DelayId delay = flight.getDelays().getFirst().getId();
+        String longest = "x".repeat(255);
+
+        flight.changeDelay(delay, new DelayDuration(15), longest, FlightPlannerId.create(), NOW);
+        assertThat(flight.getDelays().getFirst().getDescription()).isEqualTo(longest);
+
+        assertThatThrownBy(() -> flight.changeDelay(delay, new DelayDuration(30), "x".repeat(256),
+            FlightPlannerId.create(), NOW))
+            .isInstanceOf(InvalidValueException.class)
+            .hasMessage("The description of a delay is at most 255 characters long");
+        assertThat(flight.getDelays().getFirst().getMinutes()).isEqualTo(new DelayDuration(15));
+        assertThat(flight.getDelays().getFirst().getDescription()).isEqualTo(longest);
     }
 
     @Test

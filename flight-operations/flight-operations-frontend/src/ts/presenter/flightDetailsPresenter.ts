@@ -125,6 +125,8 @@ function delayEditRow(flight: Flight, delay: Delay): HTMLTableRowElement {
     minutes.className = "input input-xs w-20";
     const description = document.createElement("input");
     description.required = true;
+    // the same maximum as the add form: Flight Operations refuses a longer description
+    description.maxLength = 255;
     description.value = delay.description;
     description.className = "input input-xs w-full";
 

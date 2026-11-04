@@ -153,6 +153,43 @@ class FlightControllerTest {
             .andExpect(jsonPath("$.detail").value("A delay lasts at least 1 minute and at most 12 hours"));
     }
 
+    /** Longer than the description column: refused by the domain as a 400, not a database error. */
+    @Test
+    void aDelayWithADescriptionOf256CharactersIsABadRequestAndIsNotStored() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+
+        mockMvc.perform(post("/api/flights/{id}/delays", flight.getId().id())
+                .with(registeredFlightPlanner())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"kind": "DEPARTURE", "minutes": 25, "reason": "93", "description": "%s"}"""
+                    .formatted("x".repeat(256))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"))
+            .andExpect(jsonPath("$.detail").value("The description of a delay is at most 255 characters long"));
+        assertThat(testHelper.find(flight.getId()).getDelays()).isEmpty();
+    }
+
+    @Test
+    void aDelayChangedToADescriptionOf256CharactersIsABadRequestAndKeepsItsDescription() throws Exception {
+        Flight flight = testHelper.savePlannedFlight();
+        DelayId delay = testHelper.addDepartureDelay(flight.getId());
+
+        mockMvc.perform(put("/api/flights/{id}/delays/{delayId}", flight.getId().id(), delay.id())
+                .with(registeredFlightPlanner())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"minutes": 40, "description": "%s"}""".formatted("x".repeat(256))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("invalid-input"));
+        assertThat(testHelper.find(flight.getId()).getDelays())
+            .singleElement()
+            .satisfies(stored -> {
+                assertThat(stored.getMinutes().minutes()).isEqualTo(25);
+                assertThat(stored.getDescription()).isEqualTo("Late inbound aircraft");
+            });
+    }
+
     @Test
     void aTokenWhoseSubjectIsNotAUuidIsNotAFlightPlanner() throws Exception {
         Flight flight = testHelper.savePlannedFlight();
