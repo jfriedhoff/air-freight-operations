@@ -1,6 +1,6 @@
-# Hand checks for the `@e2e` scenarios
+# Hand checks for the `@e2e` and `@ui` scenarios
 
-Scenarios tagged `@e2e` cross several services, so Cucumber never runs them (see
+Scenarios tagged `@e2e` cross several services, and `@ui` scenarios need a browser, so Cucumber never runs them (see
 `cucumber-acceptance-tests.md`). They are checked by hand: the services, the simulator and the course's
 partner service all run, the flight planner and the load planner use the pages, and the partner service
 shows what the partners receive.
@@ -107,6 +107,80 @@ both rounds, in order: block 1 is the first round, blocks 2A to 2E the second.
 | #24 | Finalizing twice | Second finalize through the API: refused "The load is finalized and can no longer change"; one CPM | ✓ |
 
 All 15 messages of the second round: 0 with remarks, 0 duplicates.
+
+## The `@ui` scenarios, 4 November 2026
+
+Checked in Edge on `main` with every open merge request of sprint 3 merged in, as `flight_planner` and as
+`load_planner`. A small script did what a planner does on the page (fill in, choose, click, read the text)
+and kept a screenshot of every step; a person can do the same steps by hand in this order.
+
+Test data, sent with the simulator: HJ221 (20:00 UTC), 3V11 (22:30 UTC, lands the next day), HJ300 and HJ600
+on 4 November, HJ400 on 3 November at 23:00 UTC (00:00 in Brussels on the 4th), HJ221 on 5 November, and HJ700
+(15:30 UTC). Four ULDs on HJ221 (one for IST), one on HJ300 and HJ700. Load Planning ran with
+`--load-planning.policy.loading-closes-before-departure=1m`, so HJ700 could be finalized and then depart within a
+few minutes; with the default of 20 minutes the steps are the same, only later.
+
+| Story | Scenario | Seen | Result |
+| --- | --- | --- | --- |
+| #4 | Today's flights by default | The five flights of 4 November, not HJ400 (3 November) or HJ221 of the 5th | ✓ |
+| #4 | Choosing another day | Previous day: only HJ400 | ✓ |
+| #4 | A day without flights | "Geen vluchten op 12/11/2026." | ✓ |
+| #4 | Clicking through to the details | The flight number opens the details of that flight | ✓ |
+| #4, #6 | The day of a flight is its scheduled departure date in UTC | 3V11 (23:30 in Brussels) on 4 November; HJ400 (00:00 in Brussels on the 4th) on the chart of the 3rd, after the dotted line of midnight in Brussels | ✓ |
+| #5 | No estimated times without a delay | BRU – Brussels Airport, ATH – Athens International Airport, STD and STA with date, no ETD or ETA | ✓ |
+| #5 | With a departure delay | ETD 21:25 and ETA 00:40 with date; the delay with 25 min, `91 – Load connection` and the description | ✓ |
+| #5 | With only an arrival delay only the ETA is shown | 3V11 with 15 min arrival delay: ETA 03:00, no ETD | ✓ |
+| #5 | Departure and arrival delays can be told apart | Column "Voor": Vertrek, Aankomst | ✓ |
+| #5 | After the actual times are registered | ATD 16:36 and ATA 16:37 with date | ✓ |
+| #5 | Scheduled and estimated times cannot be edited directly | No input on STD, STA, ETD or ETA | ✓ |
+| #6 | Flights as bars on a timeline | One bar per flight, from STD to STA | ✓ |
+| #6 | Choosing another day | Previous day: only HJ400 | ✓ |
+| #6 | A flight across midnight runs to the edge | 3V11 runs to the right edge; the row says it lands 05/11 02:45 | ✓ |
+| #6 | A flight of the day before that is still in the air continues | HJ400 starts at the left edge; "5 vluchten, en 1 van de vorige dag nog onderweg" | ✓ |
+| #6 | The timeline is the whole UTC day in Brussels time | Hours 01 … 23, 05/11 | ✓ |
+| #7 | Times are shown in Brussels time | STD 20:00 UTC shown as 21:00 CET | ✓ (winter time; the July row: see below) |
+| #7 | Every screen states which time it shows | Overview, details, Gantt chart, flights to load and cargo page | ✓ |
+| #7 | Entered times are stored in UTC | ATD 16:36 Brussels gives `HJ700/04 AD 15:36` at the partner service | ✓ (winter time) |
+| #7 | A local time that does not exist is refused | 29/03/2026 02:30: "02:30 bestaat niet in Brussel op 29/03/2026: de klok springt dan van 02:00 naar 03:00." | ✓ |
+| #7 | For an ambiguous local time the planner chooses | 25/10/2026 02:30: the page asks "02:30 zomertijd (00:30 UTC)" or "02:30 wintertijd (01:30 UTC)" and sends nothing before the choice | ✓ |
+| #9, #10 | Extra, no `@ui` scenario: adding, changing and removing a delay | 25 → 30 min moves the ETD to 21:30; removing asks "De aankomstvertraging van 15 min verwijderen?" and moves the ETA back | ✓ |
+| #12, #13 | Extra, no `@ui` scenario: registering the ATD and the ATA | Status Opgestegen, then Geland; "De aankomst is geregistreerd." | ✓ |
+| #16 | Today's flights by default, without departed or landed flights | HJ700 (landed) not in the list | ✓ |
+| #16 | Turning the filter off | HJ700 appears, with "Opgestegen" and "Gefinaliseerd" | ✓ |
+| #16 | Choosing another day | Next day: only HJ221 of 5 November | ✓ |
+| #16 | Clicking through to the cargo page | The flight number opens its cargo page | ✓ |
+| #17 | All booked ULDs, with and without a load position | Code, weight with unit (2646 lb shown as booked), destination | ✓ |
+| #17 | The selection list contains exactly the load positions of the floor plan | A1, A2, B1, CL … UR, X: 34 positions | ✓ |
+| #17 | A finalized load can be recognized | "De lading is gefinaliseerd door Lars Loadplanner: laadposities kunnen niet meer wijzigen." and no lists | ✓ |
+| #18 | Extra, no `@ui` scenario: assigning and clearing with the list | AKE11111R7 on CR; "Leegmaken" in the list clears; a position held by another ULD shows it and cannot be chosen | ✓ |
+| #18 | The deck shows free and taken positions | Free positions "vrij", taken ones with their ULD | ✓ |
+| #18 | Placing a ULD by clicking a free position | PMC22222KL picked, then DL clicked | ✓ |
+| #18 | The deck shows which ULD is in the way | AKE44444R7 on A1 ✕, AKE33333R7 (IST) on CL ▲ | ✓ |
+| #18 | The deck shows the weight on each side | "Links 2180.2 kg · Rechts 1200 kg · de zwaarste kant mag hoogstens 1320 kg dragen" | ✓ |
+| #18 | A flight planner sees the deck without changing it | 34 positions, none clickable | ✓ |
+| #18 | Extra (the `@integration` scenario in two browser tabs): two load planners choose the same position at the same moment | Two tabs choose A2 at once: one gets it, the other "Someone else changed the load of this flight at the same time" and then sees the winner on A2 | ✓ |
+| #23 | One report per check | Lateral balance and Offloading failed (hard) with their reason, Not all cargo loaded passed (soft) | ✓ |
+| #23 | Not outside the loading period | HJ600: "De beladingsperiode is afgelopen sinds …", no Check Load | ✓ |
+| #24 | Extra, no `@ui` scenario: Finalize Load only when all hard checks pass | Disabled with "Een hard check faalt: zie het rapport." | ✓ |
+| #24 | Finalizing shows the same report as Check Load | After a passing check another planner put a ULD on CL; Finalize Load: "De lading is niet gefinaliseerd: een hard check faalt." with the same report as Check Load | ✓ |
+| #24 | Extra, no `@ui` scenario: finalizing | A confirmation, then the finalized load (HJ300, HJ700). Done on `main` just before the merge requests were added; they do not change it | ✓ |
+| #34 | A load planner sees no actions for flights | "Alleen een flight planner kan vertragingen, het vertrek en de aankomst ingeven." | ✓ |
+| #34 | A flight planner sees no actions for the load | "Alleen een load planner kan laadposities wijzigen." | ✓ |
+| #34 | Actions follow the state of the flight | Departed: only an arrival delay and the ATA; landed: no forms | ✓ |
+| #34 | Actions follow the loading period | HJ600 after its loading period: no lists, no Check Load or Finalize Load | ✓ |
+| #35 | Not logged in | Both contexts send the browser to the login of Keycloak | ✓ |
+| #36 | The screen shows the reason for a refusal | ATD 16:36 Brussels on HJ700 (ETD 15:30 UTC): "The ATD is more than 5 minutes after the ETD: enter a departure delay first", the flight stays planned | ✓ |
+| #44 | The details page and the cargo page show who changed the flight or the load | "Fien Flightplanner" next to the delay and the ATD and ATA, "Lars Loadplanner" next to the ULD and the finalized load | ✓ |
+
+No console errors on any page. All messages of this round at the partner service: 0 with remarks, 0
+duplicates.
+
+Not checked in the browser:
+
+| Scenario | Why | Covered by |
+| --- | --- | --- |
+| #7 the July rows (summer time) of "Times are shown in Brussels time" and "Entered times are stored in UTC" | A flight in July is older than the 7 days the retention keeps, and an ATD cannot be in the future | `presenter/brusselsTime.test.ts` (UTC shown as CET or CEST) |
+| #18 a keyboard choice in an open list on macOS | No Mac | – |
 
 ## Not checked by hand
 
