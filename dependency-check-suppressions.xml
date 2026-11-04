@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Known false positives of the OWASP dependency-check. Each rule hides one CVE on one library only,
+     so any other CVE on these libraries still fails the scan. -->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes>CVE-2022-31691 is about the Spring Tools plugins for Eclipse and VS Code, not about spring-boot-devtools.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.boot/spring-boot-devtools@.*$</packageUrl>
+        <cve>CVE-2022-31691</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2015-0897 is about the LINE chat app for Android and iOS, not about pitest-command-line.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.pitest/pitest-command-line@.*$</packageUrl>
+        <cve>CVE-2015-0897</cve>
+    </suppress>
+</suppressions>
