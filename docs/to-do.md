@@ -5,18 +5,15 @@ One section per team member. Remove an item when its merge request is merged.
 
 ## In short
 
-- Romeo: the `@ui` scenario of #36 by hand, and analysis question 16 for the coach (#36, #39).
+- Romeo: the `@ui` scenario of #36 by hand (#36).
 - Jonas: the leftovers of the `@to-confirm` answers on GitLab and in `REFLECTIE.md` (#15, #18, #26, #30).
 
 ## Romeo
 
-### Stories 36 and 39: what is left by hand
+### Story 36: what is left by hand
 
 - The `@ui` scenario of #36 ("The screen shows the reason for a refusal"): register an ATD 6 minutes after the ETD
   on the details page and check that the page says a delay is needed first.
-- Ask the coach analysis question 16 (a message that fails while the database is down: dead letter queue or back
-  in the queue) and the question about the duplicate row of Load Planning (`REFLECTIE.md`, Zelfreflectie 3,
-  Vragen). Ask on Teams and tag the coach with `@`.
 
 ## Jonas
 
