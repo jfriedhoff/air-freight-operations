@@ -43,6 +43,29 @@ class FlightCargoTest {
         assertThat(cargo.loadCanChange(Instant.parse("2026-01-09T06:10:00Z"), POLICY)).isFalse();
     }
 
+    /**
+     * Loading closes at 06:10. A delay of 25 minutes entered at 06:05 extends it to 06:35, also when this context
+     * only hears of it at 06:15: what counts is the moment the delay was entered (analysis question 8).
+     */
+    @Test
+    void aDelayEnteredWithinTheLoadingPeriodExtendsItEvenWhenItArrivesLate() {
+        cargo.changeEstimatedDeparture(Instant.parse("2026-01-09T06:55:00Z"), Instant.parse("2026-01-09T06:05:00Z"),
+            POLICY);
+
+        assertThat(cargo.getLoadingClosesAt()).isEqualTo(Instant.parse("2026-01-09T06:35:00Z"));
+        assertThat(cargo.loadCanChange(Instant.parse("2026-01-09T06:15:00Z"), POLICY)).isTrue();
+    }
+
+    /** The end does not belong to the loading period: a delay entered at that moment comes too late. */
+    @Test
+    void aDelayEnteredAtTheEndOfTheLoadingPeriodDoesNotExtendIt() {
+        cargo.changeEstimatedDeparture(Instant.parse("2026-01-09T06:55:00Z"), Instant.parse("2026-01-09T06:10:00Z"),
+            POLICY);
+
+        assertThat(cargo.getLoadingClosesAt()).isEqualTo(Instant.parse("2026-01-09T06:10:00Z"));
+        assertThat(cargo.getFlightInfo().etd()).isEqualTo(Instant.parse("2026-01-09T06:55:00Z"));
+    }
+
     @Test
     void checkLoadIsRefusedOutsideTheLoadingPeriod() {
         Instant justBeforeTheStart = Instant.parse("2026-01-08T18:29:00Z");

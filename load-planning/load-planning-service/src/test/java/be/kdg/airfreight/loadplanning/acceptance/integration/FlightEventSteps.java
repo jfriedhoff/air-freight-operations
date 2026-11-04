@@ -10,6 +10,7 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -37,6 +38,9 @@ public class FlightEventSteps {
     private final TestClock clock;
     /** The flight as Load Planning stored it after the first event, to compare with after the duplicate. */
     private FlightCargo afterFirstEvent;
+    /** A departure delay entered in Flight Operations, that Load Planning has not received yet. */
+    private LocalTime delayEnteredAt;
+    private Duration enteredDelay;
 
     public FlightEventSteps(MessagingEvents messaging, MessageWorld world, TestClock clock) {
         this.messaging = messaging;
@@ -112,6 +116,40 @@ public class FlightEventSteps {
     @Then("nothing changes")
     public void nothingChanges() {
         assertThat(world.cargo()).usingRecursiveComparison().ignoringFields("version").isEqualTo(afterFirstEvent);
+    }
+
+    /** MessagingEvents announces every flight with an STD of 06:45 UTC. */
+    @Given("{word} departs at {time} UTC, so its loading period ends at {time} UTC")
+    public void departsAtSoItsLoadingPeriodEndsAt(String flightNumber, LocalTime std, LocalTime closesAt) {
+        world.setFlight(new FlightId(new FlightNumber(flightNumber), DEPARTURE_DATE, BRU));
+        messaging.flightAnnounced(world.getFlight());
+        messaging.waitUntilHandled();
+        assertThat(world.cargo().getFlightInfo().std()).isEqualTo(onFlightDate(std));
+        assertThat(world.cargo().getLoadingClosesAt()).isEqualTo(onFlightDate(closesAt));
+    }
+
+    @Given("at {time} UTC the flight planner enters a departure delay of {int} minutes")
+    public void theFlightPlannerEntersADepartureDelay(LocalTime at, int minutes) {
+        delayEnteredAt = at;
+        enteredDelay = Duration.ofMinutes(minutes);
+    }
+
+    /**
+     * The event carries the moment the delay was entered (occurredOn), but reaches Load Planning only after the
+     * loading period would have ended without the delay, as when RabbitMQ, Messaging or Load Planning was down.
+     */
+    @When("Load Planning only processes that event at {time} UTC")
+    public void loadPlanningOnlyProcessesThatEventAt(LocalTime at) {
+        clock.set(onFlightDate(at));
+        Instant etd = world.cargo().getFlightInfo().std().plus(enteredDelay);
+        messaging.departureEstimateChanged(world.getFlight(), etd, onFlightDate(delayEnteredAt));
+        messaging.waitUntilHandled();
+    }
+
+    @Then("the loading period of {word} now ends at {time} UTC")
+    public void theLoadingPeriodNowEndsAt(String flightNumber, LocalTime closesAt) {
+        assertThat(world.getFlight().flightNumber().value()).isEqualTo(flightNumber);
+        assertThat(world.cargo().getLoadingClosesAt()).isEqualTo(onFlightDate(closesAt));
     }
 
     private Instant onFlightDate(LocalTime time) {

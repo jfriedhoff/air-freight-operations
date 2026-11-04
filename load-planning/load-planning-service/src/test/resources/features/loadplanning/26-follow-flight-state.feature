@@ -38,3 +38,10 @@ Feature: Load Planning follows the latest state of a flight
     Given Flight Operations sends an ETD of 06:45 UTC and then an ETD of 07:00 UTC for HJ221
     When Load Planning processes both events
     Then the ETD in Load Planning is 07:00 UTC
+
+  @integration
+  Scenario: A delay entered within the loading period extends it, even when Load Planning processes it late
+    Given HJ221 departs at 06:45 UTC, so its loading period ends at 06:25 UTC
+    And at 06:20 UTC the flight planner enters a departure delay of 25 minutes
+    When Load Planning only processes that event at 06:30 UTC
+    Then the loading period of HJ221 now ends at 06:50 UTC
