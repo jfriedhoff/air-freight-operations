@@ -157,3 +157,15 @@ docker compose exec postgres psql -U load_planning -d load_planning -c 'DROP TAB
 ```
 
 Verandert een mapping later op een manier die `update` niet kan volgen (een kolom die verdwijnt of van type verandert), verwijder dan de tabel of de map `postgresql/` en start opnieuw.
+
+Zo'n wijziging: het vluchtnummer mag sinds #29 zeven tekens hebben (`ABC1234`), maar een bestaande databank houdt `varchar(6)`, want `update` verbreedt geen kolom. Verwijder de map `postgresql/` (alle lokale data gaat verloren), of verbreed de vier kolommen één keer:
+
+```bash
+docker compose exec app_postgres psql -U flight_operations -d flight_operations -c 'ALTER TABLE flights ALTER COLUMN flight_number TYPE varchar(7)'
+docker compose exec app_postgres psql -U load_planning -d load_planning -c 'ALTER TABLE flight_cargos ALTER COLUMN flight_number TYPE varchar(7)'
+docker compose exec app_postgres psql -U messaging -d messaging -c 'ALTER TABLE outgoing_messages ALTER COLUMN flight_number TYPE varchar(7)'
+docker compose exec app_postgres psql -U messaging -d messaging -c 'ALTER TABLE received_messages ALTER COLUMN flight_number TYPE varchar(7)'
+```
+
+De `*_test`-databanken hebben dit niet nodig: de testen maken hun tabellen bij elke run opnieuw aan.
+
