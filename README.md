@@ -13,14 +13,28 @@ Vlucht- en vrachtbeheer voor een luchtvrachtmaatschappij. Project voor Software 
  
 ## Documentatie
  
-De analyse staat in [`architecture/analyse.md`](architecture/analyse.md).
+- De analyse: [`architecture/analyse.md`](architecture/analyse.md). Onze vragen aan de coach en zijn antwoorden staan in §8 en in de reflectie.
+- De reflectie per sprint: [`REFLECTIE.md`](REFLECTIE.md).
+- Uitleg bij de techniek, in het Engels, in [`docs/`](docs/):
+  - [`architecture-overview.md`](docs/architecture-overview.md): waar de code staat, de lagen en wat `DddArchTest` afdwingt
+  - [`messaging.md`](docs/messaging.md): outbox, inbox, volgorde, dead letter queues, een event toevoegen en een bericht herstellen
+  - [`errors-and-logging.md`](docs/errors-and-logging.md): de foutantwoorden van de API en de logniveaus
+  - [`persistence.md`](docs/persistence.md): domein en JPA, optimistic locking, transacties en een schemawijziging
+  - [`ci-pipeline.md`](docs/ci-pipeline.md): de testen in GitLab
+  - [`cucumber-acceptance-tests.md`](docs/cucumber-acceptance-tests.md): de acceptatiecriteria als Cucumber-scenario's
+  - [`contract-tests.md`](docs/contract-tests.md): de voorbeeldberichten tussen de services
+  - [`e2e-hand-checks.md`](docs/e2e-hand-checks.md): de `@e2e`- en `@ui`-scenario's met de hand, met hun resultaten
+  - [`frontend-tests.md`](docs/frontend-tests.md): de testen van de logica van de pagina's
+  - [`mutation-testing-pit.md`](docs/mutation-testing-pit.md): mutatietesten met PIT
+  - [`policy-values.md`](docs/policy-values.md): de beleidswaarden aanpassen zonder nieuwe release
+  - [`security-and-tokens.md`](docs/security-and-tokens.md): Keycloak, rollen en tokens
 
 ## Opstarten
 
 Nodig: JDK 25, Docker en Node.js met npm.
 
 ```bash
-docker compose up -d      # PostgreSQL 5443, RabbitMQ 5672/15672, Keycloak 8180, MySQL 3307
+docker compose up -d      # PostgreSQL 5443, RabbitMQ 5672/15672, Keycloak 8180, MySQL 3307, partnerservice 8000
 ./gradlew build           # compileert en test alle modules, bouwt ook de frontends
 ```
 
@@ -132,6 +146,8 @@ gradlew.bat :load-planning:load-planning-service:dependencyCheckAnalyze
 
 De eerste run haalt de hele databank op; zonder sleutel duurt dat uren. De controle hoort niet bij `./gradlew build`, zodat de build snel blijft en zonder netwerk werkt.
 
+Twee meldingen gaan over een ander product met een gelijkaardige naam en staan in `dependency-check-suppressions.xml`, elk voor één CVE op één library, met de reden erbij. Elke andere melding op die libraries laat de controle nog falen.
+
 ## Berichten tussen de services
 
 De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert op haar eigen exchange en leest van één eigen queue.
@@ -142,7 +158,7 @@ De drie services praten alleen via RabbitMQ met elkaar. Elke service publiceert 
 | Load Planning | `load-planning.events` | `load-planning.messaging-events` |
 | Messaging | `messaging.events` (voor de andere services), `partner-exchange` (FLM, MVT, CPM) | `messaging.schedule`, `messaging.bookings`, `messaging.flights`, `messaging.loads` |
 
-- De partnerberichten komen in de queue `partners.all`, zolang er geen partner aangesloten is.
+- De partnerberichten gaan naar `partner-exchange`. De partnerservice van de cursus (`docker-compose.override.yml`, start mee met `docker compose up -d`) leest ze via haar eigen queue `partner-inbox` en toont ze op http://localhost:8000. Messaging zet ze ook in de queue `partners.all`, om ze in RabbitMQ te kunnen bekijken.
 - Een bericht dat een service niet kan verwerken, belandt in haar dead letter queue: `flight-operations.dlq`, `load-planning.dlq` of `messaging.dlq`.
 - Elke service bewaart haar uitgaande events eerst in de tabel `outbox_events` en verstuurt ze daarna. Is RabbitMQ onbereikbaar, dan volgen ze zodra het terug is.
 - Start nooit twee instanties van dezelfde service tegelijk: de volgorde van de berichten hangt af van één lezer per queue.

@@ -75,6 +75,8 @@ There is no minimum score (`mutationThreshold`) that fails the build yet.
 
 ## Measurements
 
+The rows of 4 November 2026 were measured on `main` with every open merge request of sprint 3 merged in. The surviving mutants are the ones accepted below (`Delay.equals`, `Uld.hashCode`, `LateralBalanceCheck.heavierOf`); nothing new survives, and the mutants without coverage are in the same places as before.
+
 | Date | State | Mutants | Killed | Test strength |
 | --- | --- | --- | --- | --- |
 | 7 October 2026 | Cucumber `@unit` scenarios up to story 13 | 118 | 74 (63 %) | 84 % |
@@ -82,6 +84,7 @@ There is no minimum score (`mutationThreshold`) that fails the build yet.
 | 14 October 2026 | Domain rules from JUnit to scenarios (stories 10, 37) | 126 | 99 (79 %) | 99 % |
 | 22 October 2026 | + `Flight.removed` (story 38), no new unit tests | 127 | 99 (78 %) | 99 % |
 | 22 October 2026 | + the events of `announced` and `removed` in `FlightTest` | 127 | 101 (80 %) | 99 % |
+| 4 November 2026 | Rerun after sprint 3: change and remove a delay (#10), ATD and ATA (#12, #13), the length of a delay description (#36) | 129 | 103 (80 %) | 99 % |
 
 The first measurement found these gaps; `FlightTest` and `ActualTimeToleranceTest` close them:
 
@@ -120,6 +123,7 @@ stories that have no unit tests yet (2, 38).
 | 14 October 2026 | + stories 15, 20, 21, 37 for the rules without a scenario, `FlightCargoTest`, `UldTest` | 165 | 139 (84 %) | 99 % |
 | 15 October 2026 | Rerun | 180 | 155 (86 %) | 99 % |
 | 22 October 2026 | Rerun | 191 | 166 (87 %) | 99 % |
+| 4 November 2026 | Rerun after sprint 3: the end of the loading period judged on `occurredOn` (#18), `InvalidValueException` for the remaining invalid values (#36) | 193 | 170 (88 %) | 99 % |
 
 Every mutant in `LateralBalanceCheck` is killed. The 15 survivors are in code that story 19 passes
 through but does not check: `book` and `assign` (stories 15, 18) and the validation of
@@ -170,7 +174,7 @@ scenarios, and `OffloadingCheckTest` moved into them:
 - `LateralBalanceCheck.heavierOf`: `comparison > 0` becoming `>= 0` is equivalent. The line above
   already returns `null` when both sides weigh the same, so `comparison` is never 0 there.
 
-**No coverage (23):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
+**No coverage (21 on 4 November, 23 on 22 October):** `hydrate`, getters only the persistence mapper uses, `equals`/`hashCode`,
 `notFound`, the `name()` of the checks, `LoadPlanner`, and `FlightInfo.withEstimatedArrival`, which
 only `FlightInfoService` calls.
 
@@ -181,6 +185,7 @@ only `FlightInfoService` calls.
 | 7 October 2026 | Cucumber `@unit` scenarios of story 1 | 86 | 12 (14 %) | 100 % |
 | 22 October 2026 | + story 30 (date derivation) | 92 | 32 (35 %) | 100 % |
 | 22 October 2026 | + `@unit` scenarios of stories 11, 14, 25, 28 and 29, `MvtWriterTest`, `UldMessageTest`, `LoadFinalizedTest` | 92 | 68 (74 %) | 100 % |
+| 4 November 2026 | Rerun after sprint 3 | 92 | 68 (74 %) | 100 % |
 
 Every mutant in `FlightSeries` and `SchedulePeriod` is killed, including the arrival at or before the
 departure time (next day) and the last day of the period. Story 30 kills all 12 mutants in
