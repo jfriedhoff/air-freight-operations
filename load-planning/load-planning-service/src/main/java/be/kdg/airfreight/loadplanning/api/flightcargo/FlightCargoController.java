@@ -75,8 +75,7 @@ public class FlightCargoController {
                                                  @PathVariable("uldCode") String uldCode,
                                                  @Valid @RequestBody AssignLoadPositionDto dto,
                                                  @AuthenticationPrincipal Jwt jwt) {
-        LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
-        loadPlannerService.register(loadPlanner, nameOf(jwt));
+        LoadPlannerId loadPlanner = registeredPlanner(jwt);
         UldCode uld = new UldCode(uldCode);
         FlightCargoSnapshot cargo = loadService.assign(
             new AssignLoadPositionCommand(new FlightCargoId(id), uld, dto.loadPosition(), loadPlanner));
@@ -92,8 +91,7 @@ public class FlightCargoController {
     public ResponseEntity<FlightCargoDto> clear(@PathVariable("id") UUID id,
                                                 @PathVariable("uldCode") String uldCode,
                                                 @AuthenticationPrincipal Jwt jwt) {
-        LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
-        loadPlannerService.register(loadPlanner, nameOf(jwt));
+        LoadPlannerId loadPlanner = registeredPlanner(jwt);
         UldCode uld = new UldCode(uldCode);
         FlightCargoSnapshot cargo = loadService.clear(new ClearLoadPositionCommand(new FlightCargoId(id), uld,
             loadPlanner));
@@ -119,8 +117,7 @@ public class FlightCargoController {
     @PostMapping("/{id}/finalize")
     public ResponseEntity<LoadCheckReportDto> finalizeLoad(@PathVariable("id") UUID id,
                                                            @AuthenticationPrincipal Jwt jwt) {
-        LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
-        loadPlannerService.register(loadPlanner, nameOf(jwt));
+        LoadPlannerId loadPlanner = registeredPlanner(jwt);
         FinalizeOutcome outcome = loadService.finalizeLoad(
             new FinalizeLoadCommand(new FlightCargoId(id), loadPlanner));
         LoadCheckReportDto dto = LoadCheckReportDto.from(outcome.report());
@@ -129,6 +126,13 @@ public class FlightCargoController {
         }
         log.info("Load planner {} finalized the load of flight cargo {}", loadPlanner.id(), id);
         return ResponseEntity.ok(dto);
+    }
+
+    /** The load planner of the token. Load Planning stores their name on their first change and when it changed. */
+    private LoadPlannerId registeredPlanner(Jwt jwt) {
+        LoadPlannerId loadPlanner = LoadPlannerId.fromAccount(jwt.getSubject());
+        loadPlannerService.register(loadPlanner, nameOf(jwt));
+        return loadPlanner;
     }
 
     private FlightCargoDto toDto(FlightCargoSnapshot snapshot) {
