@@ -1,6 +1,8 @@
 package be.kdg.airfreight.messaging.infrastructure.persistence;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 import be.kdg.airfreight.messaging.domain.FlightId;
 import be.kdg.airfreight.messaging.domain.outgoingmessage.OutgoingMessage;
@@ -23,6 +25,17 @@ class DbOutgoingMessageRepository implements OutgoingMessageRepository {
     @Override
     public void save(OutgoingMessage message) {
         jpaMessages.save(JpaOutgoingMessage.fromDomain(message));
+    }
+
+    /**
+     * An update, not a save: save is a merge, and a merge inserts the row again when a FlightRemoved deleted it
+     * between reading the unsent messages and sending this one.
+     */
+    @Override
+    @Transactional
+    public void saveSent(OutgoingMessage message) {
+        Instant sentAt = Objects.requireNonNull(message.getSentAt(), "Only a sent message can be saved as sent");
+        jpaMessages.markSent(message.getId().id(), sentAt);
     }
 
     @Override

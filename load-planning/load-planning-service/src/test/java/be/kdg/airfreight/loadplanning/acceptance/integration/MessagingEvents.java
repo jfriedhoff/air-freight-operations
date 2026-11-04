@@ -68,6 +68,10 @@ public class MessagingEvents {
         send("messaging.flight.departed", flight, Map.of());
     }
 
+    public UUID flightRemoved(FlightId flight) {
+        return send("messaging.flight.removed", flight, Map.of());
+    }
+
     public UUID departureEstimateChanged(FlightId flight, Instant etd) {
         return send("messaging.flight.departure-estimate-changed", flight, Map.of("etd", etd.toString()));
     }
