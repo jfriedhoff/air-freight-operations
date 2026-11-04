@@ -60,6 +60,8 @@ public class InvalidMessageSteps {
                 case "a weight without a unit" -> message.remove("weightUnit");
                 case "a destination that is not in the IATA list" -> message.put("destination", "QQQ");
                 case "day 32" -> message.put("dayOfMonth", 32);
+                case "no format version" -> message.remove("version");
+                case "format version 2" -> message.put("version", 2);
                 default -> throw new IllegalArgumentException("Unknown error: " + error);
             }
         }
@@ -77,6 +79,7 @@ public class InvalidMessageSteps {
             case "departure time 25:00" -> message.put("departureTime", "25:00");
             case "no aircraft registration" -> message.remove("registration");
             case "a flight number without a letter (221)" -> message.put("flightNumber", "221");
+            case "format version 2" -> message.put("version", 2);
             default -> throw new IllegalArgumentException("Unknown error: " + error);
         }
         arrives(Stream.SCHEDULE, message);

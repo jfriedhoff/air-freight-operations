@@ -3,7 +3,6 @@ package be.kdg.airfreight.messaging.infrastructure.messaging;
 import be.kdg.airfreight.messaging.domain.AirportCode;
 import be.kdg.airfreight.messaging.domain.FlightId;
 import be.kdg.airfreight.messaging.domain.FlightNumber;
-import be.kdg.airfreight.messaging.domain.FormatVersion;
 import be.kdg.airfreight.messaging.domain.MessageId;
 import be.kdg.airfreight.messaging.domain.load.CpmLine;
 import be.kdg.airfreight.messaging.domain.load.LoadFinalized;
@@ -26,13 +25,22 @@ class JsonLoadFinalizedReader implements MessageReader<LoadFinalized> {
 
     private static LoadFinalized toDomain(LoadFinalizedJson json) {
         return new LoadFinalized(new MessageId(json.messageId()),
-            new FormatVersion(JsonReading.required(json.version(), "version")),
-            new FlightId(new FlightNumber(json.flightNumber()), json.scheduledDepartureDate(),
-                new AirportCode(json.departureAirport())),
+            JsonReading.knownVersion(json.version()),
+            new FlightId(new FlightNumber(JsonReading.required(json.flightNumber(), "flightNumber")),
+                JsonReading.required(json.scheduledDepartureDate(), "scheduledDepartureDate"),
+                new AirportCode(JsonReading.required(json.departureAirport(), "departureAirport"))),
             JsonReading.required(json.load(), "load").stream()
-                .map(line -> new CpmLine(line.uldCode(), line.position(), line.weight(), line.weightUnit(),
-                    new AirportCode(line.destination())))
+                // a list can hold null, as in "load": [null]; checked here, it is an invalid message, not an NPE
+                .map(line -> toCpmLine(JsonReading.required(line, "load[]")))
                 .toList(),
-            json.occurredOn());
+            JsonReading.required(json.occurredOn(), "occurredOn"));
+    }
+
+    private static CpmLine toCpmLine(UldLineJson line) {
+        return new CpmLine(JsonReading.required(line.uldCode(), "load[].uldCode"),
+            JsonReading.required(line.position(), "load[].position"),
+            JsonReading.required(line.weight(), "load[].weight"),
+            JsonReading.required(line.weightUnit(), "load[].weightUnit"),
+            new AirportCode(JsonReading.required(line.destination(), "load[].destination")));
     }
 }

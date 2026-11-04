@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static org.awaitility.Awaitility.await;
 
@@ -91,12 +92,20 @@ public class MessagingEvents {
 
     /** Messaging has already turned the day of the month into a date: Load Planning gets that date. */
     public UUID uldBookingReceived(FlightId flight, UldCode code, Weight weight) {
+        return uldBookingReceived(flight, code, weight, body -> { });
+    }
+
+    /**
+     * A booking as Messaging would never send it: change removes or replaces a field of the message, so that Load
+     * Planning has to refuse it.
+     */
+    public UUID uldBookingReceived(FlightId flight, UldCode code, Weight weight, Consumer<Map<String, Object>> change) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("uldCode", code.value());
         fields.put("weight", weight.value());
         fields.put("weightUnit", weight.unit().name());
         fields.put("destination", "ATH");
-        return send("messaging.uld-booking.received", flight, fields);
+        return send("messaging.uld-booking.received", flight, fields, clock.instant(), change);
     }
 
     /**
@@ -134,6 +143,11 @@ public class MessagingEvents {
     }
 
     private UUID send(String type, FlightId flight, Map<String, Object> fields, Instant occurredOn) {
+        return send(type, flight, fields, occurredOn, body -> { });
+    }
+
+    private UUID send(String type, FlightId flight, Map<String, Object> fields, Instant occurredOn,
+                      Consumer<Map<String, Object>> change) {
         UUID messageId = UUID.randomUUID();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("messageId", messageId.toString());
@@ -144,6 +158,7 @@ public class MessagingEvents {
         body.put("scheduledDepartureDate", flight.scheduledDepartureDate().toString());
         body.put("departureAirport", flight.departureAirport().value());
         body.putAll(fields);
+        change.accept(body);
         Message message = MessageBuilder
             .withBody(mapper.writeValueAsString(body).getBytes(StandardCharsets.UTF_8))
             .setContentType("application/json")

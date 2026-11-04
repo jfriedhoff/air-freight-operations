@@ -2,7 +2,6 @@ package be.kdg.airfreight.messaging.infrastructure.messaging;
 
 import be.kdg.airfreight.messaging.domain.AirportCatalog;
 import be.kdg.airfreight.messaging.domain.FlightNumber;
-import be.kdg.airfreight.messaging.domain.FormatVersion;
 import be.kdg.airfreight.messaging.domain.MessageId;
 import be.kdg.airfreight.messaging.domain.booking.UldCode;
 import be.kdg.airfreight.messaging.domain.booking.UldMessage;
@@ -28,13 +27,13 @@ class JsonUldMessageReader implements MessageReader<UldMessage> {
 
     private UldMessage toDomain(UldMessageJson json) {
         return new UldMessage(new MessageId(json.messageId()),
-            new FormatVersion(JsonReading.required(json.version(), "version")),
-            new FlightNumber(json.flightNumber()),
+            JsonReading.knownVersion(json.version()),
+            new FlightNumber(JsonReading.required(json.flightNumber(), "flightNumber")),
             JsonReading.required(json.dayOfMonth(), "dayOfMonth"),
-            airports.airport(json.departureAirport()),
-            new UldCode(json.uldCode()),
-            json.weight(),
-            WeightUnit.of(json.weightUnit()),
-            airports.airport(json.destination()));
+            airports.airport(JsonReading.required(json.departureAirport(), "departureAirport")),
+            new UldCode(JsonReading.required(json.uldCode(), "uldCode")),
+            JsonReading.required(json.weight(), "weight"),
+            WeightUnit.of(JsonReading.required(json.weightUnit(), "weightUnit")),
+            airports.airport(JsonReading.required(json.destination(), "destination")));
     }
 }

@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import be.kdg.airfreight.messaging.domain.DomainRuleViolationException;
+import be.kdg.airfreight.messaging.domain.FormatVersion;
 import be.kdg.airfreight.messaging.domain.InvalidMessageException;
 import be.kdg.airfreight.messaging.domain.MessageId;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -12,8 +13,15 @@ import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Reads a JSON message so that every problem ends as an InvalidMessageException with a one-line reason. */
+/**
+ * Reads a JSON message so that every problem ends as an InvalidMessageException with a one-line reason. A reader
+ * checks a missing field by name with required, so that a NullPointerException from a bug is not mistaken for an
+ * invalid message.
+ */
 final class JsonReading {
+    /** The format version of every message this service reads, from the partners and from the other contexts. */
+    private static final int KNOWN_VERSION = 1;
+
     private JsonReading() {
     }
 
@@ -25,7 +33,7 @@ final class JsonReading {
         MessageId id = idOf(mapper, body);
         try {
             return toDomain.apply(mapper.readValue(body, jsonType));
-        } catch (JacksonException | DomainRuleViolationException | NullPointerException | DateTimeException e) {
+        } catch (JacksonException | DomainRuleViolationException | DateTimeException e) {
             throw new InvalidMessageException(id, reasonOf(e));
         }
     }
@@ -35,6 +43,16 @@ final class JsonReading {
             throw new DomainRuleViolationException("Field '" + field + "' is missing");
         }
         return value;
+    }
+
+    /** A newer version of a format may mean something else with the same fields: it is refused, not guessed. */
+    static FormatVersion knownVersion(@Nullable Integer version) {
+        FormatVersion read = new FormatVersion(required(version, "version"));
+        if (read.number() != KNOWN_VERSION) {
+            throw new DomainRuleViolationException("Format version " + read.number() + " is unknown: expected version "
+                + KNOWN_VERSION);
+        }
+        return read;
     }
 
     private static MessageId idOf(JsonMapper mapper, String body) {

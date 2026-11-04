@@ -4,6 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import be.kdg.airfreight.flightoperations.DatabaseFaults;
@@ -33,6 +35,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -49,6 +52,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 public class ErrorLoggingSteps {
     private static final Duration WAIT = Duration.ofSeconds(20);
     private static final String NOT_PUBLISHED = "could not be published and stays in the outbox";
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private final MockMvc mockMvc;
     private final TestHelper testHelper;
@@ -168,6 +172,34 @@ public class ErrorLoggingSteps {
         expectedFragment = messageId.toString();
     }
 
+    /**
+     * Story #29: a message the listener cannot read is refused at once, with its reason in a warning, and set aside
+     * on the dead letter queue. An unexpected error would go through the retries and be logged at error level.
+     */
+    @When("a scheduled flight arrives from Messaging with {}")
+    public void aScheduledFlightArrivesFromMessagingWith(String problem) {
+        UUID messageId = UUID.randomUUID();
+        Map<String, Object> fields = flightScheduledFields(messageId, "HJ221");
+        String reason = switch (problem) {
+            case "no flight number" -> {
+                fields.remove("flightNumber");
+                yield "Field 'flightNumber' is missing";
+            }
+            case "no version" -> {
+                fields.remove("version");
+                yield "Field 'version' is missing";
+            }
+            case "version 2" -> {
+                fields.put("version", 2);
+                yield "Version 2 of 'messaging.flight.scheduled' is unknown: expected version 1";
+            }
+            default -> throw new IllegalArgumentException("Unknown problem: " + problem);
+        };
+        startTheListener();
+        publish(message(messageId, fields));
+        expectedFragment = messageId + " rejected and set aside on " + deadLetterQueue + ": " + reason;
+    }
+
     /** Messaging can deliver the same message twice; the second one finds the flight it created. */
     @When("a message arrives twice")
     public void aMessageArrivesTwice() {
@@ -227,11 +259,26 @@ public class ErrorLoggingSteps {
 
     /** A FlightScheduled as Messaging sends it; flight number 221 has no airline code, so it is invalid. */
     private static Message flightScheduled(UUID messageId, String flightNumber) {
-        String body = """
-            {"messageId": "%s", "type": "messaging.flight.scheduled", "flightNumber": "%s",
-             "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA",
-             "std": "2026-01-09T06:30:00Z", "sta": "2026-01-09T09:45:00Z"}""".formatted(messageId, flightNumber);
-        return MessageBuilder.withBody(body.getBytes(StandardCharsets.UTF_8))
+        return message(messageId, flightScheduledFields(messageId, flightNumber));
+    }
+
+    private static Map<String, Object> flightScheduledFields(UUID messageId, String flightNumber) {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("messageId", messageId.toString());
+        fields.put("type", "messaging.flight.scheduled");
+        fields.put("version", 1);
+        fields.put("occurredOn", "2026-01-02T09:00:00Z");
+        fields.put("flightNumber", flightNumber);
+        fields.put("departureAirport", "BRU");
+        fields.put("arrivalAirport", "ATH");
+        fields.put("registration", "SXBAA");
+        fields.put("std", "2026-01-09T06:30:00Z");
+        fields.put("sta", "2026-01-09T09:45:00Z");
+        return fields;
+    }
+
+    private static Message message(UUID messageId, Map<String, Object> fields) {
+        return MessageBuilder.withBody(MAPPER.writeValueAsString(fields).getBytes(StandardCharsets.UTF_8))
             .setContentType(MediaType.APPLICATION_JSON_VALUE)
             .setMessageId(messageId.toString())
             .build();

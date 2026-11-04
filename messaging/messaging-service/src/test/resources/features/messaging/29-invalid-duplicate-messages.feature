@@ -18,6 +18,8 @@ Feature: Invalid and duplicate incoming messages are set aside and logged
       | a destination that is not in the IATA list   |
       | day 32                                       |
       | JSON that cannot be read                     |
+      | no format version                            |
+      | format version 2                             |
 
   @integration
   Scenario Outline: An invalid SSM is set aside
@@ -34,6 +36,7 @@ Feature: Invalid and duplicate incoming messages are set aside and logged
       | departure time 25:00                        |
       | no aircraft registration                    |
       | a flight number without a letter (221)      |
+      | format version 2                            |
 
   @integration
   Scenario: A duplicate message has one effect

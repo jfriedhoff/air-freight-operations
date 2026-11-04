@@ -12,6 +12,8 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.time.LocalDate;
+import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -59,6 +61,28 @@ public class UldBookingSteps {
     @When("a ULD message for that flight arrives")
     public void aUldMessageForThatFlightArrives() {
         world.setMessageId(messaging.uldBookingReceived(world.getFlight(), ANY_ULD, ANY_WEIGHT));
+        messaging.waitUntilHandled();
+    }
+
+    /** Story #29: a message without a field it needs, or of a version it does not know, is refused at once. */
+    @When("a ULD message for that flight arrives with {}")
+    public void aUldMessageForThatFlightArrivesWith(String problem) {
+        Consumer<Map<String, Object>> change = switch (problem) {
+            case "no ULD code" -> {
+                world.setExpectedReason("Field 'uldCode' is missing");
+                yield body -> body.remove("uldCode");
+            }
+            case "no version" -> {
+                world.setExpectedReason("Field 'version' is missing");
+                yield body -> body.remove("version");
+            }
+            case "version 2" -> {
+                world.setExpectedReason("Version 2 of 'messaging.uld-booking.received' is unknown: expected version 1");
+                yield body -> body.put("version", 2);
+            }
+            default -> throw new IllegalArgumentException("Unknown problem: " + problem);
+        };
+        world.setMessageId(messaging.uldBookingReceived(world.getFlight(), ANY_ULD, ANY_WEIGHT, change));
         messaging.waitUntilHandled();
     }
 

@@ -3,7 +3,6 @@ package be.kdg.airfreight.messaging.infrastructure.messaging;
 import be.kdg.airfreight.messaging.domain.AircraftRegistration;
 import be.kdg.airfreight.messaging.domain.AirportCatalog;
 import be.kdg.airfreight.messaging.domain.FlightNumber;
-import be.kdg.airfreight.messaging.domain.FormatVersion;
 import be.kdg.airfreight.messaging.domain.MessageId;
 import be.kdg.airfreight.messaging.domain.receivedmessage.MessageReader;
 import be.kdg.airfreight.messaging.domain.schedule.FlightSeries;
@@ -29,15 +28,15 @@ class JsonSsmReader implements MessageReader<Ssm> {
 
     private Ssm toDomain(SsmJson json) {
         FlightSeries series = new FlightSeries(
-            new SchedulePeriod(json.periodFrom(), json.periodTo()),
+            new SchedulePeriod(JsonReading.required(json.periodFrom(), "periodFrom"),
+                JsonReading.required(json.periodTo(), "periodTo")),
             JsonReading.required(json.weekdays(), "weekdays"),
-            json.departureTime(),
-            json.arrivalTime(),
-            new FlightNumber(json.flightNumber()),
-            airports.airport(json.departureAirport()),
-            airports.airport(json.arrivalAirport()),
-            new AircraftRegistration(json.registration()));
-        return new Ssm(new MessageId(json.messageId()),
-            new FormatVersion(JsonReading.required(json.version(), "version")), series);
+            JsonReading.required(json.departureTime(), "departureTime"),
+            JsonReading.required(json.arrivalTime(), "arrivalTime"),
+            new FlightNumber(JsonReading.required(json.flightNumber(), "flightNumber")),
+            airports.airport(JsonReading.required(json.departureAirport(), "departureAirport")),
+            airports.airport(JsonReading.required(json.arrivalAirport(), "arrivalAirport")),
+            new AircraftRegistration(JsonReading.required(json.registration(), "registration")));
+        return new Ssm(new MessageId(json.messageId()), JsonReading.knownVersion(json.version()), series);
     }
 }
