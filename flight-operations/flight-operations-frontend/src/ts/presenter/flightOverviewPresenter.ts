@@ -26,6 +26,9 @@ const ROLE_NAME = {"flight-planner": "flight planner", "load-planner": "load pla
    (UTC) and the date field takes the day from that answer. The browser never decides what today is. After the
    first answer the page keeps asking that day, so the list does not change day under the user's eyes. */
 let day: string | null = new URLSearchParams(window.location.search).get("scheduledDepartureDate");
+/* The number of the latest request for the list (a choice or an automatic reload), as on the cargo page.
+   Only the answer to that request is drawn: an earlier answer that arrives later would put an older list back. */
+let latestLoad = 0;
 
 function flightRow(flight: FlightRow): HTMLTableRowElement {
     const row = document.createElement("tr");
@@ -62,14 +65,26 @@ function render(flightsOfDay: FlightsOfDay): void {
     overview.classList.remove("hidden");
 }
 
-/* Asks the list again; on failure what is on the screen stays and the reason is shown. */
+/* Asks the list again; on failure what is on the screen stays and the reason is shown. Only the answer to the
+   latest request is drawn (latestLoad), and the address follows the list that is drawn: a choice whose answer is
+   overtaken by a newer automatic reload of the same day still ends with that day in the address. */
 async function reload(): Promise<boolean> {
+    const load = ++latestLoad;
     try {
-        render(await getFlights(day));
+        const flightsOfDay = await getFlights(day);
+        if (load !== latestLoad) {
+            return false;
+        }
+        render(flightsOfDay);
+        if (day) {
+            window.history.replaceState(null, "", overviewQuery(day));
+        }
         return true;
     } catch (error) {
-        clearMessages(messageBox);
-        addError(messageBox, (error as Error).message);
+        if (load === latestLoad) {
+            clearMessages(messageBox);
+            addError(messageBox, (error as Error).message);
+        }
         return false;
     }
 }
@@ -78,9 +93,7 @@ async function reload(): Promise<boolean> {
 async function choose(): Promise<void> {
     clearMessages(messageBox);
     day = dayField.value || null;
-    if (await reload() && day) {
-        window.history.replaceState(null, "", overviewQuery(day));
-    }
+    await reload();
 }
 
 function moveDays(days: number): void {

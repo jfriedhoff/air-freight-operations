@@ -35,6 +35,9 @@ const COLUMNS = "grid grid-cols-[6.5rem_6rem_8.5rem_8.5rem_1fr]";
 
 /* Same as the overview: the address holds the chosen day; without one the server answers with today (UTC). */
 let day: string | null = new URLSearchParams(window.location.search).get("scheduledDepartureDate");
+/* The number of the latest request for the list (a choice or an automatic reload), as on the cargo page.
+   Only the answer to that request is drawn: an earlier answer that arrives later would put an older list back. */
+let latestLoad = 0;
 
 /* A time on the shown day needs no date; a time on another day in Brussels does. */
 function momentText(instant: string, shownDay: string): string {
@@ -132,17 +135,27 @@ function render(flightsOfDay: FlightsOfDay, flightsOfDayBefore: FlightRow[]): vo
     noFlights.textContent = `Geen vluchten op ${plainDate(shownDay)}.`;
 }
 
-/* Asks the flights again; on failure what is on the screen stays and the reason is shown. The day itself comes
-   first: without a day in the address the server chooses it, and the day before follows from it. */
+/* Asks the list again; on failure what is on the screen stays and the reason is shown. Only the answer to the
+   latest request is drawn (latestLoad), and the address follows the list that is drawn: a choice whose answer is
+   overtaken by a newer automatic reload of the same day still ends with that day in the address. */
 async function reload(): Promise<boolean> {
+    const load = ++latestLoad;
     try {
         const flightsOfDay = await getFlights(day);
         const dayBefore = await getFlights(addDays(flightsOfDay.scheduledDepartureDate, -1));
+        if (load !== latestLoad) {
+            return false;
+        }
         render(flightsOfDay, dayBefore.flights);
+        if (day) {
+            window.history.replaceState(null, "", overviewQuery(day));
+        }
         return true;
     } catch (error) {
-        clearMessages(messageBox);
-        addError(messageBox, (error as Error).message);
+        if (load === latestLoad) {
+            clearMessages(messageBox);
+            addError(messageBox, (error as Error).message);
+        }
         return false;
     }
 }
@@ -151,9 +164,7 @@ async function reload(): Promise<boolean> {
 async function choose(): Promise<void> {
     clearMessages(messageBox);
     day = dayField.value || null;
-    if (await reload() && day) {
-        window.history.replaceState(null, "", overviewQuery(day));
-    }
+    await reload();
 }
 
 function moveDays(days: number): void {

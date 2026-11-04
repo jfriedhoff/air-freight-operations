@@ -102,6 +102,32 @@ load-planning-frontend:
   variables:
     FRONTEND: "load-planning/load-planning-frontend"
 
+# node --test only strips the types, so a type error passes the job above. tsc checks them, as the local build
+# does. It needs the TypeScript compiler and the type packages, hence npm ci. The install scripts are skipped:
+# tsc runs none of them (esbuild's script only matters for the Vite build)
+.frontend-typecheck:
+  stage: test
+  image: node:24-alpine
+  interruptible: true
+  cache:
+    key: "npm-$CI_JOB_NAME"    # one cache per job, as for Gradle
+    paths:
+      - .npm-cache
+  script:
+    - cd "$FRONTEND"
+    - npm ci --ignore-scripts --cache "$CI_PROJECT_DIR/.npm-cache" --prefer-offline
+    - npx tsc --noEmit
+
+flight-operations-frontend-typecheck:
+  extends: .frontend-typecheck
+  variables:
+    FRONTEND: "flight-operations/flight-operations-frontend"
+
+load-planning-frontend-typecheck:
+  extends: .frontend-typecheck
+  variables:
+    FRONTEND: "load-planning/load-planning-frontend"
+
 # Mutation testing with PIT (docs/mutation-testing-pit.md). It is slow, so a job only runs when someone
 # clicks its play button. PIT runs the unit tests on the domain: no database or RabbitMQ needed
 .mutation-tests:

@@ -24,6 +24,9 @@ const noFlights = document.getElementById("no-flights")!;
 const address = new URLSearchParams(window.location.search);
 let day: string | null = address.get("scheduledDepartureDate");
 let includeDeparted = address.get("includeDeparted") === "true";
+/* The number of the latest request for the list (a choice or an automatic reload), as on the cargo page.
+   Only the answer to that request is drawn: an earlier answer that arrives later would put an older list back. */
+let latestLoad = 0;
 
 /* A status as a small label, or an empty cell when the flight does not have that status. */
 function badgeCell(shown: boolean, text: string, className: string): HTMLTableCellElement {
@@ -77,14 +80,26 @@ function render(flightsToLoad: FlightsToLoad): void {
     section.classList.remove("hidden");
 }
 
-/* Asks the list again; on failure what is on the screen stays and the reason is shown. */
+/* Asks the list again; on failure what is on the screen stays and the reason is shown. Only the answer to the
+   latest request is drawn (latestLoad), and the address follows the list that is drawn: a choice whose answer is
+   overtaken by a newer automatic reload of the same day still ends with that day in the address. */
 async function reload(): Promise<boolean> {
+    const load = ++latestLoad;
     try {
-        render(await getFlightsToLoad(day, includeDeparted));
+        const flightsToLoad = await getFlightsToLoad(day, includeDeparted);
+        if (load !== latestLoad) {
+            return false;
+        }
+        render(flightsToLoad);
+        if (day) {
+            window.history.replaceState(null, "", listQuery(day, includeDeparted));
+        }
         return true;
     } catch (error) {
-        clearMessages(messageBox);
-        addError(messageBox, (error as Error).message);
+        if (load === latestLoad) {
+            clearMessages(messageBox);
+            addError(messageBox, (error as Error).message);
+        }
         return false;
     }
 }
@@ -94,9 +109,7 @@ async function choose(): Promise<void> {
     clearMessages(messageBox);
     day = dayField.value || null;
     includeDeparted = !hideDepartedBox.checked;
-    if (await reload() && day) {
-        window.history.replaceState(null, "", listQuery(day, includeDeparted));
-    }
+    await reload();
 }
 
 function moveDays(days: number): void {
