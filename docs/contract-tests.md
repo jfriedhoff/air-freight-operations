@@ -21,15 +21,24 @@ field and the tests of Messaging still send the old name. The contract tests clo
 
 | Example | Published by | Read by |
 | --- | --- | --- |
+| `messaging.flight.scheduled` | Messaging | Flight Operations (a new flight from an SSM) |
+| `flight-operations.flight.announced` | Flight Operations | Messaging (FLM) |
 | `flight-operations.flight.departure-estimate-changed` | Flight Operations | Messaging (MVT-ED) |
 | `flight-operations.flight.arrival-estimate-changed` | Flight Operations | Messaging (MVT-EA) |
 | `flight-operations.flight.departed` | Flight Operations | Messaging (MVT-AD) |
 | `flight-operations.flight.landed` | Flight Operations | Messaging (MVT-AA) |
+| `flight-operations.flight.removed` | Flight Operations | Messaging (removes the messages of the flight) |
+| `messaging.flight.announced` | Messaging | Load Planning (a new cargo) |
+| `messaging.flight.departure-estimate-changed` | Messaging | Load Planning (the end of the loading period) |
+| `messaging.flight.arrival-estimate-changed` | Messaging | Load Planning |
+| `messaging.flight.departed` | Messaging | Load Planning (no more bookings) |
+| `messaging.flight.landed` | Messaging | Load Planning |
+| `messaging.flight.removed` | Messaging | Load Planning (removes the cargo) |
+| `messaging.uld-booking.received` | Messaging | Load Planning (a booked ULD) |
 | `load-planning.flight-cargo.load-finalized` | Load Planning | Messaging (CPM) |
 | `messaging.cpm.created` | Messaging | Flight Operations (the ATD may be registered) |
 
-These are the events of stories 11, 14 and 25. The other events (`announced`, `removed`, the events that
-Messaging passes on, ULD bookings) can get an example the same way.
+That is every event that goes from one service to another.
 
 The messages to the partners (FLM, MVT, CPM) have no example here: the partners are outside our system, and
 the `@integration` scenarios of Messaging check what it sends them.
@@ -41,11 +50,19 @@ the `@integration` scenarios of Messaging check what it sends them.
 - `Contracts` in the root test package of every service reads an example (`example(type)`) and lists the names
   of the fields of a JSON message (`fieldsOf(json)`; a field of the elements of a list is named like
   `load[].uldCode`).
-- The publisher builds the event as its outbox does (`FlightEventJson.from`, `LoadFinalizedJson.from`, the
-  `CpmCreatedJson` record), writes it as JSON and compares the field names with those of the example. Only the
-  names are compared: the values (ids, times) differ on every run.
-- The reader gives the example to its reader (`JsonFlightEventReader`, `JsonLoadFinalizedReader`,
-  `CpmCreatedJson` in Flight Operations) and checks the values that come out.
+- The publisher builds the event and writes it as JSON. Flight Operations and Load Planning use the same
+  factory as their outbox (`FlightEventJson.from`, `LoadFinalizedJson.from`); for the `CpmCreatedJson`,
+  `FlightScheduledJson` and `UldBookingReceivedJson` records of Messaging the test fills the record itself. The
+  field names come from the record either way, so a renamed or removed field still fails. The test compares
+  those field names with the ones of the example. Only the names are compared: the values (ids, times) differ on
+  every run.
+- Messaging passes the flight events of Flight Operations on: its test reads the `flight-operations.flight.*`
+  example, passes it on as `FlightEventService` and `OutboxWriter` do, and compares the result with the
+  `messaging.flight.*` example. It also checks that `occurredOn` stays the same, because Load Planning judges the
+  end of the loading period by it.
+- The reader gives the example to its reader (`JsonFlightEventReader` and `JsonLoadFinalizedReader` in
+  Messaging, the `CpmCreatedJson` and `FlightScheduledJson` records in Flight Operations, the `FlightEventJson`
+  and `UldBookingReceivedJson` records in Load Planning) and checks the values that come out.
 
 ## Changing an event
 

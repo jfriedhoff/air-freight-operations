@@ -1,0 +1,13 @@
+{
+  "messageId": "0b6f2a7e-3c41-4d8e-9a52-1f0c6d7e8a16",
+  "type": "messaging.uld-booking.received",
+  "version": 1,
+  "occurredOn": "2026-01-05T08:00:00Z",
+  "flightNumber": "HJ221",
+  "scheduledDepartureDate": "2026-01-09",
+  "departureAirport": "BRU",
+  "uldCode": "AKE16689R7",
+  "weight": 1250,
+  "weightUnit": "KG",
+  "destination": "ATH"
+}

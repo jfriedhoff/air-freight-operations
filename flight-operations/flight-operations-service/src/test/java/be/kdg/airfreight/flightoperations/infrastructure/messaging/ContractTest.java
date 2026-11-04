@@ -30,8 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Flight Operations against the example messages in contracts/. The flight events it publishes must have exactly
- * the fields of their example, because Messaging tests its reader with the same examples. The message from
- * Messaging that the CPM is written must be readable here.
+ * the fields of their example, because Messaging tests its reader with the same examples. The messages from
+ * Messaging that a flight is scheduled and that the CPM is written must be readable here.
  */
 class ContractTest {
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
@@ -45,6 +45,12 @@ class ContractTest {
     private final FlightPlannerId planner = FlightPlannerId.create();
     private final Flight flight = Flight.plan(new FlightNumber("HJ221"), new AirportCode("BRU"),
         new AirportCode("ATH"), new AircraftRegistration("SXBAA"), new ScheduledTimes(STD, STA));
+
+    @Test
+    void anAnnouncedAndARemovedFlightArePublishedWithTheFieldsOfTheirExamples() {
+        assertPublishedAsItsExample(flight.announced(NOW), "flight-operations.flight.announced");
+        assertPublishedAsItsExample(flight.removed(NOW), "flight-operations.flight.removed");
+    }
 
     @Test
     void theEventsOfADepartureDelayArePublishedWithTheFieldsOfTheirExamples() {
@@ -74,6 +80,21 @@ class ContractTest {
         assertThat(json.flightNumber()).isEqualTo("HJ221");
         assertThat(json.scheduledDepartureDate()).isEqualTo(LocalDate.of(2026, 1, 9));
         assertThat(json.departureAirport()).isEqualTo("BRU");
+    }
+
+    /** The flight that Messaging read from an SSM, with the full STD and STA. */
+    @Test
+    void aScheduledFlightCanBeRead() {
+        FlightScheduledJson json = MAPPER.readValue(example("messaging.flight.scheduled"), FlightScheduledJson.class);
+
+        assertThat(json.messageId()).isNotNull();
+        assertThat(json.type()).isEqualTo(MessagingConfig.FLIGHT_SCHEDULED);
+        assertThat(json.flightNumber()).isEqualTo("HJ221");
+        assertThat(json.departureAirport()).isEqualTo("BRU");
+        assertThat(json.arrivalAirport()).isEqualTo("ATH");
+        assertThat(json.registration()).isEqualTo("SXBAA");
+        assertThat(json.std()).isEqualTo(Instant.parse("2026-01-09T06:30:00Z"));
+        assertThat(json.sta()).isEqualTo(Instant.parse("2026-01-09T09:45:00Z"));
     }
 
     private static void assertPublishedAsItsExample(FlightEvent event, String type) {
