@@ -30,7 +30,7 @@ De tests starten JPA en hebben dus de databank nodig: eerst `docker compose up -
 | --- | --- | --- |
 | Flight Operations | `./gradlew :flight-operations:flight-operations-service:bootRun` | 8080 |
 | Load Planning | `./gradlew :load-planning:load-planning-service:bootRun` | 8081 |
-| Messaging | `./gradlew :messaging:messaging-service:bootRun` | 8082 |
+| Messaging | `./gradlew :messaging:messaging-service:bootRun` | geen (geen REST API, enkel RabbitMQ) |
 | Simulator (niet in productie) | `./gradlew :simulator:simulator-service:bootRun` | 8090 |
 
 Eén module testen: `./gradlew :flight-operations:flight-operations-service:test`.
