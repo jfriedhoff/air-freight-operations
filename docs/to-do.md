@@ -5,26 +5,16 @@ One section per team member. Remove an item when its merge request is merged.
 
 ## In short
 
-- Romeo: the `@ui` scenario of #36 by hand (#36).
-- Jonas: the leftovers of the `@to-confirm` answers on GitLab and in `REFLECTIE.md` (#15, #18, #26, #30).
-
-## Romeo
-
-### Story 36: what is left by hand
-
-- The `@ui` scenario of #36 ("The screen shows the reason for a refusal"): register an ATD 6 minutes after the ETD
-  on the details page and check that the page says a delay is needed first.
+- Jonas: the `to-confirm` labels on GitLab (#15, #18, #26, #30).
 
 ## Jonas
 
 ### Leftovers of the `@to-confirm` answers
 
 The coach answered the `@to-confirm` questions on 14/10/2026 and 15/10/2026. The scenarios have their
-steps now and no `@wip` is left. What remains is outside the code:
+steps now and no `@wip` is left. What remains is on GitLab:
 
-- Remove the label `to-confirm` from issues #15, #18, #26 and #30 on GitLab and update their Gherkin.
-- Turn the line "*Scenario's met `@to-confirm`: ...*" in `REFLECTIE.md` (Zelfreflectie 2, Vragen) into
-  "*Beantwoord op 14/10/2026.*".
+- Remove the label `to-confirm` from issues #15, #18, #26 and #30 and update their Gherkin.
 
 A load that is not finalized in time is not an open question: the loading period stays closed once it
 has ended (coach, 13/10/2026), so the load can no longer be finalized and Flight Operations keeps refusing
