@@ -226,7 +226,7 @@ Content-Type: application/json
 POST {{keycloak}}/protocol/openid-connect/token
 Content-Type: application/x-www-form-urlencoded
 
-grant_type=password&client_id={{client-id}}&client_secret={{client-secret}}&username={{load-planner}}&password={{password}}&scope=openid
+grant_type=password&client_id={{client-id}}&client_secret={{client-secret}}&username={{load-planner}}&password={{load-planner-password}}&scope=openid
 
 > {%
     client.global.set("access_token", response.body.access_token);
