@@ -30,7 +30,8 @@ class JsonLoadFinalizedReader implements MessageReader<LoadFinalized> {
                 JsonReading.required(json.scheduledDepartureDate(), "scheduledDepartureDate"),
                 new AirportCode(JsonReading.required(json.departureAirport(), "departureAirport"))),
             JsonReading.required(json.load(), "load").stream()
-                .map(JsonLoadFinalizedReader::toCpmLine)
+                // a list can hold null, as in "load": [null]; checked here, it is an invalid message, not an NPE
+                .map(line -> toCpmLine(JsonReading.required(line, "load[]")))
                 .toList(),
             JsonReading.required(json.occurredOn(), "occurredOn"));
     }
