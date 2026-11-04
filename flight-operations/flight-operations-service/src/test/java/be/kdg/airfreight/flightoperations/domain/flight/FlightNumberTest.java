@@ -17,6 +17,14 @@ class FlightNumberTest {
         assertThat(new FlightNumber("ABC123").value()).isEqualTo("ABC123");
     }
 
+    /** The longest flight number has seven characters; the database columns that store it are as wide. */
+    @Test
+    void aThreeLetterCodeWithFourDigitsIsTheLongestFlightNumber() {
+        assertThat(new FlightNumber("ABC1234").value()).isEqualTo("ABC1234");
+        assertThatThrownBy(() -> new FlightNumber("ABCD123")).isInstanceOf(InvalidValueException.class);
+        assertThatThrownBy(() -> new FlightNumber("ABC12345")).isInstanceOf(InvalidValueException.class);
+    }
+
     @Test
     void anAirlineCodeWithoutALetterIsInvalid() {
         assertThatThrownBy(() -> new FlightNumber("221"))

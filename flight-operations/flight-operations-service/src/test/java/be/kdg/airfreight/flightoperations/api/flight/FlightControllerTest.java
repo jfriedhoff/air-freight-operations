@@ -363,6 +363,18 @@ class FlightControllerTest {
             .andExpect(jsonPath("$.flights[0].departureAirport").value("BRU"));
     }
 
+    /** Seven characters (a three-letter airline code and four digits) is the longest flight number. */
+    @Test
+    void aFlightNumberOfSevenCharactersIsSavedAndFoundByItsIdentity() throws Exception {
+        testHelper.saveFlight("ABC1234", "BRU", NINE_JANUARY, LocalTime.of(12, 0), "SXBAB");
+
+        mockMvc.perform(get(FLIGHTS).param("scheduledDepartureDate", "2026-01-09")
+                .param("flightNumber", "ABC1234").param("departureAirport", "BRU").with(planner("load-planner")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.flights.length()").value(1))
+            .andExpect(jsonPath("$.flights[0].flightNumber").value("ABC1234"));
+    }
+
     @Test
     void anIdentityOnAnotherDayFindsNothing() throws Exception {
         testHelper.savePlannedFlight();
