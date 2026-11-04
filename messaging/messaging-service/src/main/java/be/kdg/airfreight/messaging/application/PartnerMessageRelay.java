@@ -35,7 +35,7 @@ public class PartnerMessageRelay {
                 return;
             }
             message.markSent(clock.instant());
-            outgoing.save(message);
+            outgoing.saveSent(message);
             log.info("Partner message {} ({}) sent", message.getId().id(), message.getType());
         }
     }
