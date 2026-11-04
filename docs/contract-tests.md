@@ -50,9 +50,11 @@ the `@integration` scenarios of Messaging check what it sends them.
 - `Contracts` in the root test package of every service reads an example (`example(type)`) and lists the names
   of the fields of a JSON message (`fieldsOf(json)`; a field of the elements of a list is named like
   `load[].uldCode`).
-- The publisher builds the event as its outbox does (`FlightEventJson.from`, `LoadFinalizedJson.from`, the
-  `CpmCreatedJson`, `FlightScheduledJson` and `UldBookingReceivedJson` records), writes it as JSON and compares
-  the field names with those of the example. Only the names are compared: the values (ids, times) differ on
+- The publisher builds the event and writes it as JSON. Flight Operations and Load Planning use the same
+  factory as their outbox (`FlightEventJson.from`, `LoadFinalizedJson.from`); for the `CpmCreatedJson`,
+  `FlightScheduledJson` and `UldBookingReceivedJson` records of Messaging the test fills the record itself. The
+  field names come from the record either way, so a renamed or removed field still fails. The test compares
+  those field names with the ones of the example. Only the names are compared: the values (ids, times) differ on
   every run.
 - Messaging passes the flight events of Flight Operations on: its test reads the `flight-operations.flight.*`
   example, passes it on as `FlightEventService` and `OutboxWriter` do, and compares the result with the
