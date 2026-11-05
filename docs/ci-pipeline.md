@@ -18,6 +18,10 @@ Every merge request and every push to `main` runs all tests in GitLab. The confi
   `node --test`, the test runner built into Node, so it needs no JDK, Gradle, database or RabbitMQ.
   The tests only import our own code, so there is no `npm install`. Locally `npm test` in the
   frontend folder, or `./gradlew build`, runs them. See [`frontend-tests.md`](frontend-tests.md).
+- One type check per frontend: `flight-operations-frontend-typecheck`, `load-planning-frontend-typecheck`.
+  `node --test` only strips the types, so a type error would still pass the job above; `tsc --noEmit` checks
+  them, as the local build does. This job needs the TypeScript compiler and the type packages, so it runs
+  `npm ci` (without install scripts, with an npm cache per job).
 
 ## Why one job per service
 
@@ -41,7 +45,7 @@ pipeline; the tests use mocked JWTs and the service only contacts Keycloak for a
 
 ## Where to look
 
-- **Build → Pipelines**: the four jobs and their logs.
+- **Build → Pipelines**: the jobs and their logs.
 - **Tests tab** of the pipeline or the merge request: every test class and every Cucumber scenario.
   A scenario is reported by both suites (one runs it, the other filters it out by tag). GitLab
   counts a test name once, so it shows fewer tests than Gradle does; "passed" is the number of

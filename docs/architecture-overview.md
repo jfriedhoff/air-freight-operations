@@ -93,8 +93,10 @@ The server decides every rule again; a page only hides what the server would ref
 | `@e2e` and `@ui` scenarios | by hand | [`e2e-hand-checks.md`](e2e-hand-checks.md) |
 | Mutation tests (PIT) | `./gradlew :<module>:pitest` | by hand, and a manual job in the pipeline |
 
-A `./gradlew :<module>:test` always runs the `@integration` scenarios too, so Docker Compose must be up. Do not run
-the tests while a service of the same context is running locally: both read the same queues.
+A `./gradlew :<module>:test` always runs the `@integration` scenarios too, so Docker Compose must be up. The tests use their
+own exchanges and queues (`<service>-test.*`) and their own `*_test` databases, so a running service does not
+take their messages. Do not start a local service on a `*_test` database while tests run: `create-drop` drops
+its tables when the tests start.
 
 ## References
 
