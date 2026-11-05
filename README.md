@@ -15,6 +15,7 @@ Vlucht- en vrachtbeheer voor een luchtvrachtmaatschappij. Project voor Software 
  
 - De analyse: [`architecture/analyse.md`](architecture/analyse.md). Onze vragen aan de coach en zijn antwoorden staan in §8 en in de reflectie.
 - De reflectie per sprint: [`REFLECTIE.md`](REFLECTIE.md).
+- De vragen aan de coach: [`VRAGEN.md`](VRAGEN.md) zegt waar ze en de antwoorden staan.
 - Uitleg bij de techniek, in het Engels, in [`docs/`](docs/):
   - [`architecture-overview.md`](docs/architecture-overview.md): waar de code staat, de lagen en wat `DddArchTest` afdwingt
   - [`messaging.md`](docs/messaging.md): outbox, inbox, volgorde, dead letter queues, een event toevoegen en een bericht herstellen
