@@ -8,7 +8,8 @@ listed at the end.
 ## In short
 
 - **Flight-operations** and **load-planning** are secured, each with its own client and audience.
-  Messaging and the simulator have no Spring Security yet.
+  Messaging has no web server, so there is nothing to secure; the simulator (not in production) has no
+  Spring Security.
 - A token is **never written to disk** by our code: not in `localStorage`, not in a cookie, not in a
   database.
 - The login session itself belongs to Keycloak, not to our application.

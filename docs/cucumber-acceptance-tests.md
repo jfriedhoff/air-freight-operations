@@ -234,11 +234,9 @@ Load-planning (story 15) uses the same idea for every message it sends:
 | `MessageWorld` | The state of one scenario (`@Component @ScenarioScope`): the flight, the last message id, the reason it must be refused for. | Several step classes share it. Spring hands them a proxy, so always use its methods: a field read through the proxy is `null`. |
 | `LogCapture` | A Logback `ListAppender` on `be.kdg.airfreight.loadplanning` for the duration of a scenario. | For the steps "... is logged". |
 
-Two things to know before running the load-planning integration tests:
-- **Stop the load-planning service.** Its queue allows a single active consumer: while the service runs, the
-  listener of the test stays idle and every scenario times out.
-- `assertSetAside` takes dead letters until it finds its own, so older dead letters on `load-planning.dlq`
-  (from development or earlier runs) are dropped.
+One thing to know before running the load-planning integration tests: `assertSetAside` takes dead letters
+until it finds its own, so older dead letters on the test dead letter queue
+(`load-planning-test.load-planning.dlq`, from earlier runs) are dropped.
 
 The other services, after stories 2, 3, 26 to 29, 37 and 38:
 
@@ -246,7 +244,7 @@ The other services, after stories 2, 3, 26 to 29, 37 and 38:
 | --- | --- | --- |
 | `MessagingTraffic`, `Messages`, `ScenarioTime` | messaging | Plays the senders on their exchanges and reads what Messaging stored: the inbox, the outbox for the other units, the partner messages. `Messages` builds valid messages that a scenario changes or breaks; `ScenarioTime` gives the mocked `Clock` the time of the stories before every scenario. |
 | `MvtSteps`, `CpmSteps` | messaging | Stories 11, 14 and 25: what the `@e2e` scenarios check inside Messaging. A flight event or a finalized load is published on the exchange of its sender; the steps find the MVT or CPM among the partner messages and wait (`awaitSent`) until the relay has marked it as sent. They do not read the partner queue: two telegrams written at the same moment can be sent in either order. `CpmSteps` also checks the message that tells Flight Operations the CPM is written. |
-| Counting before and after | messaging | A queue of the development environment can still hold older messages, which the listeners process first. The steps first let the queue empty (`waitUntilHandled`), then count, so only the message of the scenario can change the count. |
+| Counting before and after | messaging | A test queue can still hold messages of an earlier run that stopped halfway, which the listeners process first. The steps first let the queue empty (`waitUntilHandled`), then count, so only the message of the scenario can change the count. |
 | Own exchanges and queues | all four services | Every service reads the names of its exchanges and queues from `AmqpProperties` (`<service>.amqp.*`). Production keeps the names in `main/resources/application.properties`; the test profile gives each one the name `<service>-test.` + the production name, such as `load-planning-test.load-planning.messaging-events`. So a service that runs at the same time never takes a test message (load-planning reads with a single active consumer: a running service would get them all), a test event never reaches another service, and the tests never declare the exchanges and queues of a running service. Before, the events of the messaging tests stayed in the queues of Load Planning: the next run of the load-planning tests handled them first, and a service started later treated them as real. |
 | Calling the use case | flight-operations, messaging | The tests of Flight Operations read nothing from RabbitMQ (see its test profile), except the two message rows of story 39, which are about delivery: those start the listener containers, and stop them and empty the queue and its dead letter queue after the scenario. `DddArchTest` lets only the listener call a use case from infrastructure. So the steps of story 2 call `FlightSchedulingService`, as `MessagingEventListener` does. In Messaging, the RabbitMQ rows of story 39 call `FlightEventService` as `FlightEventListener` does: with RabbitMQ unreachable, the event cannot arrive as a message. Its database rows go through the real listener, because they have to reach `SetAsideRecoverer`. |
 | `TestClock` | flight-operations, load-planning | A `@Primary` clock that a scenario can set (story 38: "it is 16 January 2026 00:00 UTC"); otherwise the system time. |
@@ -314,9 +312,9 @@ file keeps only the scenarios or Examples rows it answers, and says in a comment
 
 - In IntelliJ: right-click `UnitAcceptanceTest` → Run. Not the ▶ in the `.feature` file: that scans
   the whole classpath, finds the Spring configuration and needs a database.
-- `@integration`: run `docker compose up -d`, **stop the service itself** (it would read from the same
-  queue), then right-click `IntegrationAcceptanceTest` → Run. While the tests run, the outbox relays
-  really publish on the exchanges.
+- `@integration`: run `docker compose up -d`, then right-click `IntegrationAcceptanceTest` → Run. The tests
+  use their own exchanges, queues and `*_test` database, so a service that runs at the same time is not in
+  the way. While the tests run, the outbox relays really publish, on the test exchanges.
 - `@e2e` and `@ui` scenarios are not automated: Cucumber skips them and the pipeline does not run them.
   We run them by hand: `docker compose up -d`, start all services, send messages with
   `simulator/simulator-service/http/simulator.http`, and follow the result in the screens and in the
