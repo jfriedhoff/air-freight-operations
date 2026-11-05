@@ -54,6 +54,16 @@ function classesOf(cell: DeckCell): string {
     return classes.join(" ");
 }
 
+/* A ULD code ends with the two characters of its owner (AKE12345 R7). In a narrow cell the code breaks there, and
+   not at whatever letter happens to reach the edge. */
+function uldCode(code: string): HTMLElement {
+    const element = createElementWithText("span", code.slice(0, -2));
+    element.className = "deck-uld";
+    element.appendChild(document.createElement("wbr"));
+    element.appendChild(document.createTextNode(code.slice(-2)));
+    return element;
+}
+
 /* One button per load position on a grid of three rows: right side on top, the centre line, left side below. A
    position on the centre line (nose and tail) spans all three rows. A click is only passed on when the cell can be clicked; otherwise the button is there to be read. */
 export function drawDeck(cells: DeckCell[], clickable: (cell: DeckCell) => boolean,
@@ -66,12 +76,12 @@ export function drawDeck(cells: DeckCell[], clickable: (cell: DeckCell) => boole
         button.type = "button";
         button.dataset.position = cell.name;
         button.className = classesOf(cell);
-        button.style.gridColumn = String(cell.column);
-        button.style.gridRow = cell.row === "top" ? "1" : cell.row === "middle" ? "1 / 4" : "3";
+        button.style.setProperty("--column", String(cell.column));
+        button.dataset.row = cell.row;
         button.setAttribute("aria-label", labelOf(cell));
         button.appendChild(createElementWithText("span", cell.name)).className = "deck-name";
         if (cell.uld !== null) {
-            button.appendChild(createElementWithText("span", cell.uld)).className = "deck-uld";
+            button.appendChild(uldCode(cell.uld));
         }
         if (cell.stuck || cell.inTheWay) {
             // a symbol as well as a colour, so the marks are also clear without telling red apart
