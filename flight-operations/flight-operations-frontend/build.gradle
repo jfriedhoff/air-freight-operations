@@ -16,10 +16,15 @@ tasks.named('check') {
     dependsOn('npm_run_test')
 }
 
-// Fix for Mac users with Homebrew
-def file = new File('/opt/homebrew/bin/npm')
-if (file.exists()) {
+// Fix for Mac users: a Gradle daemon started by IntelliJ does not get the shell PATH,
+// so point the plugin at npm directly (Homebrew on Apple Silicon, /usr/local/bin on Intel)
+// and put that folder on the PATH of the npm tasks, so npm can find node
+def npm = ['/opt/homebrew/bin/npm', '/usr/local/bin/npm'].collect { new File(it) }.find { it.exists() }
+if (npm != null) {
     node {
-        npmCommand = file.absolutePath
+        npmCommand = npm.absolutePath
+    }
+    tasks.withType(com.github.gradle.node.npm.task.NpmTask).configureEach {
+        environment.put('PATH', "${npm.parent}${File.pathSeparator}${System.getenv('PATH')}")
     }
 }
