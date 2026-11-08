@@ -167,9 +167,10 @@ Content-Type: application/json
 
 ### ===================================================================================================
 ### Exam demo, Tuesday 10 November 2026 at 14:30 Brussels (CET = UTC+1). The times below are UTC.
-### HJ501 is the normal flow during the exam; HJ502 shows the 5-minute rule and needs a finalized load
-### before the exam, because a delay entered after the loading period has closed does not reopen it.
-### Do not rehearse with these two flights: the exam would find them finalized and departed. Rehearse
+### The demo takes at most 10 minutes and shows the happy flow: Live 1 (HJ503) comes in, HJ501 is delayed,
+### loaded, finalized and departs. HJ502 is optional, only to show the 5-minute rule when asked: it needs a
+### finalized load before the exam, because a delay entered after the loading period has closed does not
+### reopen it. Do not rehearse with these flights: the exam would find them finalized and departed. Rehearse
 ### with other flight numbers or another date, or start from an empty database.
 ### ===================================================================================================
 
@@ -224,7 +225,8 @@ Content-Type: application/json
 ### Exam demo, cargo on HJ502. Before the exam, between 9 Nov 21:00 and 10 Nov 08:40 Brussels, the load
 ### planner puts AKE11111HJ on CL and AKE22222HJ on CR and finalizes the load.
 ### During the exam the flight planner registers ATD 09:20 Brussels: refused, more than 5 minutes after
-### the ETD. Enter a departure delay of 20 minutes, then the same ATD is accepted (MVT-ED, MVT-EA, MVT-AD).
+### the ETD. Enter a departure delay of 15 minutes, then the same ATD is accepted: exactly ETD + 5 minutes,
+### the boundary that is allowed (MVT-ED, MVT-EA, MVT-AD).
 ### An ATA of now (after 11:40 UTC) is refused too: enter an arrival delay first, or register the ATA
 ### at most 5 minutes after the ETA.
 POST http://localhost:8090/api/cargo-bookings
@@ -245,7 +247,8 @@ Content-Type: application/json
 %}
 
 ### ===================================================================================================
-### Exam demo, live during the exam: one new flight, the same SSM again and an invalid one.
+### Exam demo, live during the exam: Live 1 is step 2 of the demo. Live 2 (the same SSM again) and
+### Live 3 (an invalid one) only when the examiners ask about duplicates or invalid messages.
 ### Do not send these when rehearsing, or HJ503 already exists on exam day (use another number then).
 ### ===================================================================================================
 
