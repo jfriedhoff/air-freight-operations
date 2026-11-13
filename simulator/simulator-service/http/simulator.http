@@ -166,7 +166,7 @@ Content-Type: application/json
 ]
 
 ### ===================================================================================================
-### Exam demo, Tuesday 10 November 2026 at 14:30 Brussels (CET = UTC+1). The times below are UTC.
+### Exam demo, Monday 16 November 2026 at 14:30 Brussels (CET = UTC+1). The times below are UTC.
 ### The demo takes at most 10 minutes and shows the happy flow: Live 1 (HJ503) comes in, HJ501 is delayed,
 ### loaded, finalized and departs. HJ502 is optional, only to show the 5-minute rule when asked: it needs a
 ### finalized load before the exam, because a delay entered after the loading period has closed does not
@@ -175,16 +175,16 @@ Content-Type: application/json
 ### ===================================================================================================
 
 ### Exam demo, the schedule: send it before the exam (from now on), then the two bookings below.
-### HJ501: STD 16:00 UTC (17:00 Brussels), STA 19:15 UTC. Loading period 10 Nov 05:00-16:40 Brussels.
-### HJ502: STD 08:00 UTC (09:00 Brussels), STA 11:15 UTC. Loading period 9 Nov 21:00 - 10 Nov 08:40 Brussels.
+### HJ501: STD 16:00 UTC (17:00 Brussels), STA 19:15 UTC. Loading period 16 Nov 05:00-16:40 Brussels.
+### HJ502: STD 08:00 UTC (09:00 Brussels), STA 11:15 UTC. Loading period 15 Nov 21:00 - 16 Nov 08:40 Brussels.
 POST http://localhost:8090/api/flight-schedules
 Content-Type: application/json
 
 [
-  { "periodFrom": "2026-11-10", "periodTo": "2026-11-10", "weekdays": ["TUESDAY"],
+  { "periodFrom": "2026-11-16", "periodTo": "2026-11-16", "weekdays": ["MONDAY"],
     "departureTime": "16:00", "arrivalTime": "19:15", "flightNumber": "HJ501",
     "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "SXBAA" },
-  { "periodFrom": "2026-11-10", "periodTo": "2026-11-10", "weekdays": ["TUESDAY"],
+  { "periodFrom": "2026-11-16", "periodTo": "2026-11-16", "weekdays": ["MONDAY"],
     "departureTime": "08:00", "arrivalTime": "11:15", "flightNumber": "HJ502",
     "departureAirport": "BRU", "arrivalAirport": "ATH", "registration": "OOTFA" }
 ]
@@ -205,13 +205,13 @@ POST http://localhost:8090/api/cargo-bookings
 Content-Type: application/json
 
 [
-  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-10", "departureAirport": "BRU",
+  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-16", "departureAirport": "BRU",
     "uldCode": "AKE12345HJ", "weight": 1000, "weightUnit": "KG", "destination": "ATH" },
-  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-10", "departureAirport": "BRU",
+  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-16", "departureAirport": "BRU",
     "uldCode": "PMC54321HJ", "weight": 2425, "weightUnit": "LB", "destination": "ATH" },
-  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-10", "departureAirport": "BRU",
+  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-16", "departureAirport": "BRU",
     "uldCode": "AKE67890HJ", "weight": 800, "weightUnit": "KG", "destination": "SKG" },
-  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-10", "departureAirport": "BRU",
+  { "flightNumber": "HJ501", "scheduledDepartureDate": "2026-11-16", "departureAirport": "BRU",
     "uldCode": "AKE99999HJ", "weight": 500, "weightUnit": "KG", "destination": "ATH" }
 ]
 
@@ -222,7 +222,7 @@ Content-Type: application/json
     });
 %}
 
-### Exam demo, cargo on HJ502. Before the exam, between 9 Nov 21:00 and 10 Nov 08:40 Brussels, the load
+### Exam demo, cargo on HJ502. Before the exam, between 15 Nov 21:00 and 16 Nov 08:40 Brussels, the load
 ### planner puts AKE11111HJ on CL and AKE22222HJ on CR and finalizes the load.
 ### During the exam the flight planner registers ATD 09:20 Brussels: refused, more than 5 minutes after
 ### the ETD. Enter a departure delay of 15 minutes, then the same ATD is accepted: exactly ETD + 5 minutes,
@@ -233,9 +233,9 @@ POST http://localhost:8090/api/cargo-bookings
 Content-Type: application/json
 
 [
-  { "flightNumber": "HJ502", "scheduledDepartureDate": "2026-11-10", "departureAirport": "BRU",
+  { "flightNumber": "HJ502", "scheduledDepartureDate": "2026-11-16", "departureAirport": "BRU",
     "uldCode": "AKE11111HJ", "weight": 1000, "weightUnit": "KG", "destination": "ATH" },
-  { "flightNumber": "HJ502", "scheduledDepartureDate": "2026-11-10", "departureAirport": "BRU",
+  { "flightNumber": "HJ502", "scheduledDepartureDate": "2026-11-16", "departureAirport": "BRU",
     "uldCode": "AKE22222HJ", "weight": 1000, "weightUnit": "KG", "destination": "ATH" }
 ]
 
@@ -252,13 +252,13 @@ Content-Type: application/json
 ### Do not send these when rehearsing, or HJ503 already exists on exam day (use another number then).
 ### ===================================================================================================
 
-### Live 1: a new flight, HJ503 of 10 November BRU-LGG, STD 18:30 UTC (19:30 Brussels).
+### Live 1: a new flight, HJ503 of 16 November BRU-LGG, STD 18:30 UTC (19:30 Brussels).
 ### Expect: one FLM on the partner service (http://localhost:8000), HJ503 in Overzicht vluchten and the Gantt chart.
 POST http://localhost:8090/api/flight-schedules
 Content-Type: application/json
 
 [
-  { "periodFrom": "2026-11-10", "periodTo": "2026-11-10", "weekdays": ["TUESDAY"],
+  { "periodFrom": "2026-11-16", "periodTo": "2026-11-16", "weekdays": ["MONDAY"],
     "departureTime": "18:30", "arrivalTime": "19:15", "flightNumber": "HJ503",
     "departureAirport": "BRU", "arrivalAirport": "LGG", "registration": "OOTFA" }
 ]
@@ -276,7 +276,7 @@ POST http://localhost:8090/api/flight-schedules
 Content-Type: application/json
 
 [
-  { "periodFrom": "2026-11-10", "periodTo": "2026-11-10", "weekdays": ["TUESDAY"],
+  { "periodFrom": "2026-11-16", "periodTo": "2026-11-16", "weekdays": ["MONDAY"],
     "departureTime": "18:30", "arrivalTime": "19:15", "flightNumber": "HJ503",
     "departureAirport": "BRU", "arrivalAirport": "LGG", "registration": "OOTFA" }
 ]
@@ -287,7 +287,7 @@ POST http://localhost:8090/api/flight-schedules
 Content-Type: application/json
 
 [
-  { "periodFrom": "2026-11-10", "periodTo": "2026-11-10", "weekdays": ["TUESDAY"],
+  { "periodFrom": "2026-11-16", "periodTo": "2026-11-16", "weekdays": ["MONDAY"],
     "departureTime": "18:30", "arrivalTime": "19:15", "flightNumber": "503",
     "departureAirport": "BRU", "arrivalAirport": "LGG", "registration": "OOTFA" }
 ]
