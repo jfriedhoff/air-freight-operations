@@ -194,5 +194,5 @@ resource server with issuer and audience, `KeycloakRealmRoleConverter`, the logi
 - [Spring Security — Testing OAuth 2.0 with MockMvc](https://docs.spring.io/spring-security/reference/servlet/test/mockmvc/oauth2.html):
   the mocked JWTs in the tests.
 - [RFC 7636 — Proof Key for Code Exchange](https://datatracker.ietf.org/doc/html/rfc7636): PKCE.
-- [OAuth 2.0 for Browser-Based Applications](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps):
+- [RFC 10017 — OAuth 2.0 for Browser-Based Applications](https://datatracker.ietf.org/doc/rfc10017/):
   why a browser application is a public client and where it may keep tokens.
