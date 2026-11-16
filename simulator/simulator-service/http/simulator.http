@@ -247,8 +247,8 @@ Content-Type: application/json
 %}
 
 ### ===================================================================================================
-### Exam demo, live during the exam: Live 1 is step 2 of the demo. Live 2 (the same SSM again) and
-### Live 3 (an invalid one) only when the examiners ask about duplicates or invalid messages.
+### Exam demo, live during the exam: Live 1 is step 2 of the demo. Live 2 (the same SSM again),
+### Live 3 (an invalid one) and Live 4 (one SSM, several flights) only when the examiners ask.
 ### Do not send these when rehearsing, or HJ503 already exists on exam day (use another number then).
 ### ===================================================================================================
 
@@ -291,3 +291,23 @@ Content-Type: application/json
     "departureTime": "18:30", "arrivalTime": "19:15", "flightNumber": "503",
     "departureAirport": "BRU", "arrivalAirport": "LGG", "registration": "OOTFA" }
 ]
+
+### Live 4: one SSM with several flights. HJ503 from 16 to 20 November on Monday, Wednesday and Friday:
+### three matching days. 16 November exists already (Live 1): skipped and logged, the rest is still processed.
+### Expect: one SSM; Messaging logs "3 flights scheduled"; Flight Operations creates 18 and 20 November and
+### logs that 16 November already exists; two FLMs on the partner service. Send it after Live 1.
+POST http://localhost:8090/api/flight-schedules
+Content-Type: application/json
+
+[
+  { "periodFrom": "2026-11-16", "periodTo": "2026-11-20", "weekdays": ["MONDAY", "WEDNESDAY", "FRIDAY"],
+    "departureTime": "18:30", "arrivalTime": "19:15", "flightNumber": "HJ503",
+    "departureAirport": "BRU", "arrivalAirport": "LGG", "registration": "OOTFA" }
+]
+
+> {%
+    client.test("One record gives one SSM, whatever the number of flights", function () {
+        client.assert(response.status === 202, "Response status is not 202");
+        client.assert(response.body.messageIds.length === 1, "Expected one message id");
+    });
+%}
