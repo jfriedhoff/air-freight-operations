@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1078 238" width="1078" height="238" font-family="Helvetica, Arial, sans-serif">
+<title>Floor plan Boeing 747-400F, main deck, seen from above with the nose on the left</title>
+<style>
+.name { font-size: 14px; font-weight: 700; fill: #1f2430; text-anchor: middle; }
+.dist { font-size: 11px; fill: #5b6170; text-anchor: middle; }
+.side { font-size: 13px; fill: #3b4252; text-anchor: middle; }
+.door { font-size: 13px; font-weight: 700; fill: #b5651d; text-anchor: middle; }
+.legend { font-size: 13px; fill: #3b4252; }
+</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<path d="M 72 28 L 1006 28 L 1066 83.0 L 1066 111.0 L 1006 166 L 72 166 C 22 166 12 127.0 12 97.0 C 12 67.0 22 28 72 28 Z" fill="#f7f8fa" stroke="#3b4252" stroke-width="2"/>
+<rect x="30" y="40" width="40" height="114" rx="4" fill="#e6e8ec" stroke="#3b4252" stroke-width="1.5"/>
+<text x="50.0" y="95.0" class="name">A1</text>
+<text x="50.0" y="110.0" class="dist">14</text>
+<polyline points="73,92.0 78,97.0 73,102.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="82" y="40" width="40" height="114" rx="4" fill="#e6e8ec" stroke="#3b4252" stroke-width="1.5"/>
+<text x="102.0" y="95.0" class="name">A2</text>
+<text x="102.0" y="110.0" class="dist">13</text>
+<polyline points="125,92.0 130,97.0 125,102.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="134" y="40" width="40" height="114" rx="4" fill="#e6e8ec" stroke="#3b4252" stroke-width="1.5"/>
+<text x="154.0" y="95.0" class="name">B1</text>
+<text x="154.0" y="110.0" class="dist">12</text>
+<rect x="186" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="206.0" y="63.0" class="name">CR</text>
+<text x="206.0" y="78.0" class="dist">12</text>
+<rect x="186" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="206.0" y="127.0" class="name">CL</text>
+<text x="206.0" y="142.0" class="dist">11</text>
+<rect x="238" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="258.0" y="63.0" class="name">DR</text>
+<text x="258.0" y="78.0" class="dist">11</text>
+<rect x="238" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="258.0" y="127.0" class="name">DL</text>
+<text x="258.0" y="142.0" class="dist">10</text>
+<rect x="290" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="310.0" y="63.0" class="name">ER</text>
+<text x="310.0" y="78.0" class="dist">10</text>
+<rect x="290" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="310.0" y="127.0" class="name">EL</text>
+<text x="310.0" y="142.0" class="dist">9</text>
+<rect x="342" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="362.0" y="63.0" class="name">FR</text>
+<text x="362.0" y="78.0" class="dist">9</text>
+<rect x="342" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="362.0" y="127.0" class="name">FL</text>
+<text x="362.0" y="142.0" class="dist">8</text>
+<rect x="394" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="414.0" y="63.0" class="name">GR</text>
+<text x="414.0" y="78.0" class="dist">8</text>
+<rect x="394" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="414.0" y="127.0" class="name">GL</text>
+<text x="414.0" y="142.0" class="dist">7</text>
+<rect x="446" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="466.0" y="63.0" class="name">HR</text>
+<text x="466.0" y="78.0" class="dist">7</text>
+<rect x="446" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="466.0" y="127.0" class="name">HL</text>
+<text x="466.0" y="142.0" class="dist">6</text>
+<rect x="498" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="518.0" y="63.0" class="name">JR</text>
+<text x="518.0" y="78.0" class="dist">6</text>
+<rect x="498" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="518.0" y="127.0" class="name">JL</text>
+<text x="518.0" y="142.0" class="dist">5</text>
+<rect x="550" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="570.0" y="63.0" class="name">KR</text>
+<text x="570.0" y="78.0" class="dist">5</text>
+<rect x="550" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="570.0" y="127.0" class="name">KL</text>
+<text x="570.0" y="142.0" class="dist">4</text>
+<rect x="602" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="622.0" y="63.0" class="name">LR</text>
+<text x="622.0" y="78.0" class="dist">4</text>
+<rect x="602" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="622.0" y="127.0" class="name">LL</text>
+<text x="622.0" y="142.0" class="dist">3</text>
+<rect x="654" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="674.0" y="63.0" class="name">MR</text>
+<text x="674.0" y="78.0" class="dist">3</text>
+<rect x="654" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="674.0" y="127.0" class="name">ML</text>
+<text x="674.0" y="142.0" class="dist">2</text>
+<rect x="706" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="726.0" y="63.0" class="name">PR</text>
+<text x="726.0" y="78.0" class="dist">2</text>
+<rect x="706" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="726.0" y="127.0" class="name">PL</text>
+<text x="726.0" y="142.0" class="dist">1</text>
+<rect x="758" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="778.0" y="63.0" class="name">RR</text>
+<text x="778.0" y="78.0" class="dist">1</text>
+<rect x="758" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="778.0" y="127.0" class="name">RL</text>
+<text x="778.0" y="142.0" class="dist">0</text>
+<rect x="810" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="830.0" y="63.0" class="name">SR</text>
+<text x="830.0" y="78.0" class="dist">2</text>
+<rect x="810" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="830.0" y="127.0" class="name">SL</text>
+<text x="830.0" y="142.0" class="dist">1</text>
+<rect x="862" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="882.0" y="63.0" class="name">TR</text>
+<text x="882.0" y="78.0" class="dist">3</text>
+<rect x="862" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="882.0" y="127.0" class="name">TL</text>
+<text x="882.0" y="142.0" class="dist">2</text>
+<rect x="914" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="934.0" y="63.0" class="name">UR</text>
+<text x="934.0" y="78.0" class="dist">4</text>
+<rect x="914" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="934.0" y="127.0" class="name">UL</text>
+<text x="934.0" y="142.0" class="dist">3</text>
+<polyline points="177,60.0 182,65.0 177,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="229,60.0 234,65.0 229,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="281,60.0 286,65.0 281,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="333,60.0 338,65.0 333,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="385,60.0 390,65.0 385,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="437,60.0 442,65.0 437,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="489,60.0 494,65.0 489,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="541,60.0 546,65.0 541,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="593,60.0 598,65.0 593,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="645,60.0 650,65.0 645,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="697,60.0 702,65.0 697,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="749,60.0 754,65.0 749,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="807,60.0 802,65.0 807,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="859,60.0 854,65.0 859,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="911,60.0 906,65.0 911,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="963,60.0 958,65.0 963,70.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="177,124.0 182,129.0 177,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="229,124.0 234,129.0 229,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="281,124.0 286,129.0 281,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="333,124.0 338,129.0 333,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="385,124.0 390,129.0 385,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="437,124.0 442,129.0 437,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="489,124.0 494,129.0 489,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="541,124.0 546,129.0 541,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="593,124.0 598,129.0 593,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="645,124.0 650,129.0 645,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="697,124.0 702,129.0 697,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="749,124.0 754,129.0 749,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="807,124.0 802,129.0 807,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="859,124.0 854,129.0 859,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="911,124.0 906,129.0 911,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="963,124.0 958,129.0 963,134.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="966" y="40" width="40" height="114" rx="4" fill="#e6e8ec" stroke="#3b4252" stroke-width="1.5"/>
+<text x="986.0" y="95.0" class="name">X</text>
+<text x="986.0" y="110.0" class="dist">4</text>
+<polyline points="773.0,93.0 778.0,98.0 783.0,93.0" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="752" y="163" width="52" height="6" rx="2" fill="#d9822b"/>
+<polyline points="773.0,175 778.0,180 783.0,175" fill="none" stroke="#d9822b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="778.0" y="198" class="door">cargo door</text>
+<text x="186" y="20" class="side" text-anchor="start">right side (R)</text>
+<text x="186" y="186" class="side" text-anchor="start">left side (L)</text>
+<text x="52" y="20" class="side">nose</text>
+<text x="1036" y="20" class="side">tail</text>
+<rect x="30" y="213" width="16" height="14" rx="2" fill="#e6e8ec" stroke="#3b4252"/>
+<text x="54" y="224" class="legend">centre position: counts for neither side of the lateral balance</text>
+<polyline points="467,215 472,220 467,225" fill="none" stroke="#8a8f98" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="482" y="224" class="legend">route to the door</text>
+<text x="640" y="224" class="legend"><tspan font-weight="700">number</tspan>: shortest route to the door, in positions</text>
+</svg>

@@ -161,7 +161,6 @@ Yes. "Unit" refers to **what** is tested, not to how the test code is organised.
 
 - Every When step calls one method on `Flight`; every Then step checks `Flight` or the exception it
   threw. No other production code takes part: no service, repository, database, Spring or mock.
-  That is the rule from lesson 06.
 - `FlightWorld` and the step classes are test code, not units. `FlightWorld` is what the fields
   filled by `@BeforeEach` are in an ordinary JUnit test class, only shared because Cucumber spreads
   the steps over several classes. Picocontainer is not Spring and only lives in the test code.
@@ -216,8 +215,8 @@ and `SpringCucumberConfig` (`@SpringBootTest` + `@AutoConfigureMockMvc`), in eve
 
 | Part | What it does | Why |
 | --- | --- | --- |
-| `src/test/resources/application.properties` | Replaces the main `application.properties` during the tests: the same settings, except the database. Every service has its own test database (`load_planning_test`, `messaging_test`, `flight_operations_test`). | The tests run against PostgreSQL and RabbitMQ from Docker Compose, as in production, but never touch the dev data (lesson 06: an isolated, reproducible test database). |
-| `DatabaseCleanUp` | An `@After` hook that empties the tables after every scenario. | Every scenario starts empty, like `TestHelper.cleanUp()` in the course. |
+| `src/test/resources/application.properties` | Replaces the main `application.properties` during the tests: the same settings, except the database. Every service has its own test database (`load_planning_test`, `messaging_test`, `flight_operations_test`). | The tests run against PostgreSQL and RabbitMQ from Docker Compose, as in production, but never touch the dev data (an isolated, reproducible test database). |
+| `DatabaseCleanUp` | An `@After` hook that empties the tables after every scenario. | Every scenario starts empty. |
 | `Clock` as `@MockitoBean` | Declared in `SpringCucumberConfig`; a step sets the time with `given(clock.instant())`. | System time is outside our code, and a scenario can need two moments ("processed on 2 January", "arrives again on 25 January"). |
 | Awaitility | `await().atMost(...).untilAsserted(...)` in the Then steps. | A message is published on the exchange of its sender, as the real sender does, and the listener handles it on its own thread. The test waits for the result instead of sleeping. |
 
@@ -279,16 +278,16 @@ Implementing a story:
 3. Implement the production code until they pass. (green)
 4. Refactor, run the suite and `pitest`; add checks for surviving mutants.
 
-The `.feature` file is the source of truth for the acceptance criteria. The GitLab issue links to
-it; when a criterion changes, change the file in the same MR.
+The `.feature` file is the source of truth for the acceptance criteria. The user story links to
+it; when a criterion changes, change the file in the same merge request.
 
-Stories with only `@ui` or `@e2e` scenarios have a file too, so the issue can link to it. Cucumber
+Stories with only `@ui` or `@e2e` scenarios have a file too, so the story can link to it. Cucumber
 does not run them: we run them by hand (see "Running"). A story that spans several services (7, 34, 36, 37, 39) is split: each service's
 file keeps only the scenarios or Examples rows it answers, and says in a comment where the rest is.
 
 ## Adding a story
 
-1. Remove `@wip` from the existing file (or, for a new story, put the Gherkin from the issue
+1. Remove `@wip` from the existing file (or, for a new story, put the Gherkin from the story
    literally in `NN-short-name.feature`).
 2. First check whether a step text already exists (Ctrl+click in IntelliJ). If it does, reuse it.
    A text that means the same as an existing one gets a second annotation on that method
@@ -323,12 +322,11 @@ file keeps only the scenarios or Examples rows it answers, and says in a comment
   checks inside one service, as an `@integration` scenario at the boundary of the events.
 - To check whether the scenarios really notice bugs: see
   [`mutation-testing-pit.md`](mutation-testing-pit.md).
-- In GitLab the same suites run in the pipeline, every service with its own database and RabbitMQ:
+- The same suites run in the CI pipeline, every service with its own database and RabbitMQ:
   see [`ci-pipeline.md`](ci-pipeline.md).
 
 ## References
 
-- Course slides 06 (Spring testing): "Unit tests", "Integration tests" and "TestHelper".
 - [Cucumber — Sharing state between steps](https://cucumber.io/docs/cucumber/state/): why step
   classes need a shared object, and dependency injection as the way to get one.
 - [Cucumber — Gherkin reference](https://cucumber.io/docs/gherkin/reference/): `Scenario Outline`,
@@ -341,4 +339,4 @@ file keeps only the scenarios or Examples rows it answers, and says in a comment
   the object factories of the two suites and how a suite selects its glue, tags and factory.
 - [Awaitility — Usage](https://github.com/awaitility/awaitility/wiki/Usage): waiting for the result
   of a listener.
-- `architecture/analyse.md` §9: the test strategy and the test levels.
+- [`analysis.md`](analysis.md) §8: the test strategy and the test levels.

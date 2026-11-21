@@ -89,6 +89,4 @@ wins, not only that the default works.
 - [Spring Boot — Externalized Configuration](https://docs.spring.io/spring-boot/reference/features/external-config.html):
   the order in which property sources win, `@ConfigurationProperties`, and the rule for the names of
   environment variables ("Binding From Environment Variables").
-- Project case, "Algemene regels": the policy values and "zonder nieuwe release".
-- `architecture/analyse.md` §6 and `REFLECTIE.md` (story #37): the choice for external configuration
-  and a restart.
+- [`analysis.md`](analysis.md) §6: the choice for external configuration and a restart.

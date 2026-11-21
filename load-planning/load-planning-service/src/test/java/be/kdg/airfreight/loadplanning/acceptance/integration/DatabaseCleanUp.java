@@ -4,7 +4,7 @@ import be.kdg.airfreight.loadplanning.infrastructure.flightcargo.jpa.JpaFlightCa
 import be.kdg.airfreight.loadplanning.infrastructure.messaging.OutboxEventRepository;
 import io.cucumber.java.After;
 
-/** Every scenario starts with an empty test database, like TestHelper.cleanUp() in the course. */
+/** Every scenario starts with an empty test database. */
 public class DatabaseCleanUp {
     private final JpaFlightCargoRepository cargos;
     private final OutboxEventRepository outbox;

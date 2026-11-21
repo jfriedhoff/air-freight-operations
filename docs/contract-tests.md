@@ -14,8 +14,8 @@ field and the tests of Messaging still send the old name. The contract tests clo
 - A field that one side renames, adds or drops therefore fails a test on one of the two sides, in the pipeline,
   without starting the other service.
 - Plain JUnit, no Spring, database or RabbitMQ: `ContractTest` in `infrastructure/messaging` of every service.
-- The examples are test data, not code: the services still share no code (analysis §5). The coach agreed that
-  both sides may read the same file.
+- The examples are test data, not code: the services still share no code ([analysis](analysis.md) §5). Both
+  sides reading the same file is test data for the Published Language, not a Shared Kernel.
 
 ## Which events
 
@@ -76,5 +76,5 @@ the `@integration` scenarios of Messaging check what it sends them.
   for.
 - [Pact](https://docs.pact.io/): the tool that does this between separate repositories, with a broker in the
   middle. We do not need it: all services are in one repository.
-- Course slides 07 (messaging): an integration event is JSON with `messageId`, `type`, `version` and
+- [`messaging.md`](messaging.md): an integration event is JSON with `messageId`, `type`, `version` and
   `occurredOn`.

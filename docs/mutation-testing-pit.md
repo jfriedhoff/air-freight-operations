@@ -66,7 +66,7 @@ Not every survivor is a problem. For each one, ask:
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| `targetClasses` | `...domain.*` | Unit tests only test the domain (lesson 06) |
+| `targetClasses` | `...domain.*` | Unit tests only test the domain |
 | `targetTests` | `UnitAcceptanceTest`, `...domain.*` | Integration tests need Postgres and are too slow to run hundreds of times |
 | `threads` | 4 | Faster |
 | `timestampedReports` | `false` | The report is always in the same place |
@@ -214,4 +214,3 @@ version, and `markSent` got their tests:
   `build.gradle`.
 - [pitest-junit5-plugin](https://github.com/pitest/pitest-junit5-plugin): lets PIT run JUnit 5
   tests, and Cucumber through them.
-- Course slides 06 (Spring testing), "Unit tests": unit tests only test the domain.

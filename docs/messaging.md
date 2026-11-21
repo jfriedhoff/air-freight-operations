@@ -31,7 +31,7 @@ Each service declares its own exchange, its queue with its bindings and its dead
 simulator needs Messaging to have declared its queues. All names are properties (`<service>.amqp.*`); the tests use
 their own names, so a running service never receives test messages.
 
-The partners: the partner service of the course reads `partner-exchange` through its own queue `partner-inbox`;
+The partners: a partner service mock reads `partner-exchange` through its own queue `partner-inbox`;
 Messaging also binds `partners.all` to it, to look at the partner messages in RabbitMQ.
 
 ## From a change to an event: the outbox
@@ -111,14 +111,12 @@ sequence` in the database of the service, and the relay's `error` lines say why.
    starts at the queue (Awaitility waits for the listener).
 
 A change that an older reader cannot handle gets a new `version`; until every reader knows it, the publisher keeps
-the old one (course slides 07). See [`contract-tests.md`](contract-tests.md).
+the old one. See [`contract-tests.md`](contract-tests.md).
 
 ## References
 
-- Course slides 07 (messaging): integration events, topic exchanges, dead letter queues, retries, the outbox and
-  idempotent consumers.
 - [Spring AMQP — Publisher Confirms and Returns](https://docs.spring.io/spring-amqp/reference/amqp/template.html#template-confirms).
 - [RabbitMQ — Single Active Consumer](https://www.rabbitmq.com/docs/consumers#single-active-consumer) and
   [Dead Letter Exchanges](https://www.rabbitmq.com/docs/dlx).
 - [Chris Richardson — Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html).
-- `REFLECTIE.md`, Zelfreflectie 1, "Hoe de outbox werkt": why the outbox and why `@EventListener`.
+- [`analysis.md`](analysis.md) §5, "Reliability": why every context has an outbox and only Messaging an inbox.

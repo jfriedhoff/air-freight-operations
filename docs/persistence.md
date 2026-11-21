@@ -86,9 +86,6 @@ public void save(Flight flight) {
 
 ## References
 
-- Course slides 05 (Spring Data persistence): `@Entity`, repositories, configuration, and keeping JPA out of the
-  domain.
-- The reference project, branch `3-jpa-full-ddd`: the same `fromDomain`/`toDomain` split.
 - [Hibernate — Optimistic locking](https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html#locking-optimistic)
   and [JPA `LockModeType`](https://jakarta.ee/specifications/persistence/3.2/apidocs/jakarta.persistence/jakarta/persistence/LockModeType.html).
 - `README.md`: the one-time commands after a mapping change.

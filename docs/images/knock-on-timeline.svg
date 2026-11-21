@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1078 292" width="1078" height="292" font-family="Helvetica, Arial, sans-serif">
+<title>Example of a knock-on delay: HJ220 lands 50 minutes late, the buffer absorbs 30 minutes, HJ221 departs at 09:50 according to the rule, the model predicts 09:45 to 10:05</title>
+<style>
+.lbl { font-size: 14px; font-weight: 700; fill: #1f2430; }
+.sub { font-size: 11px; fill: #5b6170; }
+.in { font-size: 12px; fill: #3b4252; }
+.acc { font-size: 12px; font-weight: 700; fill: #b5651d; }
+.tick { font-size: 11px; fill: #5b6170; text-anchor: middle; }
+</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<!-- guide lines: STA 08:00, ATA 08:50, STD 09:30, rule 09:50 -->
+<g stroke="#8a8f98" stroke-width="1" stroke-dasharray="3 4">
+<line x1="266.7" y1="14" x2="266.7" y2="262"/>
+<line x1="527.8" y1="14" x2="527.8" y2="262"/>
+<line x1="736.7" y1="14" x2="736.7" y2="262"/>
+<line x1="841.1" y1="14" x2="841.1" y2="262"/>
+</g>
+<!-- inbound flight -->
+<text x="12" y="44" class="lbl">HJ220</text>
+<text x="12" y="60" class="sub">previous flight</text>
+<rect x="110" y="20" width="156.7" height="24" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="258" y="36" class="in" text-anchor="end">planned: STA 08:00</text>
+<rect x="110" y="50" width="417.8" height="24" rx="4" fill="#e6e8ec" stroke="#3b4252" stroke-width="1.5"/>
+<text x="519" y="66" class="in" text-anchor="end">actual: ATA 08:50, 50 min late</text>
+<!-- ground time -->
+<text x="12" y="120" class="lbl">Ground</text>
+<text x="12" y="136" class="sub">turnaround</text>
+<rect x="266.7" y="92" width="313.3" height="24" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="423.3" y="108" class="in" text-anchor="middle">planned: min. turnaround 60 min</text>
+<rect x="580" y="92" width="156.7" height="24" rx="4" fill="#f7f8fa" stroke="#8a8f98" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="658.3" y="108" class="in" text-anchor="middle">buffer 30 min</text>
+<rect x="527.8" y="122" width="313.3" height="24" rx="4" fill="#e6e8ec" stroke="#3b4252" stroke-width="1.5"/>
+<text x="684.4" y="138" class="in" text-anchor="middle">min. turnaround 60 min after the ATA</text>
+<!-- next flight -->
+<text x="12" y="186" class="lbl">HJ221</text>
+<text x="12" y="202" class="sub">next flight</text>
+<rect x="736.7" y="164" width="313.3" height="24" rx="4" fill="#ffffff" stroke="#3b4252" stroke-width="1.5"/>
+<text x="745" y="180" class="in">planned: STD 09:30</text>
+<rect x="841.1" y="194" width="208.9" height="24" rx="4" fill="#ffffff" stroke="#1f2430" stroke-width="2.5"/>
+<text x="849" y="210" class="in">rule: 09:50, 20 min late</text>
+<rect x="815" y="224" width="104.4" height="24" rx="4" fill="#d9822b" fill-opacity="0.22" stroke="#d9822b" stroke-width="2"/>
+<text x="928" y="240" class="acc">model: 09:45–10:05</text>
+<!-- time axis -->
+<line x1="110" y1="262" x2="1050" y2="262" stroke="#3b4252" stroke-width="1.5"/>
+<g stroke="#3b4252" stroke-width="1.5">
+<line x1="110" y1="262" x2="110" y2="268"/><line x1="266.7" y1="262" x2="266.7" y2="268"/><line x1="423.3" y1="262" x2="423.3" y2="268"/><line x1="580" y1="262" x2="580" y2="268"/><line x1="736.7" y1="262" x2="736.7" y2="268"/><line x1="893.3" y1="262" x2="893.3" y2="268"/><line x1="1050" y1="262" x2="1050" y2="268"/>
+</g>
+<text x="110" y="283" class="tick">07:30</text><text x="266.7" y="283" class="tick">08:00</text><text x="423.3" y="283" class="tick">08:30</text><text x="580" y="283" class="tick">09:00</text><text x="736.7" y="283" class="tick">09:30</text><text x="893.3" y="283" class="tick">10:00</text><text x="1050" y="283" class="tick">10:30</text>
+</svg>

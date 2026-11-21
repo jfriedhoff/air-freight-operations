@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1078 256" width="1078" height="256" font-family="Helvetica, Arial, sans-serif">
+<title>Example of an autoload proposal for HJ221 BRU-ATH</title>
+<style>
+.name { font-size: 14px; font-weight: 700; fill: #1f2430; text-anchor: middle; }
+.dim { font-weight: 400; fill: #9aa1ad; }
+.kg { font-size: 11px; fill: #1f2430; text-anchor: middle; }
+.free { font-size: 11px; fill: #2e7d32; text-anchor: middle; }
+.side { font-size: 13px; fill: #3b4252; text-anchor: middle; }
+.door { font-size: 13px; font-weight: 700; fill: #b5651d; text-anchor: middle; }
+.legend { font-size: 13px; fill: #3b4252; }
+</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<path d="M 72 28 L 1006 28 L 1066 83.0 L 1066 111.0 L 1006 166 L 72 166 C 22 166 12 127.0 12 97.0 C 12 67.0 22 28 72 28 Z" fill="#f7f8fa" stroke="#3b4252" stroke-width="2"/>
+<rect x="30" y="40" width="40" height="114" rx="4" fill="#f8e2c8" stroke="#a35a12" stroke-width="2.5"/>
+<text x="50.0" y="94.0" class="name">A1</text>
+<text x="50.0" y="109.0" class="kg">4600</text>
+<rect x="82" y="40" width="40" height="114" rx="4" fill="#f8e2c8" stroke="#a35a12" stroke-width="2.5"/>
+<text x="102.0" y="94.0" class="name">A2</text>
+<text x="102.0" y="109.0" class="kg">2800</text>
+<rect x="134" y="40" width="40" height="114" rx="4" fill="#eef0f3" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="154.0" y="94.0" class="name dim">B1</text>
+<rect x="186" y="40" width="40" height="50" rx="4" fill="#f8e2c8" stroke="#a35a12" stroke-width="2.5"/>
+<text x="206.0" y="62.0" class="name">CR</text>
+<text x="206.0" y="77.0" class="kg">1400</text>
+<rect x="186" y="104" width="40" height="50" rx="4" fill="#f8e2c8" stroke="#a35a12" stroke-width="2.5"/>
+<text x="206.0" y="126.0" class="name">CL</text>
+<text x="206.0" y="141.0" class="kg">900</text>
+<rect x="238" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="258.0" y="62.0" class="name dim">DR</text>
+<rect x="238" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="258.0" y="126.0" class="name dim">DL</text>
+<rect x="290" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="310.0" y="62.0" class="name dim">ER</text>
+<rect x="290" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="310.0" y="126.0" class="name dim">EL</text>
+<rect x="342" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="362.0" y="62.0" class="name dim">FR</text>
+<rect x="342" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="362.0" y="126.0" class="name dim">FL</text>
+<rect x="394" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="414.0" y="62.0" class="name dim">GR</text>
+<rect x="394" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="414.0" y="126.0" class="name dim">GL</text>
+<rect x="446" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="466.0" y="62.0" class="name dim">HR</text>
+<rect x="446" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="466.0" y="126.0" class="name dim">HL</text>
+<rect x="498" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="518.0" y="62.0" class="name dim">JR</text>
+<rect x="498" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="518.0" y="126.0" class="name dim">JL</text>
+<rect x="550" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="570.0" y="62.0" class="name dim">KR</text>
+<rect x="550" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="570.0" y="126.0" class="name dim">KL</text>
+<rect x="602" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="622.0" y="62.0" class="name dim">LR</text>
+<rect x="602" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="622.0" y="126.0" class="name dim">LL</text>
+<rect x="654" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="674.0" y="62.0" class="name dim">MR</text>
+<rect x="654" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="674.0" y="126.0" class="name dim">ML</text>
+<rect x="706" y="40" width="40" height="50" rx="4" fill="#d6e6f8" stroke="#1f5fa8" stroke-width="2.5"/>
+<text x="726.0" y="62.0" class="name">PR</text>
+<text x="726.0" y="77.0" class="kg">3100</text>
+<rect x="706" y="104" width="40" height="50" rx="4" fill="#d6e6f8" stroke="#1f5fa8" stroke-width="2.5"/>
+<text x="726.0" y="126.0" class="name">PL</text>
+<text x="726.0" y="141.0" class="kg">3900</text>
+<rect x="758" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" stroke-dasharray="5 3"/>
+<text x="778.0" y="62.0" class="name">RR</text>
+<text x="778.0" y="77.0" class="free">free</text>
+<rect x="758" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" stroke-dasharray="5 3"/>
+<text x="778.0" y="126.0" class="name">RL</text>
+<text x="778.0" y="141.0" class="free">free</text>
+<rect x="810" y="40" width="40" height="50" rx="4" fill="#d6e6f8" stroke="#1f5fa8" stroke-width="2.5"/>
+<text x="830.0" y="62.0" class="name">SR</text>
+<text x="830.0" y="77.0" class="kg">1250</text>
+<rect x="810" y="104" width="40" height="50" rx="4" fill="#d6e6f8" stroke="#1f5fa8" stroke-width="2.5"/>
+<text x="830.0" y="126.0" class="name">SL</text>
+<text x="830.0" y="141.0" class="kg">1100</text>
+<rect x="862" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="882.0" y="62.0" class="name dim">TR</text>
+<rect x="862" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="882.0" y="126.0" class="name dim">TL</text>
+<rect x="914" y="40" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="934.0" y="62.0" class="name dim">UR</text>
+<rect x="914" y="104" width="40" height="50" rx="4" fill="#ffffff" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="934.0" y="126.0" class="name dim">UL</text>
+<rect x="966" y="40" width="40" height="114" rx="4" fill="#eef0f3" stroke="#9aa1ad" stroke-width="1.2"/>
+<text x="986.0" y="94.0" class="name dim">X</text>
+<rect x="752" y="163" width="52" height="6" rx="2" fill="#d9822b"/>
+<text x="778.0" y="186" class="door">cargo door</text>
+<text x="186" y="20" class="side" text-anchor="start">right side (R)</text>
+<text x="186" y="186" class="side" text-anchor="start">left side (L)</text>
+<text x="52" y="20" class="side">nose</text>
+<text x="1036" y="20" class="side">tail</text>
+<text x="30" y="214" class="legend"><tspan font-weight="700">Left 5900 kg</tspan> · <tspan font-weight="700">right 5750 kg</tspan> · the heaviest side may carry at most 6325 kg (110%): lateral balance passes · centre 7400 kg, counts for neither side</text>
+<rect x="30" y="231" width="16" height="14" rx="2" fill="#d6e6f8" stroke="#1f5fa8" stroke-width="2"/>
+<text x="54" y="242" class="legend">group A: to ATH, the arrival airport</text>
+<rect x="360" y="231" width="16" height="14" rx="2" fill="#f8e2c8" stroke="#a35a12" stroke-width="2"/>
+<text x="384" y="242" class="legend">group B: to IST, stays on board</text>
+<rect x="640" y="231" width="16" height="14" rx="2" fill="#ffffff" stroke="#2e7d32" stroke-width="2" stroke-dasharray="5 3"/>
+<text x="664" y="242" class="legend">kept free for late A ULDs</text>
+<text x="905" y="242" class="legend">number = kg</text>
+</svg>

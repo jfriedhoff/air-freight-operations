@@ -21,7 +21,7 @@ Feature: Unreachable databases and queues and unexpected errors are logged
     When <event>
     Then that is logged at level <level>, with the identification of the message or the flight
 
-    # Load Planning has no inbox (coach, 14/10/2026, story 26): a message that arrives twice is only recognized
+    # Load Planning has no inbox (story 26): a message that arrives twice is only recognized
     # when it would create what already exists, such as the cargo of an announced flight.
     Examples:
       | event                                | level |

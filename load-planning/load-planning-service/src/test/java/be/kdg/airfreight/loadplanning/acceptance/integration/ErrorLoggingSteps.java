@@ -147,7 +147,7 @@ public class ErrorLoggingSteps {
     }
 
     /**
-     * Load Planning has no inbox (coach, 14/10/2026): it recognizes a second announcement of the same flight by
+     * Load Planning has no inbox: it recognizes a second announcement of the same flight by
      * the cargo that flight already has, and logs it with the flight.
      */
     @When("a flight announcement arrives twice")

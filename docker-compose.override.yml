@@ -1,8 +1,8 @@
-# Partner-service mock from the course (05 Voorbeelden). Docker Compose merges this file into
-# docker-compose.yml on every command. "name: kdg" was removed so the containers keep their names.
+# Partner-service mock: shows the messages the partners receive. Docker Compose merges this file into
+# docker-compose.yml on every command.
 services:
   partner-service:
-    # Pinned to the image we tested with: :latest can change under us when the course pushes a new version.
+    # Pinned to the image we tested with: :latest can change under us when a new version is pushed.
     # To take a newer version: docker pull ksmeyers/partner-service:latest and copy its digest here.
     image: ksmeyers/partner-service@sha256:12c956b018b0c88b26ad2bfe59db18424f038184d047e9196b758e26c5f3826b
     container_name: partner-service

@@ -3,7 +3,7 @@
 The system has three bounded contexts, each a Spring Boot service with its own database, plus a simulator that
 stands in for the existing source systems. This page is the map for a developer who has to change or extend the
 code. The domain itself (the rules, the ubiquitous language, the context map) is in
-[`architecture/analyse.md`](../architecture/analyse.md), in Dutch.
+[`analysis.md`](analysis.md).
 
 ## In short
 
@@ -51,7 +51,7 @@ The simulator has no domain: its port `StreamPublisher` is in `application`, and
   *inbound adapters*. The rest of `infrastructure` is only used by the inbound adapters.
 - **Inbound adapters** are the classes in `infrastructure` with a `@RabbitListener` or `@Scheduled` method: the
   listeners and the timers (outbox relays, retention). They are the only infrastructure that may call a use case.
-  They stay in `infrastructure/messaging`, as in the course slides.
+  They stay in `infrastructure/messaging`.
 - **The domain does not use the framework:** no dependency on `org.springframework..` or `jakarta..`.
 
 The simulator has `LayerArchTest` instead: `api` → `application` ← `infrastructure`.
@@ -67,7 +67,7 @@ The simulator has `LayerArchTest` instead: `api` → `application` ← `infrastr
 | Change what is stored | [`persistence.md`](persistence.md) |
 | Change an error answer or a log line | [`errors-and-logging.md`](errors-and-logging.md) |
 | Change a policy value (5 min, 12 h / 20 min, 10 %, 7 days) | Configuration only: [`policy-values.md`](policy-values.md) |
-| Add an MVT type, a load check, an aircraft type or a message format | `analyse.md` §10 lists where each one goes |
+| Add an MVT type, a load check, an aircraft type or a message format | [`analysis.md`](analysis.md) §9 lists where each one goes |
 | Change who may do what | [`security-and-tokens.md`](security-and-tokens.md) |
 
 ## The frontends
@@ -100,8 +100,8 @@ its tables when the tests start.
 
 ## References
 
-- [`architecture/analyse.md`](../architecture/analyse.md): the domain, the context map (§5), the deployment (§6), the
-  tactical design (§7) and the design for change (§10).
+- [`analysis.md`](analysis.md): the domain, the context map (§5), the deployment (§6), the
+  tactical design (§7) and the design for change (§9).
 - [`cucumber-acceptance-tests.md`](cucumber-acceptance-tests.md): how the scenarios are written and run.
 - [ArchUnit — User Guide](https://www.archunit.org/userguide/html/000_Index.html): layered architecture rules.
 - [jMolecules](https://github.com/xmolecules/jmolecules): the DDD annotations and their ArchUnit rules.

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Reads back what the simulator sent. A bean of the test source set only, like the course's TestHelper. */
+/** Reads back what the simulator sent. A bean of the test source set only. */
 @Component
 public class StreamProbe {
     private static final long WAIT_FOR_A_MESSAGE_MS = 2000;

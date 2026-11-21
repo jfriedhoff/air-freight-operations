@@ -113,7 +113,7 @@ Feature: Assign, change or clear a load position from the floor plan
     When I place AKE16689R7 on CL
     Then no message is sent to the partners
 
-  # The floor plan on the cargo page (team extension, see the decision "Vloerplan op de cargo-pagina" in REFLECTIE.md, Zelfreflectie 3). Walked through by hand.
+  # The floor plan on the cargo page (an extension beyond the requirements). Walked through by hand.
   @ui
   Scenario: The deck shows free and taken positions
     Given AKE16689R7 is on CL

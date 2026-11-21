@@ -1,7 +1,7 @@
 services:
   app_postgres:
     image: postgres:18.6-alpine
-    restart: unless-stopped            # CHANGED: was "always"; stays stopped if you stop it manually
+    restart: unless-stopped            # stays stopped if you stop it manually
     environment:
       POSTGRES_USER: 'user'
       POSTGRES_PASSWORD: 'password'
@@ -13,11 +13,11 @@ services:
       - kdg-backend
     volumes:
       - ./postgresql/data:/var/lib/postgresql
-      - ./init-scripts/sql:/docker-entrypoint-initdb.d:ro   # CHANGED: read-only, the container never needs to write here
+      - ./init-scripts/sql:/docker-entrypoint-initdb.d:ro   # read-only, the container never needs to write here
 
   app_rabbitmq:
     image: rabbitmq:4.3.6-management
-    restart: unless-stopped            # CHANGED: added, the prof's file had no restart policy here
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: 'user'
       RABBITMQ_DEFAULT_PASS: 'password'
@@ -32,7 +32,7 @@ services:
 
   idp_mysql:
     image: mysql:9.7.2
-    restart: unless-stopped            # CHANGED: added for consistency
+    restart: unless-stopped
     volumes:
       - ./idp_mysql_data:/var/lib/mysql
     environment:
@@ -44,7 +44,7 @@ services:
       - '3307:3306'
     networks:
       - kdg-kc
-    healthcheck:                       # CHANGED: added so Keycloak can wait until MySQL is really ready
+    healthcheck:                       # so Keycloak can wait until MySQL is really ready
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 5s
       timeout: 5s
@@ -52,10 +52,10 @@ services:
 
   idp_keycloak:
     image: quay.io/keycloak/keycloak:26.7.4
-    restart: unless-stopped            # CHANGED: added, retries if it still starts too early
+    restart: unless-stopped            # retries if it still starts too early
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: 'admin'    # CHANGED: KEYCLOAK_ADMIN is the deprecated name
-      KC_BOOTSTRAP_ADMIN_PASSWORD: 'admin'    # CHANGED: idem (KEYCLOAK_ADMIN_PASSWORD)
+      KC_BOOTSTRAP_ADMIN_USERNAME: 'admin'    # KEYCLOAK_ADMIN is the deprecated name
+      KC_BOOTSTRAP_ADMIN_PASSWORD: 'admin'    # idem (KEYCLOAK_ADMIN_PASSWORD)
       KC_DB: 'mysql'
       KC_DB_URL_HOST: 'idp_mysql'
       KC_DB_URL_DATABASE: 'keycloak'
@@ -74,7 +74,7 @@ services:
       - "8180:8080"
     depends_on:
       idp_mysql:
-        condition: service_healthy     # CHANGED: wait for the healthcheck, not just container start
+        condition: service_healthy     # wait for the healthcheck, not just container start
     networks:
       - kdg-kc
 

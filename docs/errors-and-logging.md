@@ -51,7 +51,7 @@ Messaging has no API.
 | A second booking of the same ULD code by another message | `warn` | `BookingService` (Load Planning) |
 | A change that succeeds | `info` with what changed | the controllers of Flight Operations and Load Planning; the services that handle a message (`FlightSchedulingService`, `FinalizedLoadService`, `BookingService`, `ScheduleService`, …); the relays and the retention |
 
-A refused message is retried like any other failure, so its `warn` appears four times (known; see `REFLECTIE.md`).
+A refused message is retried like any other failure, so its `warn` appears four times (a known limitation).
 
 ## Adding a case
 
@@ -66,5 +66,4 @@ A refused message is retried like any other failure, so its `warn` appears four 
 
 - [RFC 9457 — Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457).
 - [Spring Framework — Error Responses](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-ann-rest-exceptions.html): `ProblemDetail` and `@ControllerAdvice`.
-- `architecture/analyse.md` §6 "Foutafhandeling" and "Technische fouten in de log".
-- Course slides 03 (Spring REST): error handling with `@ControllerAdvice`.
+- [`analysis.md`](analysis.md) §6, "Error handling" and "Technical errors in the log".

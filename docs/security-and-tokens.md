@@ -2,8 +2,6 @@
 
 Users log in with Keycloak (realm `air-freight`). The frontend gets tokens from Keycloak and sends the
 access token with every API call. The service checks that token on every request and keeps no session.
-The setup follows the reference project (`ordering-system`, branch `6-security`); the differences are
-listed at the end.
 
 ## In short
 
@@ -81,9 +79,9 @@ frontend module, built into its own service:
 
 **Why not one shared frontend or a backend for frontend?** It would be an extra deployment unit
 that knows the models of both contexts, and it would need its own login and its own calls to
-both services. The case asks for Spring MVC with client-side rendering via fetch, and the course
-builds the Vite frontend into its own service (lesson 03). Two frontends follow the context
-boundaries and need nothing extra.
+both services. The requirements ask for Spring MVC with client-side rendering via fetch, and each
+Vite frontend is built into its own service. Two frontends follow the context boundaries and need
+nothing extra.
 
 **Not done yet:** neither `vite.config.ts` fixes the port of the Vite dev server, so both use
 5173. With both dev servers running, the second moves to 5174, which is not in the
@@ -124,7 +122,7 @@ Reading is open to both planner roles in both contexts; changing is for the role
 both gets no access on any page and from no API. The pages only decide what they offer; each service checks
 the role on every request.
 
-Afmelden ends the Keycloak session. A tab of the other context notices at its next token refresh and goes
+Logging out (Afmelden) ends the Keycloak session. A tab of the other context notices at its next token refresh and goes
 to the login (keycloak-js calls `login()` when the refresh is refused). Until then that tab still holds a
 valid access token, and the services keep no session, so it can still be used for up to the lifetime of the
 access token (5 minutes by default).
@@ -159,30 +157,8 @@ The tests need no Keycloak. They use mocked JWTs (`spring-security-test`); the s
 Keycloak when a real token arrives. See `SecurityConfigTest`, `KeycloakRealmRoleConverterTest` and
 the controller tests.
 
-## Compared with the reference project
-
-The same: `auth.ts` (tokens in memory, PKCE, `authorizedFetch`), `userPresenter.ts`, the stateless
-resource server with issuer and audience, `KeycloakRealmRoleConverter`, the login request in the
-`.http` file.
-
-| Topic | Reference project | This project |
-| --- | --- | --- |
-| Secrets for the HTTP client | In `http-client.private.env.json`, ignored by git | The same |
-| Realm | Created by hand with `keycloak_setup.md`; no secret in the repository | Imported from `keycloak/air-freight-realm.json`; its secrets are placeholders filled from `.env` |
-| Secured services | All three | Flight-operations and load-planning |
-| Token between services | The order service gets a client credentials token to call the product service | None: our services only exchange RabbitMQ messages |
-| Roles | `hasAnyRole("customer", "admin")` on `/api/**` | Exactly one planner role to read; `flight-planner` to change a flight, `load-planner` to change the load |
-| Principal | `preferred_username` | The subject, used as the id of the flight planner or the load planner |
-| CORS | `.cors(Customizer.withDefaults())` | Not needed, see above |
-
 ## References
 
-- Reference project `ordering-system`, branch `6-security`: `auth.ts`, `SecurityConfig`,
-  `KeycloakRealmRoleConverter`.
-- Course slides 03, Spring REST, project setup: the Vite frontend built into the service's
-  `resources/static`, the Vite proxy in development, and CORS.
-- Project case, "Wat gebruikers moeten kunnen zien en doen", "Wie gebruikt het systeem?" and
-  "Technische specificaties": the pages, who may change what, and the technologies.
 - [Keycloak — Server administration guide](https://www.keycloak.org/docs/latest/server_admin/index.html):
   realms, clients and the SSO session shared by the clients of a realm.
 - [Keycloak — JavaScript adapter](https://www.keycloak.org/securing-apps/javascript-adapter):

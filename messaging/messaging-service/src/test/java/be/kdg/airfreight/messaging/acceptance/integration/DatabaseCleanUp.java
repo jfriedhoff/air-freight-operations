@@ -5,7 +5,7 @@ import be.kdg.airfreight.messaging.infrastructure.persistence.jpa.JpaOutgoingMes
 import be.kdg.airfreight.messaging.infrastructure.persistence.jpa.JpaReceivedMessageRepository;
 import io.cucumber.java.After;
 
-/** Every scenario starts with an empty test database, like TestHelper.cleanUp() in the course. */
+/** Every scenario starts with an empty test database. */
 public class DatabaseCleanUp {
     private final JpaReceivedMessageRepository received;
     private final JpaOutgoingMessageRepository outgoing;

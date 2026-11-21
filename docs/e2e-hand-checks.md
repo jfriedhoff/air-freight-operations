@@ -1,8 +1,8 @@
 # Hand checks for the `@e2e` and `@ui` scenarios
 
 Scenarios tagged `@e2e` cross several services, and `@ui` scenarios need a browser, so Cucumber never runs them (see
-`cucumber-acceptance-tests.md`). They are checked by hand: the services, the simulator and the course's
-partner service all run, the flight planner and the load planner use the pages, and the partner service
+`cucumber-acceptance-tests.md`). They are checked by hand: the services, the simulator and the
+partner service mock all run, the flight planner and the load planner use the pages, and the partner service
 shows what the partners receive.
 
 ## In short
