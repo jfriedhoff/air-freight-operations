@@ -11,8 +11,8 @@ what a page offers to which role, and how an error from the server is worded. Th
 - Node runs the TypeScript files as they are: it removes the types and runs the rest (type stripping,
   Node 22.18 or later). Our `tsconfig.json` already allows only syntax that can be removed like that
   (`erasableSyntaxOnly`) and imports with `.ts` at the end, so the code needs no build step first.
-- `./gradlew build` runs them (the `check` task depends on `npm_run_test`). In GitLab every frontend has
-  its own job, `flight-operations-frontend` and `load-planning-frontend` (see [`ci-pipeline.md`](ci-pipeline.md)).
+- `./gradlew build` runs them (the `check` task depends on `npm_run_test`). In the CI pipeline every frontend
+  has its own job, `flight-operations-frontend` and `load-planning-frontend` (see [`ci-pipeline.md`](ci-pipeline.md)).
 - `tsc` also type-checks the test files, so a test that no longer fits the code fails `npm run build`.
 
 ## What is tested
@@ -50,8 +50,7 @@ The rule for new code: put logic that is worth a test in a file that does not to
   `npm test`.
 - Gradle: `./gradlew :flight-operations:flight-operations-frontend:npm_run_test` (or
   `:load-planning:load-planning-frontend:npm_run_test`), or `./gradlew build` for everything.
-- In GitLab the results are in the Tests tab of the pipeline. The job writes them as a JUnit file
-  (`--test-reporter=junit`).
+- In the CI pipeline the results are in the log of the frontend job (`--test-reporter=spec`).
 
 ## Writing a test
 

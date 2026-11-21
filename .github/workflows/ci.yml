@@ -1,0 +1,125 @@
+# Runs the tests of every service in its own job, with its own PostgreSQL and RabbitMQ,
+# and the unit tests and type check of every frontend. See docs/ci-pipeline.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push cancels a run that is still going
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  service-tests:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same database names and users as the test profiles (src/test/resources/application.properties)
+        include:
+          - service: flight-operations
+            module: flight-operations:flight-operations-service
+            database: flight_operations_test
+            databaseUser: flight_operations
+          - service: load-planning
+            module: load-planning:load-planning-service
+            database: load_planning_test
+            databaseUser: load_planning
+          - service: messaging
+            module: messaging:messaging-service
+            database: messaging_test
+            databaseUser: messaging
+          - service: simulator
+            module: simulator:simulator-service
+            database: simulator_test # the simulator has no database; the service is simply unused
+            databaseUser: simulator
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          POSTGRES_DB: ${{ matrix.database }}
+          POSTGRES_USER: ${{ matrix.databaseUser }}
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      rabbitmq:
+        image: rabbitmq:4.3.6-management
+        env:
+          RABBITMQ_DEFAULT_USER: user
+          RABBITMQ_DEFAULT_PASS: password
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 10
+    env:
+      CI_DB_HOST_PORT: localhost:5432
+      CI_RABBIT_HOST: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Tests
+        run: ./gradlew ":${{ matrix.module }}:test"
+      # Sums LINE_MISSED (column 8) and LINE_COVERED (column 9) of the JaCoCo CSV into the job summary
+      - name: Line coverage
+        if: always()
+        run: |
+          csv=$(ls */*/build/reports/jacoco/test/jacocoTestReport.csv 2>/dev/null || true)
+          if [ -n "$csv" ]; then
+            awk -F, 'NR > 1 { missed += $8; covered += $9 } END { printf "Line coverage: %.1f%%\n", 100 * covered / (missed + covered) }' $csv | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ matrix.service }}
+          retention-days: 7
+          path: |
+            */*/build/reports/tests/test/
+            */*/build/reports/jacoco/test/html/
+            */*/build/test-results/test/
+
+  frontend:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: flight-operations-frontend
+            path: flight-operations/flight-operations-frontend
+          - name: load-planning-frontend
+            path: load-planning/load-planning-frontend
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
+      # node --test only strips the types; the tests import only our own code, so no npm install is needed
+      - name: Unit tests
+        run: node --test --test-reporter=spec "src/**/*.test.ts"
+      # tsc checks the types the step above ignores. The install scripts are skipped: tsc runs none of them
+      - name: Type check
+        run: |
+          npm ci --ignore-scripts
+          npx tsc --noEmit

@@ -1,0 +1,37 @@
+# Mutation testing with PIT (docs/mutation-testing-pit.md). It is slow, so it only runs when started by hand:
+# Actions → Mutation tests → Run workflow. PIT runs the unit tests on the domain: no database or RabbitMQ needed.
+name: Mutation tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pit:
+    name: pit-${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: flight-operations
+            module: flight-operations:flight-operations-service
+          - service: load-planning
+            module: load-planning:load-planning-service
+          - service: messaging
+            module: messaging:messaging-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: PIT
+        run: ./gradlew ":${{ matrix.module }}:pitest"
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitest-${{ matrix.service }}
+          retention-days: 7
+          path: '*/*/build/reports/pitest/'

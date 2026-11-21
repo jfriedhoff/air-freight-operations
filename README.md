@@ -1,5 +1,7 @@
 # Air Freight Operations
 
+[![CI](https://github.com/jfriedhoff/air-freight-operations/actions/workflows/ci.yml/badge.svg)](https://github.com/jfriedhoff/air-freight-operations/actions/workflows/ci.yml)
+
 Flight and cargo management for an air freight carrier, built with strategic and tactical **Domain-Driven Design** as event-driven microservices.
 
 Flight planners keep the day's flights up to date (delays, actual departure and arrival times). Load planners place the booked containers and pallets (ULDs) on the main deck of a Boeing 747-400F, run the load checks (lateral balance, offloading order) and finalize the load. A flight can only depart once its load is finalized. Partners follow everything through standard IATA messages (FLM, MVT, CPM), and a simulator stands in for the existing schedule and booking systems.
