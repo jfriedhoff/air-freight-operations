@@ -6,7 +6,7 @@ Flight and cargo management for an air freight carrier, built with strategic and
 
 Flight planners keep the day's flights up to date (delays, actual departure and arrival times). Load planners place the booked containers and pallets (ULDs) on the main deck of a Boeing 747-400F, run the load checks (lateral balance, offloading order) and finalize the load. A flight can only depart once its load is finalized. Partners follow everything through standard IATA messages (FLM, MVT, CPM), and a simulator stands in for the existing schedule and booking systems.
 
-Team project by **Romeo Weyns** and **Jonas Friedhoff** for the Software Architecture course at Karel de Grote University of Applied Sciences (2026–27). Code and documentation are in English; the user interface is in Dutch, as the requirements specified.
+Team project by by **[Romeo Weyns](https://github.com/4chlys)** and **[Jonas Friedhoff](https://github.com/jfriedhoff)** for the Software Architecture course at Karel de Grote University of Applied Sciences (2026–27). Code and documentation are in English; the user interface is in Dutch, as the requirements specified.
 
 ## Architecture
 
